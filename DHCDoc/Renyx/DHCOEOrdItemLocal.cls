@@ -1,5 +1,52 @@
 Class DHCDoc.Renyx.DHCOEOrdItemLocal Extends %RegisteredObject
 {
+	///获取皮试用法
+///s SkinTestInstrStr=##class(web.DHCDocConfig).GetConfigNodeNew("SkinTestInstr",CurHospId)
+/// 
+/// w ##class(web.DHCOEOrdItemLocal).GetArcItemManufacturer("404||1")
+ClassMethod GetArcItemManufacturer(ArcItemId As %String)
+{
+	s INFORowId=$o(^INCI(0,"ARCIM_DR",+ArcItemId,0))
+	q:INFORowId="" ""
+	s ManufacturerDr=$p($g(^DHCITMINFO(INFORowId)),"^",48)
+	q:ManufacturerDr="" ""
+	s Manufacturer=$p($g(^PHMNF(ManufacturerDr)),"^",2)
+	q Manufacturer
+	s DrgMastId=$p($g(^ARCIM(+ArcItemId,$p(ArcItemId,"||",2),1)),"^",12)
+	
+	//s ManufacturerDr=$p($g(^PHCD(+DrgMastId,"DF",$p(DrgMastId,"||",2),2)),"^",4)
+	
+	s ManufacturerDr=$p($g(^PHCD(+DrgMastId,2)),"^",4)
+	
+	s Manufacturer=$p($g(^PHMNF(ManufacturerDr)),"^",2)
+	q Manufacturer
+}
+
+/// w ##class(web.DHCOEOrdItemLocal).CheckSkinTestByArcItem("404||1")
+ClassMethod CheckSkinTestByArcItem(ArcItemDr As %String)
+{
+	s ^tempren("ArcItemDr")=ArcItemDr
+	s PHCSkinTestId=$o(^CF.PHA.IN.SkinTesti("ARCIM",ArcItemDr,0))
+	q:PHCSkinTestId="" ""
+	s StartDate=$p($g(^CF.PHA.IN.SkinTest(PHCSkinTestId)),"^",8)
+	s EndDate=$p($g(^CF.PHA.IN.SkinTest(PHCSkinTestId)),"^",9)
+	q:(+StartDate>+$h)||((EndDate'="")&&(+EndDate<+$h)) ""
+	q "1"
+}
+
+ClassMethod test()
+{
+	//s ParamArr("OrderTreatment")=""
+    s OrderTreatment=##class(web.DHCOEOrdItemLocal).CheckSkinTestByArcItem(OrderARCIMRowid)
+    s PAAdmType=##class(web.DHCDocOrderEntry).GetPAAdmType(EpisodeID)
+    if (PAAdmType="O")&&(OrderTreatment="1")&&($g(ParamArr("OrderType"))="R"){
+	    s CallBackFunParams=OrderName_"是可皮试医嘱，请确认是否用做治疗！！！"
+		//s CallBackFunStr=..GetCallBackFunStr(CallBackFunStr,"OrderTreatment",CallBackFunParams)
+    }
+	if (OrderDirectEntryAuth="N"){
+		q OutInfo
+	}
+}
 
 /// 判断是否有国家重点监控药品  
 /// desc   判断当天是是否有有效的执行记录    
