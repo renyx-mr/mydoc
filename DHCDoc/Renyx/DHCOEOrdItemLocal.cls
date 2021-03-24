@@ -2,8 +2,9 @@ Class DHCDoc.Renyx.DHCOEOrdItemLocal Extends %RegisteredObject
 {
 	///获取皮试用法
 ///s SkinTestInstrStr=##class(web.DHCDocConfig).GetConfigNodeNew("SkinTestInstr",CurHospId)
-/// 
+
 /// w ##class(web.DHCOEOrdItemLocal).GetArcItemManufacturer("404||1")
+/// 获取医嘱项的厂商  
 ClassMethod GetArcItemManufacturer(ArcItemId As %String)
 {
 	s INFORowId=$o(^INCI(0,"ARCIM_DR",+ArcItemId,0))
@@ -23,6 +24,7 @@ ClassMethod GetArcItemManufacturer(ArcItemId As %String)
 }
 
 /// w ##class(web.DHCOEOrdItemLocal).CheckSkinTestByArcItem("404||1")
+/// 判断该医嘱是不是皮试配置医嘱  
 ClassMethod CheckSkinTestByArcItem(ArcItemDr As %String)
 {
 	s ^tempren("ArcItemDr")=ArcItemDr
