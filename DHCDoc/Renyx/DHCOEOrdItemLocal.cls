@@ -1,8 +1,40 @@
 Class DHCDoc.Renyx.DHCOEOrdItemLocal Extends %RegisteredObject
 {
 	///获取皮试用法
-///s SkinTestInstrStr=##class(web.DHCDocConfig).GetConfigNodeNew("SkinTestInstr",CurHospId)
-
+///s SkinTestInstrStr=##class(web.DHCDocConfig).GetConfigNode("SkinTestInstr",CurHospId)
+/// 判断是否有皮试医嘱
+/// w ##class(web.DHCOEOrdItemLocal).CheckSkinTestByAdm
+ClassMethod CheckSkinTestByAdm(AdmId As %String, ArcItemId As %String, HospId As %String)
+{
+	//s ^tempRen("CheckSkinTestByAdm")=$lb(AdmId , ArcItemId , HospId)
+	s RetStr="0"
+	s OrderId=$o(^OEORD(0,"Adm",AdmId,0))
+	
+	q:OrderId="" RetStr
+	s OrdDate=0
+	s SkinTestInstrStr=##class(web.DHCDocConfig).GetConfigNode("SkinTestInstr",HospId)
+	for{
+		s OrdDate=$o(^OEORDi(0,"ARCIM",OrderId,ArcItemId,OrdDate))
+		q:(OrdDate="")||(RetStr="1")
+		s OrdSub=0
+		for {
+			s OrdSub=$o(^OEORDi(0,"ARCIM",OrderId,ArcItemId,OrdDate,OrdSub))
+			q:(OrdSub="")||(RetStr="1")
+			s ItemStatId=$p($g(^OEORD(OrderId,"I",OrdSub,1)),"^",13)
+			if (ItemStatId'=""){
+				s StatCode=$p($g(^OEC("OSTAT",ItemStatId)),"^",1)
+				//过滤已经作废  停止   撤销的
+				continue:(StatCode="U")||(StatCode="D")||(StatCode="C")
+			}
+			s InstrId=$p($g(^OEORD(OrderId,"I",OrdSub,2)),"^",7)
+			s SkinTest=$p($g(^OEORD(OrderId,"I",OrdSub,5)),"^",2)
+			continue:("^"_SkinTestInstrStr_"^")'[("^"_InstrId_"^") //&&(SkinTest="N")
+			s RetStr="1"
+		}
+	}
+	q RetStr
+	;^OEORDi(0,"ARCIM",{OE_Order.OEORD_RowId},{OEORI_ItmMast_DR},{OEORI_SttDat},{OEORI_Childsub})
+}
 /// w ##class(web.DHCOEOrdItemLocal).GetArcItemManufacturer("404||1")
 /// 获取医嘱项的厂商  
 ClassMethod GetArcItemManufacturer(ArcItemId As %String)
