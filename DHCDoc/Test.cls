@@ -18,7 +18,7 @@ ClassMethod SelectByPAPERIDExecute(ByRef qHandle As %Binary, SPAPERID As %String
 	Set TPAPERDob=""
 	Set TPAPERID=""
 	Set TPAPERName=""
- Set TPAPERNationDR=""
+ 	Set TPAPERNationDR=""
 	Set TPAPEROccupationDR=""
 	Set TPAPERSexDR=""
 	Set TPAPERSocialStatusDR=""
