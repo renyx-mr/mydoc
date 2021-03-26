@@ -1,5 +1,69 @@
 Class DHCDoc.Renyx.DHCOEOrdItemLocal Extends %RegisteredObject
 {
+
+/// w ##class(web.DHCOEOrdItemLocal).CheckInsertArcItem
+/// 判断多系统和单系统的医嘱
+/// 设置检查医嘱属于单系统还是多系统，单系统医嘱不能跨“系统开多个部位”，只能选择一个系统内的一个或者多个部位；多系统医嘱不能只选择单一系统内的部位，只选择一个系统时在发送申请单时给予提示  
+ClassMethod CheckInsertArcItem(mItmListData As %String, ArcItemId As %String, TraID As %String, HospId As %String)
+{
+	s ^TempRen("CheckInsertArcItem")=$lb(mItmListData,ArcItemId,TraID,HospId)
+	;多系统医嘱  
+	s MultiSystemArcim=##class(DHCDoc.DHCDocConfig.LocalConfig).GetLocalConfigValue("OPDoc","MultiSystemArcim",HospId)
+	;单系统医嘱
+	s SingleSystemArcim=##class(DHCDoc.DHCDocConfig.LocalConfig).GetLocalConfigValue("OPDoc","SingleSystemArcim",HospId)
+	s InputObj=##class(%DynamicAbstractObject).%FromJSON(mItmListData)
+	k PartTypeList
+	s PartTypeInt=0
+	for ListDataInt=0:1:(InputObj.%Size()-1){
+		Set OneDataObj=InputObj.%Get(ListDataInt)
+		s ItemID=OneDataObj.ItemID
+		;TRA_Part_Dr->AP_Desc,TRA_Part_Dr->AP_PartNum,
+		&sql(SELECT TRA_Part_Dr->AP_LastRowid,TRA_Part_Dr->AP_Hosp_Dr
+			INTO :LastRowid,:HospDr
+			FROM SQLUser.DHC_AppTreeLink 
+			WHERE TRA_Arc_Dr=:ArcItemId AND TRA_Add_ParRef=:TraID AND TRA_Part_Dr=:ItemID)
+		continue:HospDr'=HospId
+		continue:LastRowid=""
+		;b //s PartTypeInt=PartTypeInt+1
+		if ('$d(PartTypeList(LastRowid))){
+			s PartTypeInt=PartTypeInt+1
+		}
+		s PartTypeList(LastRowid)=LastRowid
+	}
+	s MyArcItemId="!"_ArcItemId_"!"
+	s RetStr=""
+	if (SingleSystemArcim[MyArcItemId)&&(PartTypeInt>1){
+		s RetStr="1" 
+	}
+	if (MultiSystemArcim[MyArcItemId)&&(PartTypeInt<=1){
+		s RetStr="2"
+	}
+	q RetStr
+}
+
+/// CoverMainIns=$p($g(^OEORD(OrderRowid,"I",SubOrd,3)),"^",3)
+ClassMethod UpdateCoverMainIns(OrdItemId As %String, UserId As %String)
+{
+	s MyCoverMainIns=""
+	ts
+	try{
+		s CoverMainIns=$p($g(^OEORD(+OrdItemId,"I",$P(OrdItemId,"||",2),3)),"^",3)
+		
+		s:CoverMainIns="N" MyCoverMainIns="Y"
+		s:CoverMainIns="Y" MyCoverMainIns="N"
+		s:CoverMainIns="" MyCoverMainIns="Y"
+		s $p(^OEORD(+OrdItemId,"I",$P(OrdItemId,"||",2),3),"^",3)=MyCoverMainIns
+		s InsertDesc=$P($G(^SSU("SSUSR",UserId)),"^",2)_"在"_$zd(+$h,3)_" "_$zt($p($h,",",2),1)_"将医保标志由"_CoverMainIns_"改为"_MyCoverMainIns
+		;添加一般日志的记录
+		d ##class(DHCDoc.Log.Common).General("Insert","web.DHCOEOrdItemLocal","UpdateCoverMainIns","修改医嘱医保标志",OrdItemId,InsertDesc)
+	
+	}catch exp  {
+		tro
+		s MyCoverMainIns=""
+	}
+	tc
+	q MyCoverMainIns
+}
 	///获取皮试用法
 ///s SkinTestInstrStr=##class(web.DHCDocConfig).GetConfigNode("SkinTestInstr",CurHospId)
 /// 判断是否有皮试医嘱

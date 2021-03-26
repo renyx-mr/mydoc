@@ -1,1 +1,14 @@
 git push -u origin master
+
+InterSystems ObjectScript 的settings的设置
+
+"objectscript.conn": {
+        "host": "127.0.0.1", // 连接数据库IP
+        "port": 57772, // 连接数据库端口
+        "username": "_system", // 用户名
+        "password": "SYS", // 密码
+        "ns": "dhc-app", // 命名空间
+        "active": true, // 是否开启
+        "https": true,
+        "server": "default~cache" // intersystems.servers中设置的数据库服务器名
+    },
