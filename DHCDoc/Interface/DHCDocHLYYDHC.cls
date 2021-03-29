@@ -43,10 +43,8 @@ ClassMethod GetPrescInfo(EpisodeID As %String, OrderStr As %String, DocName As %
     q PatInfo
 }
 /// 获取插入的医嘱信息  
-ClassMethod () As %Status
+ClassMethod GetInsertItemOrder(OrderStr As %String) As %Status
 {
-    Set sc = $$$OK
-    // do something
-    Return sc
+    
 }
 }
