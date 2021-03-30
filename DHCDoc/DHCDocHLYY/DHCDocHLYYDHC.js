@@ -27,9 +27,8 @@ function HLYYYDTS_Click(){
 	var ArcimInfo=tkMakeServerCall("web.DHCDocHLYYInterface","GetArcimInfo",OrderARCIMRowid);
 	var OrderARCIMCode=mPiece(ArcimInfo,"^",0); //医嘱code
 	var OrderName=mPiece(ArcimInfo,"^",1); //医嘱描述
-	//PassFuncs.MKFuncs.MKYDTS(OrderARCIMCode,OrderName);
-    var IncId=""
-	window.open("dhcckb.wiki.csp?IncId="+IncId+"&IncCode="+OrderARCIMCode+"&IncDesc="+OrderName);
+	PassFuncs.DHCFuncs.DHCYDTS(OrderARCIMCode,OrderName);
+   
 }
 
 ///通用药品相互作用
@@ -42,43 +41,96 @@ function XHZYClickHandler_HLYY(){
 }
 
 ///审查方法
-function HYLLUpdateClick_HLYY(){
-	var XHZYRetCode =0,HLYYCheckFlag=0;
-	if (GlobalObj.McSynCheckMode=="0"){
-	    //美康同步审查
-	    if (GlobalObj.HLYYLayOut=="OEOrd"){
-			XHZYRetCode =PassFuncs.DHCFuncs.HisScreenData();
-		}else{
-			XHZYRetCode =PassFuncs.DHCFuncs.HisScreenDataCM();
-		}
-	    HLYYCheckFlag =1 ;
-	}else{
-		if (GlobalObj.HLYYLayOut=="OEOrd"){
-			PassFuncs.DHCFuncs.MKXHZYNoView();
-		}else{
-			PassFuncs.MKFuncs.MKXHZYNoViewCM();
-		}
+function DHCUpdateClick_HLYY(CallBackFunc,OrderItemStr,Mode){
+	if (Mode=="Check") {	//干预
+		var rtn=DHCUpdateClick_Check(CallBackFunc,OrderItemStr);
 	}
-	if (HLYYCheckFlag==1){
-		if (XHZYRetCode > 0){
-			var PrescCheck =dhcsys_confirm("合理用药检查有警告，你确认通过吗?", true);
-			if (PrescCheck ==false) {
-				return "-1"
-			}
-		}
-		return 0;
-	}else{
-		return 100
+	if (Mode=="Save") {		//保存
+		var rtn=DHCUpdateClick_Save(CallBackFunc,OrderItemStr);
 	}
+	return;
+}
+function DHCUpdateClick_Check(CallBackFunc,OrderItemStr) {
+	var HLYYInfo=PassFuncs.DHCFuncs.DHCXHZY();
+	//var HLYYInfo=tkMakeServerCall("web.DHCDocHLYYHZYY","CheckHLYYInfo",GlobalObj.EpisodeID,OrderItemStr,GlobalObj.HLYYLayOut,HZYYLogicObj.ExpStr);
+	//dhcsys_alert("Check=="+HLYYInfo,"500")
+	if ((HLYYInfo=="")||(HLYYInfo==null)||(typeof HLYYInfo=="undefined")) {
+		//不需要调用合理用药或者程序异常
+		//return true;
+		CallBackFunc(true);
+		return;
+	}
+	var HLYYArr=HLYYInfo.split("^");
+	if (HLYYArr[0]==0){
+		//错误等级<8
+		if (HLYYArr[1]!="") {
+			//存在问题提示是否修改
+			/*HLYYArr[1]=HLYYArr[1].replace(/\<br>/g, "\n")
+			var rtn=dhcsys_confirm("合理用药提示:"+"\n"+HLYYArr[1]+"\n"+"是否继续审核?","","","","500");
+			if (rtn) {return true;}else{return false;}*/
+			$.messager.confirm('确认对话框',"合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"是否继续审核?", function(r){
+				if (r) {CallBackFunc(true);}else{CallBackFunc(false);}
+			});
+		}else{
+			//不存在问题
+			//return true;
+			CallBackFunc(true);
+		}
+	}else if (HLYYArr[0]==-1){
+		//错误等级>=8
+		//dhcsys_alert("合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"请返回修改","500");
+		//return false;
+		$.messager.alert("提示", "合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"请返回修改", "info",function(){
+			CallBackFunc(false);
+		});
+	}else{
+		//var rtn=dhcsys_confirm("合理用药干预系统异常:"+"\n"+HLYYArr[1]+"\n"+"请联系信息科!若确认审核医嘱请点击【确定】","","","","500");
+		//if (rtn) {return true;}else{return false;}
+		$.messager.confirm('确认对话框',"合理用药干预系统异常:"+"<br>"+HLYYArr[1]+"<br>"+"请联系信息科!若确认审核医嘱请点击【确定】", function(r){
+			if (r) {CallBackFunc(true);}else{CallBackFunc(false);}
+		});
+	}
+	return;
 }
 
+function DHCUpdateClick_Save(CallBackFunc,OrderItemStr) {
+	return "";
+	var HLYYInfo=$.cm({
+		ClassName:"web.DHCDocHLYYHZYY",
+		MethodName:"SaveHLYYInfo",
+		dataType:"text",
+		EpisodeID:GlobalObj.EpisodeID,
+		OrderStr:OrderItemStr,
+		ExpStr:HZYYLogicObj.ExpStr
+	},false);
+	//var HLYYInfo=tkMakeServerCall("web.DHCDocHLYYHZYY","SaveHLYYInfo",GlobalObj.EpisodeID,OrderItemStr,HZYYLogicObj.ExpStr);
+	//dhcsys_alert("Save=="+HLYYInfo,"500")
+	if ((HLYYInfo=="")||(HLYYInfo==null)||(typeof HLYYInfo=="undefined")) {
+		//不需要调用合理用药或者程序异常
+		//return true;
+		CallBackFunc(true);
+		return;
+	}
+	var HLYYArr=HLYYInfo.split("^");
+	if (HLYYArr[0]!=0){
+		//dhcsys_alert("合理用药保存系统异常:"+"<br>"+HLYYArr[1]+"<br>"+"请联系信息科!","500");
+		$.messager.alert("提示","合理用药保存系统异常:"+"<br>"+HLYYArr[1]+"<br>"+"请联系信息科!", "info",function(){
+			CallBackFunc(true);
+		});
+	}
+	return;
+}
 var DHCRecipeDataObj={};
 var PassFuncs={
 	DHCFuncs:{
         DHCYDTS:function(OrderARCIMCode,OrderName){
-			this.MCInit();
-			this.HisQueryData(OrderARCIMCode,OrderName);
-			MDC_DoRefDrug(11)
+			var IncId=""
+			linkUrl="dhcckb.wiki.csp?IncId="+IncId+"&IncCode="+OrderARCIMCode+"&IncDesc="+OrderName
+			websys_showModal({
+				url:linkUrl,
+				title:'药品说明书',
+				width:screen.availWidth-200,height:screen.availHeight-200
+			});
 		},
 		DHCXHZY:function(){
 			var PdssObj=this.HisQueryAdmInfoData();
@@ -90,7 +142,11 @@ var PassFuncs={
 			PdssObj.ItemDis=AdmDiagnos;
 			PdssObj.ItemOrder=AdmOrdItem.ItemOrder;
 			PdssObj.ItemHisOrder=AdmOrdItem.ItemHisOrder;
-			pdss.refresh(PdssObj, null, 1);  /// 调用审查接口 
+			PdssObj.ItemAyg=this.HisAllergiesData();
+			PdssObj.ItemOper=this.HisOperationsData();
+			var DHCPdss = new PDSS({});
+			DHCPdss.refresh(PdssObj, null, 1);  /// 调用审查接口 
+			return DHCPdss;
 		},
 		DHCXHZYCM:function(){
 			var PdssObj=this.HisQueryAdmInfoData();
@@ -102,7 +158,53 @@ var PassFuncs={
 			PdssObj.ItemDis=AdmDiagnos;
 			PdssObj.ItemOrder=AdmOrdItem.ItemOrder;
 			PdssObj.ItemHisOrder=AdmOrdItem.ItemHisOrder;
-			pdss.refresh(PdssObj, null, 1);  /// 调用审查接口 
+			PdssObj.ItemAyg=this.HisAllergiesData();
+			PdssObj.ItemOper=this.HisOperationsData();
+			var DHCPdss = new PDSS({});
+			DHCPdss.refresh(PdssObj, null, 1);  /// 调用审查接口
+			return DHCPdss;
+		},
+		HisOperationsData:function(){
+			var EpisodeID=GlobalObj.EpisodeID;
+			if (EpisodeID==""){
+				return false;
+			}
+			//获取患者过敏信息 
+			var OperationsInfo=tkMakeServerCall("web.DHCDocHLYYMKDHCDoc.Interface.DHCDocHLYYDHC","GetOperationsInfo",EpisodeID);
+			if (OperationsInfo="") {
+				return false;
+			}
+			var ArrayOperations = new Array();
+			var OperationsInfoArr=OperationsInfo.split(String.fromCharCode(1));
+			for(var i=0; i<OperationsInfoArr.length ;i++){			
+				var OperationsArr=OperationsInfoArr[i].split("^");
+		      	var Operations;       
+				Operations.id = OperationsArr[0];        //诊断编码
+		      	Operations.item = OperationsArr[1];     //诊断名称
+				  ArrayOperations[ArrayOperations.length] = Operations;    
+			}
+			return ArrayOperations;
+		},
+		HisAllergiesData:function(){
+			var EpisodeID=GlobalObj.EpisodeID;
+			if (EpisodeID==""){
+				return false;
+			}
+			//获取患者过敏信息 
+			var AllergiesInfo=tkMakeServerCall("web.DHCDocHLYYMKDHCDoc.Interface.DHCDocHLYYDHC","GetAllergiesInfo",EpisodeID);
+			if (AllergiesInfo="") {
+				return false;
+			}
+			var ArrayAllergies = new Array();
+			var AllergiesInfoArr=AllergiesInfo.split(String.fromCharCode(1));
+			for(var i=0; i<AllergiesInfoArr.length ;i++){			
+				var Allergiesrr=AllergiesInfoArr[i].split("^");
+		      	var Allergies;       
+				Allergies.id = Allergiesrr[0];        //诊断编码
+		      	Allergies.item = Allergiesrr[1];     //诊断名称
+				ArrayAllergies[ArrayAllergies.length] = Allergies;    
+			}
+			return ArrayAllergies;
 		},
 		HisQueryAdmInfoData:function(){
 			var EpisodeID=GlobalObj.EpisodeID;
@@ -156,55 +258,12 @@ var PassFuncs={
 			}
 			return ArrayMedCond;
 		},
-		HisQueryOrdDataCM:function(){
-			var Orders="";
-			var Para1=""
-			var OrderRecDepRowid=$('#RecLoc').combobox('getValue');
-			var PrescDurRowid=$("#PrescInstruction").combobox('getValue');
-			var PrescFrequenceRowid=$("#PrescFrequence").combobox('getValue');
-			var PrescInstructionID=$("#PrescInstruction").combobox('getValue');
-			var PrescDurationRowid=$("#PrescDuration").combobox('getValue');
-			var PrescOrderQty=$('#PrescOrderQty').combobox('getText')
-			var OrderPriorRowid=$('#PrescPrior').combobox('getValue');
-			var PrescAppenItemQty=$('#PrescAppenItemQty').val();
-			var CurrDateTime = tkMakeServerCall("web.DHCDocOrderCommon","GetCurrentDateTime",PageLogicObj.defaultDataCache, "1");
-		    var CurrDateTimeArr = CurrDateTime.split("^");
-		    var CurrDate = CurrDateTimeArr[0];
-		    var CurrTime = CurrDateTimeArr[1];
-		    var OrderSeqNo=0;
-		    var rows=$('#CMOrdEntry_DataGrid').getGridParam("records");	
-			for(var i=1;i<=rows;i++){
-				var Row=i;
-				for (var j=1;j<=GlobalObj.ViewGroupSum;j++){
-				   var OrderARCIMRowid=$("#"+i+"_OrderARCIMID"+j+"").val(); 
-				   if (OrderARCIMRowid!=""){
-					    var OrderName=$("#"+i+"_OrderName"+j+"").val(); 
-						var OrderDoseQty=$("#"+i+"_OrderDoseQty"+j+"").val();
-						var OrderPhSpecInstr=$("#"+i+"_OrderPhSpecInstr"+j+"").find("option:selected").text()
-						OrderItem=OrderARCIMRowid+"^"+OrderDoseQty+"^"+OrderPhSpecInstr+"^"+i+"^"+j;
-						var OrderHiddenPara = $("#"+i+"_OrderHiddenPara"+j+"").val();
-						var OrderDrugFormRowid = mPiece(OrderHiddenPara, String.fromCharCode(3), 2);
-						var PHCDoseUOMDesc = mPiece(OrderHiddenPara, String.fromCharCode(3), 9);
-		                var PHCDoseUOMRowid = mPiece(OrderHiddenPara, String.fromCharCode(3), 10);
-						var MasterSeqNo="";
-						if (Orders!=""){
-							var MasterSeqNo=1;
-						}
-						var OrderSeqNo=OrderSeqNo+1;
-				   		Para1=OrderARCIMRowid+"!"+OrderDoseQty+"!"+PHCDoseUOMRowid;
-					    Para1=Para1+"!"+PrescFrequenceRowid+"!"+PrescDurationRowid+"!"+PrescInstructionID+"!"+OrderDrugFormRowid+"!"+OrderSeqNo+"!"+OrderSeqNo+"!"+MasterSeqNo;
-						if ((OrderARCIMRowid!="")){
-							if (Orders==""){Orders=Para1}else{Orders=Orders+"^"+Para1}
-						}
-				   }
-			    }
-			}
-			if (Orders==""){return false;}
-			var DocName=session['LOGON.USERNAME'];
+		HisQueryOrdDataCM:function(OrderItemStr){
+			if (OrderItemStr==""){return false;}
 			var EpisodeID=GlobalObj.EpisodeID;
 			if (EpisodeID==""){return false;}
 			//获取医嘱信息  
-			var RetOrderInfo=tkMakeServerCall("web.DHCDocHLYYMKDHCDoc.Interface.DHCDocHLYYDHC","GetInsertItemOrder",EpisodeID,Orders);
+			var RetOrderInfo=tkMakeServerCall("web.DHCDocHLYYMKDHCDoc.Interface.DHCDocHLYYDHC","GetInsertItemOrder",EpisodeID,OrderItemStr);
 			if (RetOrderInfo=""){
 				return false;
 			}
@@ -258,48 +317,13 @@ var PassFuncs={
 			}
 			OutPutObj.ItemHisOrder = ArrayHisOrder;
 		},
-        HisQueryOrdData:function (){
-            DHCRecipeDataObj={};
-            var Orders="";
-			var Para1=""
-			var rowids=$('#Order_DataGrid').getDataIDs();
-			for(var i=0;i<rowids.length;i++){
-				var Row=rowids[i];
-				var OrderItemRowid=GetCellData(Row,"OrderItemRowid");
-				var OrderARCIMRowid=GetCellData(Row,"OrderARCIMRowid");
-				var OrderType=GetCellData(Row,"OrderType");
-				var OrderDurRowid=GetCellData(Row,"OrderDurRowid");
-				var OrderFreqRowid=GetCellData(Row,"OrderFreqRowid");
-				var OrderInstrRowid=GetCellData(Row,"OrderInstrRowid");
-				var OrderDoseQty=GetCellData(Row,"OrderDoseQty");
-				var OrderDoseUOMRowid=GetCellData(Row,"OrderDoseUOMRowid");
-		    	var OrderDrugFormRowid=GetCellData(Row,"OrderDrugFormRowid");
-				var OrderPHPrescType=GetCellData(Row,"OrderPHPrescType");
-				var OrderPriorRowId=GetCellData(Row,"OrderPriorRowid");
-				var OrderSeqNo=GetCellData(Row,"id");
-				var OrderPackQty = GetCellData(Row,"OrderPackQty");
-				var OrderPackUOMRowid = GetCellData(Row, "OrderPackUOMRowid");
-				//$(Row+"_OrderMKLight").html(str);
-				var OrderMasterSeqNo=GetCellData(Row,"OrderMasterSeqNo");
-				//var obj=document.getElementById("McRecipeCheckLight_"+OrderSeqNo,Row);
-			    //判断是否处理草药
-			    if ((OrderPHPrescType==3)&&(DTCheckCNMed!="1")){continue;}
-			    if (OrderType!="R") {continue;}
-			    if (OrderARCIMRowid=="") {continue;}
-			    if (OrderItemRowid!="") {continue;}
-			    Para1=OrderARCIMRowid+"!"+OrderDoseQty+"!"+OrderDoseUOMRowid;
-			    Para1=Para1+"!"+OrderFreqRowid+"!"+OrderDurRowid+"!"+OrderInstrRowid+"!"+OrderDrugFormRowid+"!"+OrderPriorRowId+"!"+OrderSeqNo+"!"+Row+"!"+OrderMasterSeqNo;
-				Para1=Para1+"!"+OrderPackQty+"!"+OrderPackUOMRowid;
-				if ((OrderARCIMRowid!="")&&(OrderItemRowid=="")&&(OrderType=="R")){
-					if (Orders==""){Orders=Para1}else{Orders=Orders+"^"+Para1}
-				}
-			}
-			if (Orders==""){return false;}
+        HisQueryOrdData:function (OrderItemStr){
+			if ((OrderItemStr=="")||(OrderItemStr="undefined")){return false;}
 			///var DocName=session['LOGON.USERNAME'];
 			var EpisodeID=GlobalObj.EpisodeID;
-			
+			if ((EpisodeID=="")||(EpisodeID="undefined")){return false;}
 			//获取医嘱信息  
-			var RetOrderInfo=tkMakeServerCall("web.DHCDocHLYYMKDHCDoc.Interface.DHCDocHLYYDHC","GetInsertItemOrder",EpisodeID,Orders);
+			var RetOrderInfo=tkMakeServerCall("web.DHCDocHLYYMKDHCDoc.Interface.DHCDocHLYYDHC","GetInsertItemOrder",EpisodeID,OrderItemStr);
 			if (RetOrderInfo=""){
 				return false;
 			}
