@@ -10,11 +10,27 @@ Class DHCDoc.Interface.DHCDocHLYYDHC Extends web.DHCDocHLYY
 /// Return:       新产品组返回信息
 ClassMethod SaveHLYYInfo(EpisodeID As %String, OrderStr As %String, ExpStr As %String)
 {
+	s OrdItemStr=""
+	f i=1:1:$l(OrderStr,"^") {
+		s OrderOne=$p(OrderStr,"^",i)
+		s ARCIMRowid=$p(OrderOne,"*",1)
+		continue:ARCIMRowid=""
+		s DrugFlag=##class(web.DHCDocHLYYHZYY).CheckIsDrugItem(ARCIMRowid)
+		continue:DrugFlag'="Y"
+		s OEORIRowId=$p(OrderOne,"*",2)
+		continue:OEORIRowId=""
+		s PrescNo=$p($g(^OEORD(+OEORIRowId,"I",$p(OEORIRowId,"||",2),1)),"^",14)
+		continue:PrescNo=""
+		if OrdItemStr="" OrdItemStr=OEORIRowId_"^^"
+		else  OrdItemStr=OrdItemStr_"&&"_OEORIRowId_"^^"
+	}
+	q:OrdItemStr="" ""
 	s UserId = $p(ExpStr,"^",1)
 	s MsgId = $p(ExpStr,"^",2)
 	s Date=$zd(+$h,3)
 	s Time=$zt($p($h,"2"),1)
-	q ##Class(web.DHCCKBService).FeedBack(MsgId, UserId, date, time, ordItemStr, userType) 
+	
+	q ##Class(web.DHCCKBService).FeedBack(MsgId, UserId, Date, Time, OrdItemStr, "Doc") 
 }
 /// Creator:      renyx
 /// CreatDate:    2021-3-30

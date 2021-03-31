@@ -7,30 +7,31 @@ ClassMethod test(arg...) As %Status
 }
 /// 如果入院第一天开的医嘱中有入参医嘱
 ///2482||1^2479||1^2484||1^2483||1
-ClassMethod GetSameOrdItemByExec(AdmId As %String,OrdItemStr As %String) 
+ClassMethod GetSameOrdItemByExec(AdmId As %String,ArcItemStr As %String) 
 {
     s RetStr=""
     set InCharDate=$P(^PAADM(AdmId),"^",6)
-    for i=1:1:$l(OrdItemStr,"^"){
+	s OrderRowid=$o(^OEORD(0,"Adm",+PAADMRowid,""))
+    for i=1:1:$l(ArcItemStr,"^"){
         q:(RetStr'="")
-        s OrdItem=$p(OrdItemStr,"^",i)
-        continue:OrdItem=""
-        s OrderRowid=+OrdItem
-        s itemsub=$p(OrdItem,"||",2)
-        s itemrowid=$p($g(^OEORD(OrderRowid,"I",itemsub,1)),"^",2) 
-	    continue:itemrowid=""
-        continue:'$d(^ARCIM(+itemrowid,$p(itemrowid,"||",2)))
-	    s sttdate=$p($g(^OEORD(OrderRowid,"I",itemsub,1)),"^",9)
-	    continue:InCharDate'=sttdate
-        s Sub=0 
-        f {
-            s Sub=$O(^OEORD(OrderRowid,"I",itemsub,"X",Sub)) 
-            q:((Sub="")||(RetStr'=""))
-	        s ExeDate=$P(^OEORD(OrderRowid,"I",itemsub,"X",Sub),"^",1)
-	        q:InCharDate'=ExeDate
-            s RetStr=OrdItem
-        }
-    }
+        s ArcItem=$p(ArcItemStr,"^",i)
+        continue:ArcItem=""
+		continue:'$d(^ARCIM(+ArcItem,$p(ArcItem,"||",2)))
+		s ArcItemDesc=$p($g(^ARCIM(+ArcItem,$p(ArcItem,"||",2),1)),"^",2)
+		s Childsub=0
+		for {
+			s Childsub=$o(^OEORDi(0,"ARCIM",OrderRowid,ArcItem,InCharDate,Childsub))
+			q:Childsub=""
+			s Sub=0 
+			f {
+				s Sub=$O(^OEORD(OrderRowid,"I",Childsub,"X",Sub)) 
+				q:((Sub="")||(RetStr'=""))
+				s ExeDate=$P(^OEORD(OrderRowid,"I",Childsub,"X",Sub),"^",1)
+				continue:InCharDate'=ExeDate
+				s RetStr=OrderRowid_"||"_Childsub
+			}
+		}
+	}
     q RetStr
 }
 /// w ##class(web.DHCDocCommon).FindSameItemByExec(1000121,"1129||1")
