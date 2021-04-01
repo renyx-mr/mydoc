@@ -1075,5 +1075,175 @@ QueryAdmScheduleErrNew
 	d ..SetOutputCode(.OutputObj,"-100","QueryAdmSchedule调用异常"_$TR($TR($ZE,"<","!!"),">","!!"))
     q OutputObj
 }
+ClassMethod UpdatePatientInfo(JsonInput, ExtUserID)
+{
+	s $ZTRAP="UpdatePatientInfoErr"
+	s obj=##class(DHCDoc.Util.XMLParse).XMLToObj(##class(DHCDoc.Util.XMLParse).JSONToXML(JsonInput,"Request"))
+	s PatHisId=obj.patientHisId	;string	是	患者在HIS系统的标识		P101010100
+	s PatIdType=obj.patientIdTypeId	;int	否（普通患者时必填）	患者ID类型(1-预留2-预留3-身份证号)		3
+	s PatID=obj.patientId	;string	否（普通患者时必填）	患者ID		110111188605069875
+	s PatCardNo=obj.medicalCardId	;string	否	就诊卡号		88605069
+	s PatName=obj.patientName	;string	是	患者姓名		张三
+	s PatPhoneNo=obj.patientMobileNumber	;string	否	患者手机号		18811112222
+	s PatBrith=obj.birthDate	;string	否	出生日期(格式 yyyy-MM-dd)		2021-03-16
+	s PatAddress=obj.patientResidenceAddress	;string	否	患者居住地址		北京市西城区复兴门外大街999号院11号楼3单元502室
+	s ForeignIdType=obj.reservedParentIdentifierTypeId	;int	否（当为新生儿患者时必填））	患者ID类型(1-预留2-预留3-身份证号)		3
+	s ForeignId=obj.reservedParentIdentifier	;string	否（当为新生儿患者时必填）	预留家长身份证Id		110111188605069875
+	s ForeignName=obj.reservedParentName	;string	否（当为新生儿患者时必填）	预留家长姓名		张三
+	s OutputObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.common).%New()
+	s OutputObj.responseCode="0"
+	s OutputObj.respongseText="获取数据成功"
+	s OutputObj.responseTimestamp=##class(DHCDoc.Interface.Outside.OrganizationUnit.SelfMethod).getTimestamp()
+	if (PatIdType=""){
+    	d ..SetOutputCode(.OutputObj,"-1001","患者ID类型不能为空")
+		q OutputObj
+	}
+	if (PatID=""){
+    	d ..SetOutputCode(.OutputObj,"-1001","患者ID不能为空")
+		q OutputObj
+	}
+	s UserID=##class(DHCExternalService.RegInterface.GetRelate).GetUser(ExtUserID)
+	if (UserID=""){
+    	d ..SetOutputCode(.OutputObj,"-1002","操作员信息为空")
+		q OutputObj
+	}
+	s GroupID=##class(DHCExternalService.RegInterface.GetRelate).GetGroup(UserID)
+	s UseDataCompare=+(##class(DHCDoc.Interface.Outside.Config).GetConfigNode(GroupID,"UseDataCompare"))
+	s BankCode=""
+	if UseDataCompare=1{
+		s BankCode="HIS"	
+	}
+	s IDCardType=""
+	s IDType=..#IDCardType
+	if (IDType'=""){
+		s IDCardType=##class(DHCExternalService.CardInterface.GetRelate).GetIDCardType(BankCode,IDType)
+		i IDCardType=""{
+			s RtnObj.ResultCode="-1"
+			s RtnObj.ErrorMsg="证件类型没有对照"
+			q RtnObj
+		}
+	}
+	/*s PatientIDStr=""
+	if PatIdType=3{
+		s IDCardType=..#IDCardType
+		s IDCardType=##class(DHCExternalService.CardInterface.GetRelate).GetIDCardType(BankCode,IDCardType)
+		s GetPatientIDRule=##class(DHCDoc.Interface.Outside.Config).GetConfigNode(GroupID,"GetPatientIDRule")
+		s PatientIDStr=##class(DHCExternalService.RegInterface.PatientManager).GetPatientHadFlag(IDCardType,PatID,PatName,GetPatientIDRule)
+	}
+	if PatientIDStr="" d ..SetOutputCode(.OutputObj,"-330002","该身份证号信息在系统中未找到")*/
+	s myPatientID=""
+	s PatientID=""
+	set PatientIDStrLen=$l(PatientIDStr,"^")
+	s CardTypeIdStr="16^26"
+	s CardDr=0
+	for CardTypeCount=1:1:$l(CardTypeIdStr,"^"){
+		s OneCardTypeId=$o(CardTypeIdStr,"^",CardTypeCount)
+		
+		for{
+			s CardDr=$o(^DHCCARDi("CF",0,"CardTypeNo",OneCardTypeId,PatCardNo,CardDr))
+			q:CardDr=""
+			s CFActive=$p($g(^DHCCARD("CF",CardDr)),"^",10)
+			Continue:CFActive'="N"
+			s PatientID=$p($g(^DHCCARD("CF",CardDr)),"^",4)
+		}
+	}
+	/*for mycount=1:1:PatientIDStrLen{
+		q:PatientID'=""
+		s myPatientID=$p(PatientIDStr,"^",mycount)
+		continue:myPatientID=""
+		set PatActive=$p(^PAPER(myPatientID,"PAT",1),"^",6)
+		;过滤未激活
+		continue:PatActive="N"
+		if ('$D(^DHCCARDi("CF",0,"TypePAPMINO","26",myPatientID))) {
+			s OutputObj.responseCode="-330002"
+			s OutputObj.respongseText="该身份证号信息在系统中未找到"
+		}
+		continue:('$D(^DHCCARDi("CF",0,"TypePAPMINO","26",myPatientID)))
+		for {
+			s PatientCardID=$o(^DHCCARDi("CF",0,"PAPMIDR",myPatientID,PatientCardID))
+			q:(PatientCardID="")||(PatientID'="")
+			s CFActive=$p(^DHCCARD("CF",PatientCardID),"^",10)
+			Continue:CFActive'="N"
+			s CardNo=$p(^DHCCARD("CF",PatientCardID),"^",5)
+			continue:PatCardNo'=CardNo
+			s CFCardTypeDR=$p(^DHCCARD("CF",PatientCardID),"^",16)
+			Continue:((CFCardTypeDR'=16)&(CFCardTypeDR'=26))  ;身份证和电子健康卡
+		}
+	}*/
+	if PatientID="" d ..SetOutputCode(.OutputObj,"-330002","该身份证号信息在系统中未找到")
+	Ts
+	s PersonObj=##class(User.PAPerson).%OpenId(PatientID)
+	s PatMasObj=##class(User.PAPatMas).%OpenId(PatientID)
+	s CardObj=##class(User.DHCCardRef).%OpenId(CardDr)
+	s OldInfo=##class(web.DHCBL.Patient.DHCPatientBuilder).SearchPatInfoByRowID(PatientID)
+	if '$IsObject(PersonObj){
+		d ..SetOutputCode(.OutputObj,"-330002","该身份证号信息在系统中未找到")
+	}else{
+		if PatPhoneNo'=""{
+			s PersonObj.PAPERMobPhone=PatPhoneNo
+			s PersonObj.PAPERTelH=PatPhoneNo
+		}	
+		i PatAddress'=""{
+			i PersonObj.PAPERStName.Count()=0{
+				d PersonObj.PAPERStName.Clear()
+				;s PersonObj.PAPERStName.GetAt(i)
+				d PersonObj.PAPERStName.Insert(PatAddress)
+			}
+		}
+		i PatID'=""{
+			s PatMasObj.PAPMIDVAnumber=PatID
+			;s IDCardType="1"
+			i PatMasObj.PAPMICardTypeDRGetObjectId()="" d PatMasObj.PAPMICardTypeDRSetObjectId(IDCardType)
+			if IDCardType="1" d ##class(web.DHCBL.CARD.UCardPaPatMasInfo).UpdatePAPMSID(PatientID,PatID)
+		}
+		if PatBrith'="" s PersonObj.PAPERDob= $zdh(PatBrith,"3")
+		if ForeignId'="" s PersonObj.PAPERForeignCountry=ForeignId
+		if ForeignName'="" s PersonObj.PAPERForeignId=ForeignName
+		s sc=PersonObj.%Save()
+		If $$$ISERR(sc) {
+			Do $System.Status.DisplayError(sc)
+			Trollback
+			d ..SetOutputCode(.OutputObj,"-330005","更新人员信息失败PAPerson")
+			quit OutputObj
+		}
+		s sc=PatMasObj.%Save()
+		If $$$ISERR(sc) {
+			Do $System.Status.DisplayError(sc)
+			Trollback
+			d ..SetOutputCode(.OutputObj,"-330005","更新人员信息失败PAPatMas")
+			quit OutputObj
+		}
+		s NewInfo=##class(web.DHCBL.Patient.DHCPatientBuilder).SearchPatInfoByRowID(PatientID)
+		s LogInfo=##class(web.DHCBL.Patient.DHCPatientBuilder).CheckPatInfoUpdate(OldInfo,NewInfo)
+		s Flag=##class(web.DHCBL.Patient.DHCPatientBuilder).AddDHCPatientUpdateLog(LogInfo,UserID)
+		b ;3
+		if Flag'=0{
+			Trollback
+			d ..SetOutputCode(.OutputObj,"-330005","更新人员信息日志失败")
+			quit OutputObj
+		}
+		if $IsObject(CardObj){
+			s CardObj.CFIDCardNo=PatID
+			s sc=CardObj.%Save()
+			If $$$ISERR(sc) {
+				Do $System.Status.DisplayError(sc)
+				Trollback
+				d ..SetOutputCode(.OutputObj,"-330005","更新人员信息失败PAPatMas")
+				quit OutputObj
+			}
+			d CardObj.%Close()
+		}
+		d PatMasObj.%Close()
+		d PersonObj.%Close()
+		Tc
+	}
+	s ResultCode=InsertRet.ResultCode
+	s ResultContent=InsertRet.ResultContent
+	Q OutputObj
+UpdatePatientInfoErr
+	s OutputObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.common).%New()
+	d ..SetOutputCode(.OutputObj,"-100","UpdatePatientInfoErr调用异常"_$TR($TR($ZE,"<","!!"),">","!!"))
+    q OutputObj
+}
 
 }

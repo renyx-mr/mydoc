@@ -60,8 +60,8 @@ function DHCUpdateClick_Check(CallBackFunc,OrderItemStr) {
 		CallBackFunc(true);
 		return;
 	}
-	var HLYYArr=HLYYInfo.split("^");
-	if (HLYYArr[0]==0){
+	//var HLYYArr=HLYYInfo.split("^");
+	if (HLYYArr.passFlag=="0"){
 		//错误等级<8
 		if (HLYYArr[1]!="") {
 			//存在问题提示是否修改
@@ -76,7 +76,7 @@ function DHCUpdateClick_Check(CallBackFunc,OrderItemStr) {
 			//return true;
 			CallBackFunc(true);
 		}
-	}else if (HLYYArr[0]==-1){
+	}else if (HLYYArr.passFlag=="1"){
 		//错误等级>=8
 		//dhcsys_alert("合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"请返回修改","500");
 		//return false;
