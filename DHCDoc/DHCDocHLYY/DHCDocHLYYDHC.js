@@ -633,31 +633,7 @@ var PassFuncs={
 					}
 				}
 				if (OrderItem=="") return "";
-				//材料费 
-				if ((OrderItemStr!="")&&(CNMedAppendItem!="")){
-					var PrescAppenItemQty=$('#PrescAppenItemQty').val();
-					if (PrescAppenItemQty==""){PrescAppenItemQty=0}
-					if (PrescAppenItemQty!=0){
-						var OrderItem=CNMedAppendItem+"^"+PrescAppenItemQty + "^" + "" + "^" + "" +"^"+"2"+"^"+"";
-						OrderItemStr=OrderItemStr+String.fromCharCode(1)+OrderItem;
-					}
-				}
-				//代煎费
-				if ((GlobalObj.PAAdmType!="I")||((GlobalObj.PAAdmType=="I")&&(IPCookModeFeeNoAutoAdd=="1"))){
-					if ((OrderItemStr!="")&&(CNMedCookModeFeeItemRowid!="")){
-						if (PrescCookDecoction=="Y") {
-							var OrderItem=CNMedCookModeFeeItemRowid + "^" + "1" + "^" + "" + "^" + ""+"^"+"1"+"^"+"";
-							OrderItemStr=OrderItemStr+String.fromCharCode(1)+OrderItem;
-						}
-					}
-				}
-				//处方类型关联其他费用列表
-				if (CMPrescTypeLinkFeeStr!=""){
-					for (var i=0;i<CMPrescTypeLinkFeeStr.split("^").length;i++){
-						var OrderItem=CMPrescTypeLinkFeeStr.split("^")[i] + "^" + "1" + "^" + "" + "^" + ""+"^"+"2"+"^"+"";
-						OrderItemStr=OrderItemStr+String.fromCharCode(1)+OrderItem;
-					}
-				}
+				
 				if (OrderItemStr!=""){OrderItemStr=PrescStr+String.fromCharCode(2)+OrderItemStr};
 				return OrderItemStr;
 			}catch(e){$.messager.alert("提示",e.message);return false;}
