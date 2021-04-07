@@ -162,12 +162,12 @@ var PassFuncs={
 			PdssObj.ItemOper=this.HisOperationsData();
 			var DHCPdss = new PDSS({});
 			DHCPdss.refresh(PdssObj, this.DHCPdssCallBack, 3);  /// 调用审查接口
-			debugger; 
+			
 			return DHCPdss;
 		},
 		DHCXHZYCM:function(OrderItemStr,Mode){
 			//if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) OrderItemStr=this.GetOrderDataOnAddCM();
-			if (Mode=="CheckCM") OrderItemStr=this.GetOrderDataOnAddCM();
+			//if (Mode=="CheckCM") OrderItemStr=this.GetOrderDataOnAddCM();
 			if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) return "";
 			var PdssObj=this.HisQueryAdmInfoData();
 			if(!PdssObj){return "";}
@@ -566,8 +566,8 @@ var PassFuncs={
 		},
 		GetOrderDataOnAddCM:function(){
 			var OrderItemStr=""; 
-		   var OrderItem=""; 
-		   try{
+		    var OrderItem=""; 
+		    try{
 				var OrderRecDepRowid=$('#RecLoc').combobox("getValue");
 				var PrescDurRowid=$('#PrescDuration').combobox("getValue");
 				var PrescDurFactor=GetDurFactor();
@@ -632,8 +632,7 @@ var PassFuncs={
 					   }
 					}
 				}
-				if (OrderItem=="") return "";
-				
+				if (OrderItemStr=="") return "";
 				if (OrderItemStr!=""){OrderItemStr=PrescStr+String.fromCharCode(2)+OrderItemStr};
 				return OrderItemStr;
 			}catch(e){$.messager.alert("提示",e.message);return false;}
