@@ -1,7 +1,5 @@
-/// 合理用药的后台数据获取类
-Class DHCDoc.Interface.DHCDocHLYYDHC Extends web.DHCDocHLYY
+Class web.DHCDocHLYYDHC Extends %RegisteredObject
 {
-
 
 /// Creator:      renyx
 /// CreatDate:    2021-3-30
@@ -10,28 +8,13 @@ Class DHCDoc.Interface.DHCDocHLYYDHC Extends web.DHCDocHLYY
 /// Return:       新产品组返回信息
 ClassMethod SaveHLYYInfo(EpisodeID As %String, OrderStr As %String, ExpStr As %String)
 {
-	s OrdItemStr=""
-	f i=1:1:$l(OrderStr,"^") {
-		s OrderOne=$p(OrderStr,"^",i)
-		s ARCIMRowid=$p(OrderOne,"*",1)
-		continue:ARCIMRowid=""
-		s DrugFlag=##class(web.DHCDocHLYYHZYY).CheckIsDrugItem(ARCIMRowid)
-		continue:DrugFlag'="Y"
-		s OEORIRowId=$p(OrderOne,"*",2)
-		continue:OEORIRowId=""
-		s PrescNo=$p($g(^OEORD(+OEORIRowId,"I",$p(OEORIRowId,"||",2),1)),"^",14)
-		continue:PrescNo=""
-		if OrdItemStr="" OrdItemStr=OEORIRowId_"^^"
-		else  OrdItemStr=OrdItemStr_"&&"_OEORIRowId_"^^"
-	}
-	q:OrdItemStr="" ""
 	s UserId = $p(ExpStr,"^",1)
 	s MsgId = $p(ExpStr,"^",2)
 	s Date=$zd(+$h,3)
 	s Time=$zt($p($h,"2"),1)
-	
-	q ##Class(web.DHCCKBService).FeedBack(MsgId, UserId, Date, Time, OrdItemStr, "Doc") 
+	q ##Class(web.DHCCKBService).FeedBack(MsgId, UserId, date, time, ordItemStr, userType)
 }
+
 /// Creator:      renyx
 /// CreatDate:    2021-3-30
 /// Description: 获取患者的基本信息
@@ -83,14 +66,14 @@ ClassMethod GetPrescInfo(EpisodeID As %String)
     }
     s PatInfo=PatientID_"^"_PatientName_"^"_PatientSex_"^"_PatientBirthday_"^"_Height_"^"_Weight
     s PatInfo=PatInfo_"^"_PAAdmReason_"^"_BloodPress_"^"_SpecGrps_"^"_ProfessProp_"^"_PatType
-    s PatInfo=PatInfo_"^"_PatLoc_"^"_DocDesc_"^"_Hospital_"^"_Profess_"^"_Groupe
+    s PatInfo=PatInfo_"^"_PatLoc_"^"_DocDesc_"^"_Hospital_"^"_Profess_"^"_Group
     s PatInfo=PatInfo_"^"_LgCtLoc_"^"_LgUser
     q PatInfo
 }
 
 /// 获取插入的医嘱信息  
-/// 入参为就诊id 
-ClassMethod GetInsertItemOrder(EpisodeID As %String, OrderStr As %String,HLYYLayOut As %String)
+/// 入参为就诊id ,医嘱串，类型
+ClassMethod GetInsertItemOrder(EpisodeID As %String, OrderStr As %String, HLYYLayOut As %String = "")
 {
     s OrderInfo=""
 	if (HLYYLayOut="CMOEOrd") {
@@ -99,7 +82,9 @@ ClassMethod GetInsertItemOrder(EpisodeID As %String, OrderStr As %String,HLYYLay
 	s InsertOrderStr=..GetOrdersInfo(EpisodeID,OrderStr)
 	
     s HisOrderStr=..GetVerifiedOrdersInfo(EpisodeID)
-    q InsertOrderStr_$C(2)_HisOrderStr
+    if (InsertOrderStr'="") s OrderInfo=InsertOrderStr
+    if (HisOrderStr'="") s OrderInfo=OrderInfo_$C(2)_HisOrderStr
+    q OrderInfo
 }
 
 /// 获取待插入的医嘱信息
@@ -115,16 +100,18 @@ ClassMethod GetOrdersInfo(EpisodeID As %String, OrderItemStr As %String)
         s SeqNo=$p(OrderItemOne,"^",20)
         ;药品ID
 		s ARCIMRowId=$p(OrderItemOne,"^",1)
-		
+		continue:ARCIMRowId=""
 		;药品名称
 		s PhDesc=$p($g(^ARCIM(+ARCIMRowId,$p(ARCIMRowId,"||",2),1)),"^",2)
 		;剂型
 		s InciRowid=##class(web.DHCDocOrderEntry).GetINCI(+ARCIMRowId)
-        s FormProp=##class(web.DHCSTCOMMONSRV).GetForm(InciRowid)
+        s FormProp=""
+        s:InciRowid'="" FormProp=##class(web.DHCSTCOMMONSRV).GetForm(InciRowid)
         ;每次给药剂量
 		s OnceDose=$p(OrderItemOne,"^",12)
 		s DoseUOMRowid=$p(OrderItemOne,"^",13)
-		s Unit=$p($g(^CT("UOM",DoseUOMRowid)),"^",2)
+		s Unit=""
+		s:DoseUOMRowid'="" Unit=$p($g(^CT("UOM",DoseUOMRowid)),"^",2)
         ;给药途径
 		s DrugPreMet=""
 		s InstrRowid=$p(OrderItemOne,"^",17)
@@ -168,7 +155,7 @@ ClassMethod GetOrdersInfo(EpisodeID As %String, OrderItemStr As %String)
 /// 获取已经审核的医嘱信息
 ClassMethod GetVerifiedOrdersInfo(EpisodeID As %String)
 {
-	s OrdersObj=##class(DHCDoc.Interface.Outside.HLYYHZYY.Entity.Orders).%New()
+	
 	s DrugItemNum=0
 	s VerifiedOrdersInfo=""
 	s OrderRowid=$o(^OEORD(0,"Adm",+EpisodeID,0))
@@ -178,15 +165,17 @@ ClassMethod GetVerifiedOrdersInfo(EpisodeID As %String)
         s ChildSub=$o(^OEORDi(0,"StDt",+$h,OrderRowid,ChildSub))
         q:ChildSub=""
         continue:'$d(^OEORD(OrderRowid,"I",ChildSub))
-		s ARCIMRowid=$p($g(^OEORD(OrderRowid,"I",ChildSub,1)),"^",2)
-		continue:ARCIMRowid=""
-		s DrugFlag=..CheckIsDrugItem(ARCIMRowid)
+		s MyARCIMRowid=$p($g(^OEORD(OrderRowid,"I",ChildSub,1)),"^",2)
+		continue:MyARCIMRowid=""
+		s DrugFlag=..CheckIsDrugItem(MyARCIMRowid)
 		continue:DrugFlag'="Y"
+		continue:MyARCIMRowid=""
 		s SeqNo=ChildSub
 		;药品名称
-		s PhDesc=$p($g(^ARCIM(+ARCIMRowId,$p(ARCIMRowId,"||",2),1)),"^",2)
+		s id=$p($g(^ARCIM(+MyARCIMRowid,$p(MyARCIMRowid,"||",2),1)),"^",1)
+		s PhDesc=$p($g(^ARCIM(+MyARCIMRowid,$p(MyARCIMRowid,"||",2),1)),"^",2)
 		;剂型
-		s InciRowid=##class(web.DHCDocOrderEntry).GetINCI(+ARCIMRowId)
+		s InciRowid=##class(web.DHCDocOrderEntry).GetINCI(+MyARCIMRowid)
         s FormProp=##class(web.DHCSTCOMMONSRV).GetForm(InciRowid)
         ;每次给药剂量
 		s OnceDose=$p($g(^OEORD(OrderRowid,"I",ChildSub,2)),"^",1)
@@ -239,7 +228,7 @@ ClassMethod GetVerifiedOrdersInfo(EpisodeID As %String)
 ClassMethod GetMRDiagnos(AdmId As %String)
 {
    s MedCondInfo=""
-   s MRAdmRowid=$p($g(^PAADM(EpisodeID)),"^",61)
+   s MRAdmRowid=$p($g(^PAADM(AdmId)),"^",61)
 	i MRAdmRowid'="" {
 		s i=0
 		s obj=##class(%ResultSet).%New("web.MRDiagnos:Find")
@@ -277,6 +266,7 @@ ClassMethod GetAllergiesInfo(EpisodeID As %String)
 		s allergyid=PatientID_"||"_ChildSub
 		;过敏物名称
 		s DrgMastDr=$p($g(^PAPER(PatientID,"ALG",ChildSub)),"^",27)
+		continue:DrgMastDr=""
         s AllergyDode=$p($g(^PHCGE("GE",DrgMastDr)),"^",2)
 		s AllergydDug=$p($g(^PHCGE("GE",DrgMastDr)),"^",2)
 		;过敏信息状态
@@ -341,6 +331,7 @@ ClassMethod CheckIsDrugItem(ARCIMRowid As %String) As %String
 	if (OrderType="R") s DrugFlag="Y"
 	Q DrugFlag
 }
+
 /// Creator:      lvjun
 /// CreatDate:    2020-12-12
 /// Description:  将待审核草药数据串拼接成待审核西药数据串
@@ -407,4 +398,5 @@ ClassMethod ConvertCMOEOrdToOEOrd(EpisodeID As %String, CMOEOrdStr As %String) A
 	}
 	Q OEOrdStr
 }
+
 }

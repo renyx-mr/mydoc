@@ -227,5 +227,159 @@ SavePatientErr
 	d ..SetOutputCode(.OutputObj,"-100","SavePatient调用异常"_$TR($TR($ZE,"<","!!"),">","!!"))
     q OutputObj
 }
+/// 根据联系人获取或患者信息  
+ClassMethod GetPatientInfo(JsonInput, ExtUserID)
+{
+	s $ZTRAP="GetPatientInfoErr"
+	s ^nk("GetPatientInfo")=$LB(JsonInput, ExtUserID)
+	s obj=##class(DHCDoc.Util.XMLParse).XMLToObj(##class(DHCDoc.Util.XMLParse).JSONToXML(JsonInput,"Request"))
+	s PatCredType =obj.patientIdTypeId	;int	否（当为普通患者时必填）	患者ID类型(1-预留2-预留3-身份证号 4-就诊卡号) 		3
+	s PatCredNo =obj.patientId	;string	否（当为普通患者时必填）	患者ID		110111188605069875，
+	s PatName =obj.patientName	;string	否（当为新生儿患者时必填）	患者姓名		张三
+	s PatPhoneNo =obj.patientMobileNumber	;string	否（当为新生儿患者时必填）	预留手机号		18811112222
+	s PatBrith =obj.birthDate	;string	否	出生日期(格式 yyyy-MM-dd)		2021-03-16
+	s ForeignIdType =obj.reservedParentIdentifierTypeId	;int	否（当为新生儿患者时必填））	患者ID类型(1-预留2-预留3-身份证号)		3
+	s ForeignIdNo =obj.reservedParentIdentifier	;string	否（当为新生儿患者时必填）	预留家长身份证		110111188605069875
+	s ForeignName =obj.reservedParentName	;string	否（当为新生儿患者时必填）	预留家长姓名		张三
+	s OutputObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.common).%New()
+	s OutputObj.responseCode="0"
+	s OutputObj.respongseText="获取数据成功"
+	s OutputObj.responseTimestamp=##class(DHCDoc.Interface.Outside.OrganizationUnit.SelfMethod).getTimestamp()
+	
+	if (ForeignIdType=""){
+    	d ..SetOutputCode(.OutputObj,"-1001","联系人ID类型不能为空")
+		q OutputObj
+	}
+	if (patientId=""){
+    	d ..SetOutputCode(.OutputObj,"-1001","联系人ID不能为空")
+		q OutputObj
+	}
+	if (ForeignName=""){
+    	d ..SetOutputCode(.OutputObj,"-1001","联系人姓名不能为空")
+		q OutputObj
+	}
+	
+	s UserID=##class(DHCExternalService.RegInterface.GetRelate).GetUser(ExtUserID)
+	if (UserID=""){
+    	d ..SetOutputCode(.OutputObj,"-1002","操作员信息为空")
+		q OutputObj
+	}
+	s GroupID=##class(DHCExternalService.RegInterface.GetRelate).GetGroup(UserID)
+	s UseDataCompare=+(##class(DHCDoc.Interface.Outside.Config).GetConfigNode(GroupID,"UseDataCompare"))
+	s BankCode=""
+	if UseDataCompare=1{
+		s BankCode="HIS"	
+	}
+	s PatientIDStr=""
+	if ForeignIdType=3{
+		s IDCardType=..#IDCardType
+		s IDCardType=##class(DHCExternalService.CardInterface.GetRelate).GetIDCardType(BankCode,IDCardType)
+		s GetPatientIDRule=##class(DHCDoc.Interface.Outside.Config).GetConfigNode(GroupID,"GetPatientIDRule")
+		d GetPatientIDStrByForeignInfo
+		//s PatientIDStr=##class(DHCExternalService.RegInterface.PatientManager).GetPatientHadFlag(IDCardType,patientId,"",GetPatientIDRule)
+	}
+	if PatientIDStr="" d ..SetOutputCode(.OutputObj,"-330002","该身份证号信息在系统中未找到")
+	s myPatientID=""
+	set PatientIDStrLen=$l(PatientIDStr,"^")
+	for mycount=1:1:PatientIDStrLen{
+		s myPatientID=$p(PatientIDStr,"^",mycount)
+		continue:myPatientID=""
+		if ('$D(^DHCCARDi("CF",0,"TypePAPMINO","26",myPatientID))) {
+			s OutputObj.responseCode="-330002"
+			s OutputObj.respongseText="该身份证号信息在系统中未找到"
+		}
+		continue:('$D(^DHCCARDi("CF",0,"TypePAPMINO","26",myPatientID)))
+		Set PatientName=$p(^PAPER(myPatientID,"ALL"),"^",1)
+		//医保号
+		set PatYBCode=$p($g(^PAPER(myPatientID,"ALL")),"^",19)
+		set Sex=""
+		set SexCode=$p(^PAPER(myPatientID,"ALL"),"^",7)
+		i SexCode'="" set Sex=$p(^CT("SEX",SexCode),"^",2)
+		set DOB=$p(^PAPER(myPatientID,"ALL"),"^",6)
+		set DocumentID=$p(^PAPER(myPatientID,"PAT",1),"^",22)
+		set AddressId=$o(^PAPER(myPatientID,"PER","ADD",""),-1)
+		set Address=""
+		set:AddressId'="" Address=$g(^PAPER(myPatientID,"PER","ADD",AddressId))
+		set IDTypeDesc=""
+		set IDTypeCode=$p(^PAPER(myPatientID,"PAT",3),"^",7)
+		if IDTypeCode'="" set IDTypeDesc=$p(^PAC("CARD",IDTypeCode),"^",7)
+		set IDNo=$p($g(^PAPER(myPatientID,"PAT",3)),"^",6)
+		s TelephoneNo=$p(^PAPER(myPatientID,"PER",1),"^",11)
+		s Mobile=$p($g(^PAPER(myPatientID,"PER",4)),"^",21)
+		if Mobile="" s Mobile=TelephoneNo
+		s PatinetNo=##class(DHCExternalService.CardInterface.CardManager).PatientIDToNo(myPatientID)
+		s PatObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.GetPatientInfo).%New()
+		s PatObj.patientIdTypeId=patientIdTypeId
+		s PatObj.patientId=patientId
+		s PatObj.patientHistId=PatinetNo
+		s PatObj.patientName=PatientName
+		
+		s PatObj.patientGenderTypeId=$case(Sex,"男":4,"女":3,:1) ;（1 未知、 2 其它、 3女、 4 男）
+		s PatObj.patientMobileNumber=Mobile
+		s PatObj.patientResidenceAddress=Address
+		s PatObj.birthDate=$zd(DOB,3)
+		s PatObj.age=##class(web.DHCBillInterface).GetPapmiAge(myPatientID,"")
+		
+		s PatientCardID=""
+		for {
+			s PatientCardID=$o(^DHCCARDi("CF",0,"PAPMIDR",myPatientID,PatientCardID))
+			q:PatientCardID=""
+			s CFActive=$p(^DHCCARD("CF",PatientCardID),"^",10)
+			Continue:CFActive'="N"
+			s CFCardTypeDR=$p(^DHCCARD("CF",PatientCardID),"^",16)
+			s PatientCard=$p(^DHCCARD("CF",PatientCardID),"^",2)
+			s CFDate=$p(^DHCCARD("CF",PatientCardID),"^",7)
+			s CFTime=$p(^DHCCARD("CF",PatientCardID),"^",8)
+			Continue:((CFCardTypeDR'=16)&(CFCardTypeDR'=26))  ;身份证和电子健康卡
+			s CardObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.patientcard).%New()
+			;s CardObj.identifierTypeId=##class(DHCDoc.Interface.Outside.OrganizationUnit.SelfMethod).GetOutCardType(CFCardTypeDR) ;(1-预留2-预留 3-院内就诊卡 4-电子健康卡 5-门诊号码)
+			i CFCardTypeDR=16  s CardObj.identifierTypeId=4
+			i CFCardTypeDR=26  s CardObj.identifierTypeId=3
+			s CardObj.identifierText=PatientCard
+			s CardObj.isValid="true"
+			s CardObj.createDate=$zd(CFDate,3)
+			s CardObj.createTime=$zt(CFTime,1)
+			s CardObj.lastUsedDate=$zd(CFDate,3)
+			s CardObj.lastUsedTime=$zt(CFTime,1)
+			s CardObj.mappedPatientHisId=PatinetNo
+			d PatObj.patientIdentifierList.Insert(CardObj)
+			d CardObj.%Close()
+		}
+		s OutputObj.PatientData=PatObj
+		d OutputObj.%Close()
+	}
+	
+	b ;Hhr OutputObj
+	Q OutputObj
+GetPatientIDStrByForeignInfo
+	&sql(DECLARE PatByForeignList CURSOR FOR
+		SELECT PAPER_RowId
+		INTO :PatientId
+		FROM SQLUser.PA_Person WHERE PAPER_ForeignId=:ForeignName AND PAPER_ForeignCountry=:ForeignIdNo 
+		AND PAPER_ForeignCardTypeDR=:IDCardType
+	)
+	&SQL(OPEN PatByForeignList)
+	s intNum=0
+ 	For {
+	 	&SQL(FETCH PatByForeignList) 
+	 	QUIT:SQLCODE
+		s ActiveFlag=$P(^PAPER(PatientId,"PAT",1),"^",6)
+		continue:ActiveFlag="N"
+	 	s PAPMIDVAnumber=$P($G(^PAPER(PatientId,"ALL")),"^",9 )
+		continue:(PatCredNo'="")&&(PatCredNo'=PAPMIDVAnumber)
+		s myCredTypeID=$p($g(^PAPER(PatientId,"PAT",3)),"^",7)
+		continue:(IDCardType'="")&&(myCredTypeID'=IDCardType)
+		s CurName=$P(^PAPER(PatientId,"ALL"),"^",1)
+		continue:(PatName'="")&&(PatName'=CurName)
+		if (PatientIDStr="") s PatientIDStr=PatientId
+		else  s PatientIDStr=PatientIDStr_"^"_PatientId
+ 	}
+ 	&SQL(CLOSE PatByForeignList)
+	q
+GetPatientInfoErr
+	s OutputObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.common).%New()
+	d ..SetOutputCode(.OutputObj,"-100","SavePatient调用异常"_$TR($TR($ZE,"<","!!"),">","!!"))
+    q OutputObj
+}
 
 }
