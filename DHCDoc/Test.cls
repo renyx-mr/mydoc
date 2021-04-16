@@ -1,6 +1,119 @@
 Class DHCDoc.Test Extends %RegisteredObject [ ClassType = "", Not ProcedureBlock ]
 {
-
+/// 人民币大小写转换
+ClassMethod RMBDXXZH(numstr As %Library.String = "")
+{
+	s numstr=$tr(numstr," ","")
+	s i=0,lendec=0,lenint=0
+	S a="",b="",c="",d="",bbak="",bs=""
+	s flagzf=""
+	s numstr=+numstr
+	i (numstr<0)  d
+	.s numstr=$p(numstr,"-",2)
+	.s flagzf=1
+	i $p(numstr,".",1)=""  s numstr="0"_numstr
+	s lenint=$l($p(numstr,".",1))
+	q:(lenint>13) "-1^金额过大"
+	s lendec=2
+	i $p(numstr,".",2)="00" s lendec=0  
+	s dxint(13)="",dxdec(2)="",sz(13)=""
+	s dxstr="万|仟|佰|拾|亿|仟|佰|拾|万|仟|佰|拾|元"
+	s szstr="零|壹|贰|叁|肆|伍|陆|柒|捌|玖"
+	s lendxstr=$l(dxstr,"|")+1
+	s lenszstr=$l(szstr,"|")+1
+	f i=1:1:lendxstr d
+	.s dxint(i)=$p(dxstr,"|",lendxstr-i)
+	.s sz(i)=" "
+	.i (i<11)  s sz(i)=$p(szstr,"|",i)  
+	s dxdec(1)="角",dxdec(2)="分",dxstr=" "
+	;**整数部分**
+	f i=1:1:lenint d
+	.s a=$e($e(numstr,1,lenint),i,i)
+	.s b=sz(a+1)
+	.s c=dxint(lenint-i+1)
+	.s d=" "
+	.i (dxstr'=" ")  s d=$e(dxstr,$l(dxstr)-1,($l(dxstr)-1)+2-1)  
+	.i (a="0")  s b="",bs="零"
+	.i (b="零")&((d="零")!(b=bbak)!(c="元")!(c="万")!(c="亿"))  s b=""
+	.i (a="0")&(c'="元")&(c'="万")&(c'="亿") s c=""
+	.i (dxstr["亿")&($p(dxstr,"亿",2)="")&(c'="元")&(a=0) s c=""
+	.i (dxstr["万")&($p(dxstr,"万",2)="")&(c'="元")&(a=0) s c=""
+	.i ((c="元")!(c="万")!(c="亿"))&(d="零")&(a="0")  d 
+	..s dxstr=$e(dxstr,1,1+($l(dxstr)-2)-1)
+	.s d=$e(dxstr,$l(dxstr)-1,($l(dxstr)-1)+2-1)
+	.i (c="元")&(d="万")&(c="万")&(d="亿")  s c=""
+	.i (bs="零")&(a'=0)&(a'="") s b=bs_b,bs=""
+	.s dxstr=dxstr_b_c,bbak=b
+	;
+	;**小数部分**
+	i ($p(numstr,".",2)=0)!(lendec=0)!($p(numstr,".",2)="")  s dxstr=dxstr_"整" 
+	i $p(numstr,".",2)>0  d
+	.f i=1:1:lendec d
+	..s a=$e($p(numstr,".",2),i,i)
+	..s b=sz(a+1)
+	..i ((a="0")&&(dxdec(i)="分"))  s b=""
+	..i (a="0")  s dxstr=dxstr_b
+	..i (a'="0")  s dxstr=dxstr_b_dxdec(i)
+	
+	//+2018-06-07 ZhYW
+	s dxstr=$tr(dxstr, " ", "")
+	i (+numstr<0.1) d
+	.s dxstr=$e(dxstr,3,$l(dxstr))
+	e  i (+numstr<1)  d
+	.s dxstr=$e(dxstr,2,$l(dxstr))
+	
+	i (flagzf=1)  d
+	.s dxstr="负"_dxstr
+	.s fudxstr=$p(dxstr," ",1)
+	.s dxstrsum=$p(dxstr," ",2)
+	.s dxstr=fudxstr_dxstrsum
+	e  s dxstr=dxstr
+	
+	q dxstr
+}
+/// creater lxz
+/// desc 查看资源是否在停诊中（长时段停诊）
+/// input RBResourceDr 资源ID  InDate 日期
+/// Retuen "Y" 停诊 "N" 正常
+/// SQLUser RB_NotAvail 停诊表
+/// w ##class(web.DHCRBApptSchedule).IsStopRBResource(549,63553)
+ClassMethod IsStopRBResource(RBResourceDr As %String, InDate As %String) As %String
+{
+	s ^Tempzong("IsStopRBResource")=RBResourceDr_"^"_InDate
+	Q:(RBResourceDr="")||(InDate="") "N"
+	s Flag="N"
+	&sql(DECLARE RBResourceList CURSOR FOR
+		SELECT NA_RowId,NA_FrDate,NA_ToDate,NA_RSVP
+		INTO :NARowId,:StDate,:EDate,:RSVP
+		FROM SQLUser.RB_NotAvail WHERE NA_RES_DR=:RBResourceDr ORDER BY NA_RowId ASC
+	)
+	&SQL(OPEN RBResourceList)
+	For {
+		&SQL(FETCH RBResourceList) 
+		QUIT:SQLCODE
+		s StDate=$P(StDate,"Z",1)
+		s EDate=$P(EDate,"Z",1)
+		continue:(InDate<StDate)
+		continue:(InDate>EDate)
+		if RSVP="Y"  s Flag="Y"
+		else  s Flag="N"
+	}
+	&SQL(CLOSE RBResourceList)
+	q Flag
+	s Date=0
+	f  s Date=$O(^RB("NA",0,"RES",RBResourceDr,Date),-1) Q:(Date="")  d
+	.s NARowId=0
+	.f  s NARowId=$O(^RB("NA",0,"RES",RBResourceDr,Date,NARowId)) Q:(NARowId="")  d
+	..s StDate=$P($P($G(^RB("NA",NARowId)),"^",2),"Z",1)
+    ..s EDate=$P($P($G(^RB("NA",NARowId)),"^",3),"Z",1)
+    ..Q:(InDate<StDate)
+  	..Q:(InDate>EDate)
+  	..b ;1111
+ 	..s RSVP=$P(^RB("NA",NARowId),"^",6) ;"Y"-停诊 "N"-撤销停诊
+  	..if RSVP="Y"  s Flag="Y"
+  	..else  s Flag="N"
+    q Flag
+}
 /// d ##class(%ResultSet).RunQuery("web.DHCBL.Patient.DHCPatient","SelectByPAPERID","","","","000000000120")
 ClassMethod SelectByPAPERIDExecute(ByRef qHandle As %Binary, SPAPERID As %String, SPAPERName As %String, SPAPMINo As %String, CardNo As %String) As %Status
 {

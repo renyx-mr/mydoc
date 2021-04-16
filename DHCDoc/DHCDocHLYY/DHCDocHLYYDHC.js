@@ -90,9 +90,13 @@ function DHCUpdateClick_Check(CallBackFunc,OrderItemStr,Mode) {
 		//错误等级>=8
 		//dhcsys_alert("合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"请返回修改","500");
 		//return false;
-		$.messager.alert("提示", "合理用药未审核通过请返回修改", "info",function(){
-			CallBackFunc(false);
-		});
+		if (HLYYInfo.controlFlag=="N"){
+			$.messager.alert("提示", "合理用药未审核通过请返回修改", "info",function(){
+				CallBackFunc(false);
+			});
+		}else{
+			CallBackFunc(true);
+		}
 	}else{
 		//var rtn=dhcsys_confirm("合理用药干预系统异常:"+"\n"+HLYYArr[1]+"\n"+"请联系信息科!若确认审核医嘱请点击【确定】","","","","500");
 		//if (rtn) {return true;}else{return false;}
@@ -134,7 +138,7 @@ function DHCUpdateClick_Save(CallBackFunc,OrderItemStr) {
 var PassFuncs={
 	DHCFuncs:{
 		DHCPdssCallBack:function(option){
-			if (option.passFlag=="1") option.close() 
+			
 		},
         DHCYDTS:function(OrderARCIMCode,OrderName){
 			var IncId=""
@@ -160,10 +164,16 @@ var PassFuncs={
 			PdssObj.ItemHisOrder=AdmOrdItem.ItemHisOrder;
 			PdssObj.ItemAyg=this.HisAllergiesData();
 			PdssObj.ItemOper=this.HisOperationsData();
-			var DHCPdss = new PDSS({});
-			DHCPdss.refresh(PdssObj, this.DHCPdssCallBack, 3);  /// 调用审查接口
-			
-			return DHCPdss;
+			var RetPdssObj;
+			new Promise(function(resolve){
+				var DHCPdss = new PDSS({});
+				DHCPdss.refresh(PdssObj, resolve, 3);  /// 调用审查接口
+			}).then(function(PdssOption){
+				RetPdssObj=PdssOption;
+				PdssOption.close();
+				resolve();
+			});
+			return RetPdssObj;
 		},
 		DHCXHZYCM:function(OrderItemStr,Mode){
 			//if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) OrderItemStr=this.GetOrderDataOnAddCM();
@@ -181,8 +191,16 @@ var PassFuncs={
 			PdssObj.ItemHisOrder=AdmOrdItem.ItemHisOrder;
 			PdssObj.ItemAyg=this.HisAllergiesData();
 			PdssObj.ItemOper=this.HisOperationsData();
-			var DHCPdss = new PDSS({});
-			DHCPdss.refresh(PdssObj, this.DHCPdssCallBack, 3);  /// 调用审查接口
+			var RetPdssObj;
+			new Promise(function(resolve){
+				var DHCPdss = new PDSS({});
+				DHCPdss.refresh(PdssObj, resolve, 3);  /// 调用审查接口
+			}).then(function(PdssOption){
+				RetPdssObj=PdssOption;
+				PdssOption.close();
+				resolve();
+			});
+			return RetPdssObj;
 			return DHCPdss;
 		},
 		HisOperationsData:function(){
