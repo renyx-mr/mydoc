@@ -33,11 +33,14 @@ function HLYYYDTS_Click(){
 
 ///通用药品相互作用
 function XHZYClickHandler_HLYY(){
+	//return ;
+	new Promise(function(resolve){
 	if (GlobalObj.HLYYLayOut=="OEOrd"){
-		PassFuncs.DHCFuncs.DHCXHZY();
+		PassFuncs.DHCFuncs.DHCXHZY("",resolve);
 	}else{
-		PassFuncs.DHCFuncs.DHCXHZYCM();
+		PassFuncs.DHCFuncs.DHCXHZYCM("",resolve);
 	}
+	});
 }
 
 ///审查方法
