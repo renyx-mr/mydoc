@@ -382,4 +382,34 @@ GetPatientInfoErr
     q OutputObj
 }
 
+
+ClassMethod GetPatIdStrByForeignInfo(ForeignName As %string,ForeignIdNo As %String,IDCardType As %String,PatCredNo As %String = "",IDCardType As %String = "",PatName As %String = ""){
+	s PatIDStr=""
+	&sql(DECLARE PatIDByForeignList CURSOR FOR
+		SELECT PAPER_RowId
+		INTO :PatientId
+		FROM SQLUser.PA_Person WHERE PAPER_ForeignId=:ForeignName AND PAPER_ForeignCountry=:ForeignIdNo 
+		AND PAPER_ForeignCardTypeDR=:IDCardType
+	)
+	&SQL(OPEN PatIDByForeignList)
+	; PatCredNo As %String = "",IDCardType As %String = "",PatName As %String = ""
+	s intNum=0
+ 	For {
+	 	&SQL(FETCH PatIDByForeignList) 
+	 	QUIT:SQLCODE
+		s ActiveFlag=$P(^PAPER(PatientId,"PAT",1),"^",6)
+		continue:ActiveFlag="N"
+	 	s PAPMIDVAnumber=$P($G(^PAPER(PatientId,"ALL")),"^",9 )
+		continue:(PatCredNo'="")&&(PatCredNo'=PAPMIDVAnumber)
+		s myCredTypeID=$p($g(^PAPER(PatientId,"PAT",3)),"^",7)
+		continue:(IDCardType'="")&&(myCredTypeID'=IDCardType)
+		s CurName=$P(^PAPER(PatientId,"ALL"),"^",1)
+		continue:(PatName'="")&&(PatName'=CurName)
+		if (PatientIDStr="") s PatIDStr=PatientId
+		else  s PatIDStr=PatIDStr"^"_PatientId
+ 	}
+ 	&SQL(CLOSE PatIDByForeignList)
+	q PatIDStr
+}
+
 }

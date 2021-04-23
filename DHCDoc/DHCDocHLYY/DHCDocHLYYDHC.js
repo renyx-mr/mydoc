@@ -54,57 +54,57 @@ function HYLLUpdateClick_HLYY(CallBackFunc,OrderItemStr,Mode){
 	return;
 }
 function DHCUpdateClick_Check(CallBackFunc,OrderItemStr,Mode) {
-	
-	var HLYYInfo=""
-	if (Mode=="Check"){
-		HLYYInfo=PassFuncs.DHCFuncs.DHCXHZY(OrderItemStr);
-	}else{
-		HLYYInfo=PassFuncs.DHCFuncs.DHCXHZYCM(OrderItemStr,Mode);
-	}
-	//var HLYYInfo=tkMakeServerCall("web.DHCDocHLYYHZYY","CheckHLYYInfo",GlobalObj.EpisodeID,OrderItemStr,GlobalObj.HLYYLayOut,HZYYLogicObj.ExpStr);
-	//dhcsys_alert("Check=="+HLYYInfo,"500")
-	
-	if ((HLYYInfo=="")||(HLYYInfo==null)||(typeof HLYYInfo=="undefined")) {
-		//不需要调用合理用药或者程序异常
-		//return true;
-		CallBackFunc(true);
-		return;
-	}
-	//var HLYYArr=HLYYInfo.split("^");
-	if (HLYYInfo.passFlag=="1"){
-		//错误等级<8
-		/*if (HLYYInfo!="") {
-			//存在问题提示是否修改
-			/*HLYYArr[1]=HLYYArr[1].replace(/\<br>/g, "\n")
-			var rtn=dhcsys_confirm("合理用药提示:"+"\n"+HLYYArr[1]+"\n"+"是否继续审核?","","","","500");
-			if (rtn) {return true;}else{return false;}
-			$.messager.confirm('确认对话框',"合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"是否继续审核?", function(r){
-				if (r) {CallBackFunc(true);}else{CallBackFunc(false);}
-			});
-		}else{*/
-			//不存在问题
+	new Promise(function(resolve){
+		if (Mode=="Check"){
+			PassFuncs.DHCFuncs.DHCXHZY(OrderItemStr,resolve);
+		}else{
+			PassFuncs.DHCFuncs.DHCXHZYCM(OrderItemStr,resolve);
+		}
+	}).then(function(HLYYInfo){
+		//var HLYYInfo=tkMakeServerCall("web.DHCDocHLYYHZYY","CheckHLYYInfo",GlobalObj.EpisodeID,OrderItemStr,GlobalObj.HLYYLayOut,HZYYLogicObj.ExpStr);
+		//dhcsys_alert("Check=="+HLYYInfo,"500")
+		if ((HLYYInfo=="")||(HLYYInfo==null)||(typeof HLYYInfo=="undefined")) {
+			//不需要调用合理用药或者程序异常
 			//return true;
 			CallBackFunc(true);
-		//}
-	}else if (HLYYInfo.passFlag=="0"){
-		//错误等级>=8
-		//dhcsys_alert("合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"请返回修改","500");
-		//return false;
-		if (HLYYInfo.controlFlag=="N"){
-			$.messager.alert("提示", "合理用药未审核通过请返回修改", "info",function(){
-				CallBackFunc(false);
-			});
-		}else{
-			CallBackFunc(true);
+			return;
 		}
-	}else{
-		//var rtn=dhcsys_confirm("合理用药干预系统异常:"+"\n"+HLYYArr[1]+"\n"+"请联系信息科!若确认审核医嘱请点击【确定】","","","","500");
-		//if (rtn) {return true;}else{return false;}
-		$.messager.confirm('确认对话框',"合理用药干预系统异常:"+"<br>"+HLYYArr[1]+"<br>"+"请联系信息科!若确认审核医嘱请点击【确定】", function(r){
-			if (r) {CallBackFunc(true);}else{CallBackFunc(false);}
-		});
-	}
-	return;
+		//var HLYYArr=HLYYInfo.split("^");
+		if (HLYYInfo.passFlag=="1"){
+			//错误等级<8
+			/*if (HLYYInfo!="") {
+				//存在问题提示是否修改
+				/*HLYYArr[1]=HLYYArr[1].replace(/\<br>/g, "\n")
+				var rtn=dhcsys_confirm("合理用药提示:"+"\n"+HLYYArr[1]+"\n"+"是否继续审核?","","","","500");
+				if (rtn) {return true;}else{return false;}
+				$.messager.confirm('确认对话框',"合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"是否继续审核?", function(r){
+					if (r) {CallBackFunc(true);}else{CallBackFunc(false);}
+				});
+			}else{*/
+				//不存在问题
+				//return true;
+				CallBackFunc(true);
+			//}
+		}else if (HLYYInfo.passFlag=="0"){
+			//错误等级>=8
+			//dhcsys_alert("合理用药提示:"+"<br>"+HLYYArr[1]+"<br>"+"请返回修改","500");
+			//return false;
+			if (HLYYInfo.controlFlag=="N"){
+				$.messager.alert("提示", "合理用药未审核通过请返回修改", "info",function(){
+					CallBackFunc(false);
+				});
+			}else{
+				CallBackFunc(true);
+			}
+		}else{
+			//var rtn=dhcsys_confirm("合理用药干预系统异常:"+"\n"+HLYYArr[1]+"\n"+"请联系信息科!若确认审核医嘱请点击【确定】","","","","500");
+			//if (rtn) {return true;}else{return false;}
+			$.messager.confirm('确认对话框',"合理用药干预系统异常:"+"<br>"+HLYYArr[1]+"<br>"+"请联系信息科!若确认审核医嘱请点击【确定】", function(r){
+				if (r) {CallBackFunc(true);}else{CallBackFunc(false);}
+			});
+		}
+		return;
+	});
 }
 
 function DHCUpdateClick_Save(CallBackFunc,OrderItemStr) {
@@ -137,9 +137,6 @@ function DHCUpdateClick_Save(CallBackFunc,OrderItemStr) {
 
 var PassFuncs={
 	DHCFuncs:{
-		DHCPdssCallBack:function(option){
-			
-		},
         DHCYDTS:function(OrderARCIMCode,OrderName){
 			var IncId=""
 			linkUrl="dhcckb.wiki.csp?IncId="+IncId+"&IncCode="+OrderARCIMCode+"&IncDesc="+OrderName
@@ -149,59 +146,52 @@ var PassFuncs={
 				width:screen.availWidth-200,height:screen.availHeight-200
 			});
 		},
-		DHCXHZY:function(OrderItemStr){
+		DHCXHZY:function(OrderItemStr,CallBackFunc){
 			//if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) OrderItemStr=this.GetOrderDataOnAdd();
-			if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) return "";
+			if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) {CallBackFunc(); return "";}
 			var PdssObj=this.HisQueryAdmInfoData();
-			if(!PdssObj){return "";}
+			if(!PdssObj){CallBackFunc(); return "";}
 			var AdmDiagnos=this.HisQueryDiagnosData();
-			if (!AdmDiagnos){return "";}
+			if (!AdmDiagnos){CallBackFunc(); return "";}
 			
 			var AdmOrdItem=this.HisQueryOrdData(OrderItemStr);
-			if (!AdmOrdItem){return "";}
+			if (!AdmOrdItem){CallBackFunc(); return "";}
 			PdssObj.ItemDis=AdmDiagnos;
 			PdssObj.ItemOrder=AdmOrdItem.ItemOrder;
 			PdssObj.ItemHisOrder=AdmOrdItem.ItemHisOrder;
 			PdssObj.ItemAyg=this.HisAllergiesData();
 			PdssObj.ItemOper=this.HisOperationsData();
-			var RetPdssObj;
 			new Promise(function(resolve){
 				var DHCPdss = new PDSS({});
 				DHCPdss.refresh(PdssObj, resolve, 3);  /// 调用审查接口
 			}).then(function(PdssOption){
-				RetPdssObj=PdssOption;
 				PdssOption.close();
-				resolve();
+				CallBackFunc(PdssOption);
 			});
-			return RetPdssObj;
 		},
-		DHCXHZYCM:function(OrderItemStr,Mode){
+		DHCXHZYCM:function(OrderItemStr,CallBackFunc){
 			//if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) OrderItemStr=this.GetOrderDataOnAddCM();
 			//if (Mode=="CheckCM") OrderItemStr=this.GetOrderDataOnAddCM();
-			if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) return "";
+			if ((!OrderItemStr)||(OrderItemStr=="")||(OrderItemStr=="undefied")) {CallBackFunc(); return "";}
 			var PdssObj=this.HisQueryAdmInfoData();
-			if(!PdssObj){return "";}
+			if(!PdssObj){CallBackFunc(); return "";}
 			var AdmDiagnos=this.HisQueryDiagnosData();
-			if (!AdmDiagnos){return "";}
+			if (!AdmDiagnos){CallBackFunc(); return "";}
 			
 			var AdmOrdItem=this.HisQueryOrdDataCM(OrderItemStr);
-			if (!AdmOrdItem){return "";}
+			if (!AdmOrdItem){CallBackFunc(); return "";}
 			PdssObj.ItemDis=AdmDiagnos;
 			PdssObj.ItemOrder=AdmOrdItem.ItemOrder;
 			PdssObj.ItemHisOrder=AdmOrdItem.ItemHisOrder;
 			PdssObj.ItemAyg=this.HisAllergiesData();
 			PdssObj.ItemOper=this.HisOperationsData();
-			var RetPdssObj;
 			new Promise(function(resolve){
 				var DHCPdss = new PDSS({});
 				DHCPdss.refresh(PdssObj, resolve, 3);  /// 调用审查接口
 			}).then(function(PdssOption){
-				RetPdssObj=PdssOption;
 				PdssOption.close();
-				resolve();
+				CallBackFunc(PdssOption);
 			});
-			return RetPdssObj;
-			return DHCPdss;
 		},
 		HisOperationsData:function(){
 			var EpisodeID=GlobalObj.EpisodeID;
