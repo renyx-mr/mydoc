@@ -3,11 +3,11 @@ Class web.DHCDocRegCardRef Extends %RegisteredObject
 
 ///  renyx   2021.5.11
 /// 合并临时卡接口
-/// input: 临时卡登记号，要合并的身份证号，合并的用户id，当前的院区id
+/// input: 临时卡登记号，要合并的身份证号，患者姓名，合并的用户id，当前的院区id
 ///
-ClassMethod DocCardUnite(OldPapmiNo As %String,PatDVAnumber As %String ,UserId As %String, HospitalId As %String)
+ClassMethod DocCardUnite(OldPapmiNo As %String ,PatDVAnumber As %String ,PatName As %String , UserId As %String , HospitalId As %String)
 {
-    s OldPapmiId=$o(^PAPERi("PAPMI_PatNo",PatientNO,0))
+    s OldPapmiId=$o(^PAPERi("PAPMI_PatNo",OldPapmiNo,0))
     q:OldPapmiId="" "该登记号未使用，无法进行卡合并！"
     s CFRowID=0
     s OrdCardInd=0
@@ -24,9 +24,11 @@ ClassMethod DocCardUnite(OldPapmiNo As %String,PatDVAnumber As %String ,UserId A
     s PAPMIRowIdStr=""
     s PAPMIRowId=0
 	for {
-		s PAPMIRowId=$O(^PAPERi("DVA",PatCredNo,PAPMIRowId)) q:PAPMIRowId=""
+		s PAPMIRowId=$O(^PAPERi("DVA",PatDVAnumber,PAPMIRowId)) q:PAPMIRowId=""
         s Active=$P($g(^PAPER(PAPMIRowId,"PAT",1)),"^",6)
 		continue:Active="N"
+        s PAPMIName=$p($g(^PAPER(PAPMIRowId,"ALL")),"^",1)
+        continue:PatName'=PAPMIName
         if PAPMIRowIdStr="" s PAPMIRowIdStr=PAPMIRowId
         else  s PAPMIRowIdStr=PAPMIRowIdStr_"^"_PAPMIRowId
 	}
