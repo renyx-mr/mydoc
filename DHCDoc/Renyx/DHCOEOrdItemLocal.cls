@@ -1,6 +1,21 @@
 Class DHCDoc.Renyx.DHCOEOrdItemLocal Extends %RegisteredObject
 {
-
+/// input: AdmId 就诊id, oeori 医嘱id，PackQty 实际发药数量
+ClassMethod UpdateOEOrdItemQty(AdmId As %String , Oeori As %String , PackQty As %String)
+{
+	
+	s AdmType=$p(^PAADM(AdmId),"^",4)
+	q:AdmType'="O" ""  ;不是门诊则退出
+	s OrderRowid=+Oeori,ChildSub=$p(OrderRowid,"||",2)
+	q:(OrderRowid="")||(ChildSub="")
+	s ARCIMRowid=$p($g(^OEORD(OrderRowid,"I",ChildSub,1)),"^",2)	;药品ID
+	s ItemCatDr=$p($g(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1)),"^",10)
+	s OrderType=$p($g(^ARC("IC",ItemCatDr)),"^",7)
+	q:OrderType'="R" "" ;不是药品则退出
+	//s PackQty=$p($g(^OEORD(OrderRowid,"I",ChildSub,9)),"^",4)	;发药数量
+	s $p(^OEORD(OrderRowid,"I",ChildSub,9),"^",4)=PackQty   修改发药数量
+	q "0"
+}
 /// w ##class(web.DHCOEOrdItemLocal).CheckInsertArcItem
 /// 判断多系统和单系统的医嘱
 /// 设置检查医嘱属于单系统还是多系统，单系统医嘱不能跨“系统开多个部位”，只能选择一个系统内的一个或者多个部位；多系统医嘱不能只选择单一系统内的部位，只选择一个系统时在发送申请单时给予提示  

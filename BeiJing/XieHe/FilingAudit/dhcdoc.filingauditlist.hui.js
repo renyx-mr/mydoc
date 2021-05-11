@@ -87,6 +87,6 @@ function LoadRegistrationRegCard(){
 	//src=src+"?PatListType="+PatListType;
 	var src="websys.csp?a=a&TMENU=52802&TPAGID=4735695"
 	var patientList= '<iframe id="framePatientList" src="'+src+'" width="100%" height="100%"'+
-						'marginheight="0" marginwidth="0" scrolling="no" align="middle" ></iframe>'
+						'marginheight="0" marginwidth="0" scrolling="auto" align="middle" ></iframe>'
 	$('#RegistrationRegCard').empty().append(patientList);
 }

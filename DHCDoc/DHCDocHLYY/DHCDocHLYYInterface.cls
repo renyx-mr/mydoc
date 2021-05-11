@@ -101,6 +101,13 @@ ClassMethod LoadDHC()
 	Quit 1
 }
 
+///加载嘉和美康的合理用药  
+ClassMethod LoadJHMK(){
+	w "<object id='CaesarComponent' classid='clsid:8C028072-4FD2-46AE-B6D2-63E9F9B4155F' codebase = '../addins/client/dtywzxUIForMS.cab#version1.0.0.1'>"
+    w "</object>"
+    Q 1
+}
+
 ClassMethod GetArcimInfo(ARCIMRowid As %String) As %String
 {
 	s OrderName=$P(^ARCIM(+ARCIMRowid,$P(ARCIMRowid,"||",2),1),"^",2)
