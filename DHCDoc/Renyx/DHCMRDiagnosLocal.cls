@@ -12,33 +12,44 @@ ClassMethod GetMainDiagFlag(AdmDr As %String,IcdDr As %String)
 	if (MainDiagCount>0) s RetStr="Y"
 	q RetStr
 }
-ClassMethod GetPatDiagnsInfoByAdmId(AdmId As %String)
+ClassMethod GetPatDiagnsInfoByAdmId(AdmId As %String,DiagnosTypeDesc As %String = "")
 {
 	s MradmRowid=$P($g(^PAADM(AdmId)),"^",61)
 	q:MradmRowid="" ""
-	s IcdDr="",Desc=""
+	s IcdDrStr="",Desc=""
+	s TypeFlag=0
+	if (DiagnosTypeDesc=""){
+		s DiagnosTypeDesc="初步诊断"
+	}else{
+		s TypeFlag=1
+	}
 	set obj=##class(%ResultSet).%New("web.DHCDocDiagnosNew:Find")
 	d obj.Execute(MradmRowid)
 	For{
-		Quit:('obj.Next())||(IcdDr'="")
+		Quit:('obj.Next())||((IcdDrStr'="")&&(TypeFlag=0))
 		s Rowid=obj.Data("ID")
 		s CodeRowid=obj.Data("MRDIAICDCodeDR")
 		continue:CodeRowid=""
 		s DiagObj = ##class(User.MRDiagnos).%OpenId(Rowid)
 		if ($IsObject(DiagObj)){
-			continue:DiagObj.MRDIAMainDiagFlag'="Y"
-			continue:DiagObj.MRDIADiagStatDRGetObjectId()'="3"
+			continue:(TypeFlag=1)&&(DiagObj.MRDIAMainDiagFlag'="Y")
+			continue:(TypeFlag=1)&&(DiagObj.MRDIADiagStatDRGetObjectId()'="3")
 			s MRDiagnosTypeDr="",MRDiagnosTypeDesc=""
 			s SubRowid=$G(^MR($P(Rowid,"||",1),"DIA",$P(Rowid,"||",2),"TYP",0))
 			if SubRowid'="" s MRDiagnosTypeDr=$G(^MR($P(Rowid,"||",1),"DIA",$P(Rowid,"||",2),"TYP",SubRowid))
 			i MRDiagnosTypeDr'="" Set MRDiagnosTypeDesc=$P($G(^MRC("DTYP",MRDiagnosTypeDr)),"^",2)
-			continue:MRDiagnosTypeDesc'="初步诊断"
-			s IcdDr=CodeRowid
+			continue:MRDiagnosTypeDesc'=DiagnosTypeDesc
+			if (TypeFlag=1){
+				if IcdDrStr="" s IcdDrStr=CodeRowid
+				else  s IcdDrStr=IcdDrStr_"^"_CodeRowid
+			}else{
+			s IcdDrStr=CodeRowid
+			}
 		}
 		d DiagObj.%Close()
 		
 	}
-	q IcdDr
+	q IcdDrStr
 	/*s IcdDr="",Desc=""
 	&sql(
 		SELECT TOP 1 MRDIA_ICDCode_DR,MRDIA_Desc 

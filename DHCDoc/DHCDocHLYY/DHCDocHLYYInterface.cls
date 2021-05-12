@@ -102,9 +102,11 @@ ClassMethod LoadDHC()
 }
 
 ///加载嘉和美康的合理用药  
-ClassMethod LoadJHMK(){
-	w "<object id='CaesarComponent' classid='clsid:8C028072-4FD2-46AE-B6D2-63E9F9B4155F' codebase = '../addins/client/dtywzxUIForMS.cab#version1.0.0.1'>"
-    w "</object>"
+ClassMethod LoadJHMK()
+{
+	w "<script type='text/javascript' src='es5-shim.js' charset='utf-8'></script>"
+	w "<script type='text/javascript' src='sockjs.js' charset='utf-8'></script>"
+	w "<script type='text/javascript' src='savedata.js' charset='utf-8'></script>"
     Q 1
 }
 
