@@ -1,5 +1,41 @@
 Class DHCDoc.Renyx.DHCOEOrdItemLocal Extends %RegisteredObject
 {
+ClassMethod GetDischargeOrd(AdmId As %String,HospId As %String)
+{
+	s RetStr=""
+	s Oeori=$o(^OEORD(0,"Adm",AdmId,0))
+	q:Oeori="" RetStr
+	s DischargeArcimStr=##Class(Nur.Interface.OutSide.Order).GetDischargeNeedArcim("dischargeNeedArcim", HospId)
+	s DeathDischargeArcimStr=##Class(Nur.Interface.OutSide.Order).GetDischargeNeedArcim("deathDischargeNeedArcim", HospId)
+	s CheckArcItemStr=DischargeArcimStr_"^"_DeathDischargeArcimStr
+	
+	for i=1:1:$l(CheckArcItemStr,"^"){
+		s OneCheckArcItem=$p(CheckArcItemStr,"^",i)
+		continue:OneCheckArcItem=""
+		s SttDat=0
+		for {
+			s SttDat=$o(^OEORDi(0,"ARCIM",Oeori,OneCheckArcItem,SttDat))
+			q:SttDat=""
+			s Childsub=0
+			for {
+				s Childsub=$o(^OEORDi(0,"ARCIM",Oeori,OneCheckArcItem,SttDat,Childsub))
+				q:Childsub=""
+				s statcode=$$GetStatCode(Oeori_"||"_Childsub) ;防止停留时间内撤销医嘱
+				continue:(statcode="U")||(statcode="D")||(statcode="C")
+				//s ARCIMRowid=$p($g(^OEORD(Oeori,"I",Childsub,1)),"^",2)	;药品ID
+				s ItemDesc=$p($g(^ARCIM(+OneCheckArcItem,$p(OneCheckArcItem,"||",2),1)),"^",2)
+				if (RetStr="") s RetStr=ItemDesc
+				else  s RetStr=RetStr_";"_ItemDesc
+			}
+		}
+	}
+	q RetStr
+GetStatCode(OrderID)
+	s statcode=""
+	s Stat=$P($G(^OEORD(+OrderID,"I",$P(OrderID,"||",2),1)),"^",13)
+	s:Stat'="" statcode=$p($g(^OEC("OSTAT",Stat)),"^",1)
+	Q statcode
+}
 /// input: AdmId 就诊id, oeori 医嘱id，PackQty 实际发药数量
 ClassMethod UpdateOEOrdItemQty(AdmId As %String , Oeori As %String , PackQty As %String)
 {

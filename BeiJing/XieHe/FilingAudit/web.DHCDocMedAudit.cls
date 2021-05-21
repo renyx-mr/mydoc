@@ -160,4 +160,84 @@ Query FindDocMedAudit() As %Query(ROWSPEC = "SeqNo:%String,CreatDate:%String,Med
 {
 }
 
+ClassMethod StatisticsUserWorkloadClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = StatisticsUserWorkloadExecute ]
+{
+	Set repid=$LIST(qHandle,2)
+ 	Kill ^CacheTemp(repid) 	
+ 	Quit $$$OK
+}
+
+/// d ##class(%ResultSet).RunQuery("web.DHCDocMedAudit","StatisticsUserWorkload")
+ClassMethod StatisticsUserWorkloadExecute(ByRef qHandle As %Binary,SatarDate As %String,EndDate As %String,AuditStatus As %String) As %Status
+{
+	Set repid=$I(^CacheTemp)
+	s ind=1
+	//序号	新生成日期	病历号	门诊或住院新建
+	s:SatarDate="" SatarDate=+$h
+	s:EndDate="" EndDate=+$h
+	s SatarDate=SatarDate-1
+	if AuditStatus="" s AuditStatus="P^O"
+	for StarDate=SatarDate:1:EndDate{
+		s StarDate=$O(^User.DHCDocMedAuditD("CreateDS",StarDate))
+		q:StarDate=""
+		for AuditStatusInt=1:1:$l(AuditStatus,"^"){
+			s OneAuditStatus=$p(AuditStatus,"^",AuditStatusInt)
+			s ExistID=0
+			for {
+				s ExistID=$O(^User.DHCDocMedAuditD("CreateDS",StarDate,OneAuditStatus,ExistID))
+				q:ExistID=""
+				s ExistObj=##class(User.DHCDocMedAudit).%OpenId(ExistID)
+				// 患者ID 、 患者姓名 、 病案号 、 审核日期 、 审核时间 、 审核人 、 审核状态
+				s PatientID="",PatientName="",MedicareNo="",AuditDate="",AuditTime="",AuditUserDesc="",Status=""
+				if $IsObject(ExistObj){
+					s PatientID=ExistObj.PAPMIDRGetObjectId()
+					if PatientID'=""{
+						s MedicareNo=$p($g(^PAPER(PatientID,"PAT",1)),"^",22)
+					}
+					s AuditDate=ExistObj.AuditDate
+					s:AuditDate'="" AuditDate=$zd(AuditDate,1)
+					s AuditTime=ExistObj.AuditTime
+					s:AuditTime'="" AuditTime=$zt(AuditTime,1)
+		            s AuditUserDR=ExistObj.AuditUserDRGetObjectId()
+		            s:AuditUserDR'="" AuditUserDesc=$p($g(^SSU("SSUSR",AuditUserDR)),"^",2)
+					s StatusCode=ExistObj.Status
+		            s Status=$case(StatusCode,"P":"通过","U":"拒绝","O":"其他",:"")
+				}
+			}
+		}
+	}
+	//do OutputRow
+	Set qHandle=$lb(0,repid,0)
+	Quit $$$OK
+UserWorkloadOutputRow      
+	set Data=$lb(PatientID,PatientName,MedicareNo,AuditDate,AuditTime,AuditUserDesc,Status)
+ 	Set ^CacheTemp(repid,ind)=Data
+ 	Set ind=ind+1
+ 	quit
+}
+
+ClassMethod StatisticsUserWorkloadFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = StatisticsUserWorkloadExecute ]
+{
+	
+ 	Set AtEnd=$LIST(qHandle,1)
+ 	Set repid=$LIST(qHandle,2)
+ 	Set ind=$LIST(qHandle,3)
+	//
+ 	Set ind=$o(^CacheTemp(repid,ind))
+ 	If ind="" {				// if there are no more rows, finish fetching
+ 		Set AtEnd=1
+ 		Set Row=""
+ 	}
+ 	Else      {				// fetch row
+ 		Set Row=^CacheTemp(repid,ind)
+ 	}
+ 	// Save QHandle
+ 	s qHandle=$lb(AtEnd,repid,ind)
+	Quit $$$OK
+}
+
+Query StatisticsUserWorkload(SatarDate As %String,EndDate As %String,AuditStatus As %String) As %Query(ROWSPEC = "PatientID:%String,PatientName:%String,MedicareNo:%String,AuditDate:%String,AuditTime:%String,AuditUserDesc:%String,Status:%String")
+{
+}
+
 }

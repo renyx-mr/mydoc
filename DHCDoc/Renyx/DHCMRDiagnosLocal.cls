@@ -1,5 +1,65 @@
 Class DHCDoc.Renyx.DHCMRDiagnosLocal Extends %RegisteredObject
 {
+/// 汇总取诊断接口  
+/// input : 就诊ID ，诊断类型描述（初步诊断，入院诊断...多个使用^连接），诊断类型（Y:ICD表Rowid,其余描述），获取诊断数量(全部用ALL)，是否按照主诊断获取，诊断状态（确诊，待诊。。。）
+/// w ##class(web.Sxddhc).GetPatDiagnsInfo("901","初步诊断","","ALL")
+ClassMethod GetPatDiagnsInfo(AdmId As %String, DiagnosTypeDesc As %String = "", DiagnosFlag As %String = "", DiagNum As %String = "", MianFalg As %String = "", DiagStat As %String = "",PDlime As %string = "")
+{
+	s MradmRowid=$P($g(^PAADM(AdmId)),"^",61)
+	q:MradmRowid="" ""
+	s RetStr=""
+	s:PDlime="" PDlime="^"
+	set obj=##class(%ResultSet).%New("web.DHCDocDiagnosNew:Find")
+	d obj.Execute(MradmRowid)
+	For{
+		Quit:('obj.Next())
+		q:(DiagNum'="ALL")&&((+DiagNum=$l(RetStr,"^"))||(DiagNum=RetStr))
+		//b //q:((TypeFlag="0")&&(IcdDrStr'=""))
+		s Rowid=obj.Data("ID")
+		s CodeRowid=obj.Data("MRDIAICDCodeDR")
+		s Desc=obj.Data("MRDIAICDCodeDRDesc")
+		continue:CodeRowid=""
+		s DiagObj = ##class(User.MRDiagnos).%OpenId(Rowid)
+		if ($IsObject(DiagObj)){
+			continue:((MianFalg="Y")&&(DiagObj.MRDIAMainDiagFlag'="Y"))
+			continue:((DiagStat'="")&&(DiagObj.MRDIADiagStatDR.DSTATDesc'=DiagStat))
+			s MRDiagnosTypeDr="",MRDiagnosTypeDesc=""
+			s SubRowid=$G(^MR($P(Rowid,"||",1),"DIA",$P(Rowid,"||",2),"TYP",0))
+			if SubRowid'="" s MRDiagnosTypeDr=$G(^MR($P(Rowid,"||",1),"DIA",$P(Rowid,"||",2),"TYP",SubRowid))
+			i MRDiagnosTypeDr'="" Set MRDiagnosTypeDesc=$P($G(^MRC("DTYP",MRDiagnosTypeDr)),"^",2)
+			continue:("^"_DiagnosTypeDesc_"^")'[("^"_MRDiagnosTypeDesc_"^") //'=DiagnosTypeDesc
+			s OneRet=Desc
+			if (DiagnosFlag="Y") s OneRet=CodeRowid
+			if RetStr="" s RetStr=OneRet
+			else  s RetStr=RetStr_PDlime_OneRet
+		}
+		d DiagObj.%Close()
+	}
+	q RetStr
+}
+
+ClassMethod GetBookingDiagByIPAdmId(IPAdmId As %String)
+{
+	s RetStr=""
+	s BookId=$O(^DHCDocIPBK(0,"EpisodeIDTo",IPAdmId,0))
+	q:BookId="" RetStr
+	s ICDList=$p(^DHCDocIPBK(BookId),"^",24) ;ICD诊断-新版不用
+	s LICDList=$L(ICDList,"!")
+	for i=1:1:LICDList{
+		s ICDSub=$P(ICDList,"!",i)
+		continue:ICDSub=""
+		s SID=$p(ICDSub,$c(2),3)
+		s ICDRowId=$p(ICDSub,$c(2),1)
+		if (ICDRowId'=""){
+			s Desc=$p(^MRC("ID",ICDRowId),"^",2)
+		}else{
+			s Desc=$p(ICDSub,$c(2),2)
+		}
+		if (RetStr="") s RetStr=Desc
+		else  s RetStr=RetStr_"^"_Desc
+	}
+	q RetStr
+}
 ClassMethod GetMainDiagFlag(AdmDr As %String,IcdDr As %String)
 {
 	s RetStr="N"

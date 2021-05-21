@@ -5,7 +5,7 @@ ClassMethod GetPrescInfo(EpisodeID As %String, UserId As %String, LocId As %Stri
 {
     s PatientID=$p($g(^PAADM(EpisodeID)),"^",1)
     ;登记号
-    s PatNo=$p(^PAPER(EpisodeID,"PAT",1),"^",2)
+    s PatNo=$p(^PAPER(PatientID,"PAT",1),"^",2)
     ;患者姓名
     s PatientName=$P($G(^PAPER(PatientID,"ALL")),"^",1)
     ;就诊次
@@ -42,9 +42,9 @@ ClassMethod GetPatAdmInfo(EpisodeID As %String)
     s AdmDateStr=""
     s AdmLocID=$p($g(^PAADM(EpisodeID)),"^",4)
     ;就诊科室编码
-    s AdmLocCode=$p($g(^CTLOC(EpisodeLocID)),"^",1)
+    s AdmLocCode=$p($g(^CTLOC(AdmLocID)),"^",1)
     ;就诊科室描述
-    s AdmLocDesc=$p($g(^CTLOC(EpisodeLocID)),"^",2)
+    s AdmLocDesc=$p($g(^CTLOC(AdmLocID)),"^",2)
     s:AdmLocDesc["-" AdmLocDesc=$p(AdmLocDesc,"-",2)
     s AdmDocCodeDR=$p($g(^PAADM(EpisodeID)),"^",9)
     ;就诊医生编码
