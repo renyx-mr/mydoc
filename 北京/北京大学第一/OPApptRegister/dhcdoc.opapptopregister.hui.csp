@@ -1,0 +1,47 @@
+<!--用于西南院区的预约登记  csp:dhcdoc.opapptopregister.hui.csp-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<HTML lang="zh-CN">
+<HEAD>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<TITLE><EXTHEALTH:TRANSLATE id=title>##(%session.Get("TITLE"))##</EXTHEALTH:TRANSLATE></TITLE>
+<EXTHEALTH:HEAD></EXTHEALTH:HEAD>
+<HISUI></HISUI>
+<script type="text/javascript" src="../scripts/hisui/websys.comm.js"></script>
+<script type="text/javascript" src="../scripts/dhcdoc/opapptopregister.hui.js"></script>
+</head>
+<body>
+<div  class="hisui-layout" data-options="fit:true,border:false" style=""> 
+	<div data-options="region:'north',split:false,title:'',border:false" style="height:65px;padding:10px 10px 0 10px;">
+    	<div class="hisui-panel" fit="true" style="height:100%;border:1px solid #ccc;border-radius:4px;">
+    		<table>
+	  	     	<tr>
+	  	     		<td class="r-label">
+	  	     			<label for="StartDate">开始时间</label>
+	  	     		</td>
+	  	     		<td class="r-label">
+	  	     			<input id="StartDate" class="hisui-datebox textbox datebox-f combo-f"/>
+	  	     		</td>
+	  	     		<td class="r-label">
+	  	     			<label for="EndDate">结束时间</label>
+	  	     		</td>
+	  	     		<td class="r-label">
+	  	     			<input id="EndDate" class="hisui-datebox textbox datebox-f combo-f"/>
+	  	     		</td>
+	  	     		<td>
+	  	     			<a class="hisui-linkbutton" id="BFind" data-options="iconCls:'icon-w-find'" style="">查询</a>
+	  	     		</td>
+	  	     	</tr>
+	  	     </table>
+    	</div>
+    </div>
+    <div data-options="region:'center',split:true,title:'',border:false" style="padding:10px;">
+    	<div class="hisui-panel" fit="true" style="height:100%;border:1px solid #ccc;border-radius:4px;">
+    		<table id="TabApptRegisterLimit"></table> 
+    	</div>
+    </div>
+</div>
+	
+</body>
+</html>

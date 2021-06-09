@@ -3,6 +3,37 @@ Class DHCDoc.Interface.Outside.OrganizationUnit.Patient Extends (%RegisteredObje
 
 Parameter IDCardType = 01;
 
+ClassMethod CreatePatientToWeb(PatientID As %String)
+{
+	set OutPutObj=##class(%DynamicObject).%New()
+	; patientIdTypeId	int	是	患者ID类型(1-预留2-预留3-身份证号)		3
+	set IDTypeDesc=""
+	set IDTypeCode=$p(^PAPER(PatientID,"PAT",3),"^",7)
+	if IDTypeCode'="" set IDTypeDesc=$p(^PAC("CARD",IDTypeCode),"^",7)
+	s OutPutObj.patientIdTypeId=IDTypeDesc
+	; patientId	string	是	患者ID		110111188605069875
+	set OutPutObj.patientId=$p($g(^PAPER(PatientID,"PAT",3)),"^",6)
+	; patientHisId	string	是	患者在HIS系统的标识		P101010100
+	s OutPutObj.patientHisId=##class(DHCExternalService.CardInterface.CardManager).PatientIDToNo(PatientID)
+	; patientName	string	是	患者姓名		张三
+	s OutPutObj.papatientName=$p(^PAPER(PatientID,"ALL"),"^",1)
+	; patientGenderTypeId	int	是	患者性别（1未知、2其它、3女、4男）		4
+	set SexCode=$p(^PAPER(PatientID,"ALL"),"^",7)
+	i SexCode'="" set Sex=$p(^CT("SEX",SexCode),"^",2)
+	s OutPutObj.patientGenderTypeId=$case(SexCode,"男":"4","女":"3","未知":"1",:"其他")
+	; patientMobileNumber	string	是	患者手机号		18811112222
+	s TelephoneNo=$p(^PAPER(PatientID,"PER",1),"^",11)
+	s Mobile=$p($g(^PAPER(PatientID,"PER",4)),"^",21)
+	if Mobile="" s Mobile=TelephoneNo
+	s OutPutObj.Mobile=Mobile
+	; healthCardId	string	否	健康卡ID（健康卡是指的医院外部系统的健康卡，如微信电子健康卡）		A4E0374BCBEAB40E4D66AB5078B44XXX
+	s OutPutObj.healthCardId=""
+	; contextTypeId	int	是	医院方用户当前状态（1预留、2预留、3建档、4预约挂号、5住院、6出院、7检查、8检验）		3
+	s OutPutObj.contextTypeId="3"
+	s JsonStr=OutPutObj.%ToJSON()
+	q JsonStr
+}
+
 /// w ##class(DHCDoc.Interface.Outside.OrganizationUnit.Patient).GetPatient("{""patientIdTypeId"":""3"",""patientId"":""530111198807203840""}","WX")
 ClassMethod GetPatient(JsonInput, ExtUserID)
 {

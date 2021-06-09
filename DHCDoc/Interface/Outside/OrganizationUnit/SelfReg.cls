@@ -5,6 +5,19 @@
 Class DHCDoc.Interface.Outside.OrganizationUnit.SelfReg Extends (%RegisteredObject, %XML.Adaptor, DHCDoc.Interface.Outside.OrganizationUnit.SelfMethod)
 {
 
+ClassMethod StopSchedulePush(ASRowId)
+{
+	s OutPutObj=##class(%DynamicObject).%New()
+	; scheduleIdList array 是 停诊医生的排班 Id列表["10001", "10002", "10003"]
+	s ScheduleIdArr=[]
+	d ScheduleIdArr.%Push(ASRowId)
+	s OutPutObj.OutPutObj=ScheduleIdArr
+	; comment string 否 附加消息 停诊通知
+	s OutPutObj.comment="停诊通知"
+	s JsonStr=OutPutObj.%ToJSON()
+	q JsonStr
+}
+
 /// 获取排班信息
 /// w ##Class(DHCDoc.Interface.Outside.OrganizationUnit.SelfReg).GetSchedule("{""date"":""2020-07-11""}","WX")
 ClassMethod GetSchedule(JsonInput, ExtUserID)

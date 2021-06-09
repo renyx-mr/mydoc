@@ -92,7 +92,7 @@ ClassMethod GetPatDiagnsInfoByAdmId(AdmId As %String,DiagnosTypeDesc As %String 
 		continue:CodeRowid=""
 		s DiagObj = ##class(User.MRDiagnos).%OpenId(Rowid)
 		if ($IsObject(DiagObj)){
-			continue:(TypeFlag=1)&&(DiagObj.MRDIAMainDiagFlag'="Y")
+			continuIsObjecte:(TypeFlag=1)&&(DiagObj.MRDIAMainDiagFlag'="Y")
 			continue:(TypeFlag=1)&&(DiagObj.MRDIADiagStatDRGetObjectId()'="3")
 			s MRDiagnosTypeDr="",MRDiagnosTypeDesc=""
 			s SubRowid=$G(^MR($P(Rowid,"||",1),"DIA",$P(Rowid,"||",2),"TYP",0))
@@ -107,7 +107,6 @@ ClassMethod GetPatDiagnsInfoByAdmId(AdmId As %String,DiagnosTypeDesc As %String 
 			}
 		}
 		d DiagObj.%Close()
-		
 	}
 	q IcdDrStr
 	/*s IcdDr="",Desc=""

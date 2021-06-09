@@ -21,7 +21,7 @@ ClassMethod GetPrescInfo(EpisodeID As %String, UserId As %String, LocId As %Stri
     s CTPCPCarPrvTpDesc=""
     if (CTPCPRowid'=""){
         s CTPCPCarPrvTpDR = $p(^CTPCP(CTPCPRowid,1),"^",4)
-        if (CTPCPCarPrvTpDR'="") s CTPCPCarPrvTpDesc=$p($g(^CTPCP(ctpcprowid,1)),"^",2)
+        if (CTPCPCarPrvTpDR'="") s CTPCPCarPrvTpDesc=$p($g(^CTPCP(CTPCPRowid,1)),"^",2)
     }
     q PatNo_"^"_PatientName_"^"_Visit_"$"_UserCode_"^"_UserDesc_"^"_LocDesc_"^"_CTPCPCarPrvTpDesc
 }
@@ -57,6 +57,7 @@ ClassMethod GetPatAdmInfo(EpisodeID As %String)
 
 ClassMethod GetOrdersInfo(OrderItemStr As %String)
 {
+	s ^tempRen("GetOrdersInfo")=OrderItemStr
 	s VerifiedOrdersInfo=""
 	for ItemSeq=1:1:$l(OrderItemStr,$c(1)) {
 		s OrderItemOne=$p(OrderItemStr,$c(1),ItemSeq)
@@ -124,7 +125,7 @@ ClassMethod GetOrdersInfo(OrderItemStr As %String)
         ;医嘱状态
         s OrderStatus="审核"
         ;医嘱下达时间
-        s OrderDateStr=$p(OrdItem,"^",46)_" "_$p(OrdItem,"^",47)
+        s OrderDateStr=$p(OrderItemOne,"^",46)_" "_$p(OrderItemOne,"^",47)
         ;给药途径和方法
         s DrugPreMet=""
 		s InstrRowid=$p(OrderItemOne,"^",17)
@@ -175,6 +176,73 @@ ClassMethod GetDiagnosInfo(DiagItemStr)
 		e  s DiagnosInfo=DiagnosInfo_$C(1)_OrdersInfo
 	}
 	q DiagnosInfo
+}
+
+/// Creator:      lvjun
+/// CreatDate:    2020-12-12
+/// Description:  将待审核草药数据串拼接成待审核西药数据串
+/// Input:        EpisodeID:就诊表RowId  CMOEOrdStr:待审核草药数据串
+/// Return:       待审核西药数据串
+/// Others:       w ##class(web.DHCDocHLYYHZYY).ConvertCMOEOrdToOEOrd("4415774",$p(^lj("ConvertCMOEOrdToOEOrd"),",",2))
+ClassMethod ConvertCMOEOrdToOEOrd(CMOEOrdStr As %String) As %String
+{
+	s ^lj("ConvertCMOEOrdToOEOrd")=CMOEOrdStr
+	s PrescStr=$p(CMOEOrdStr,$C(2),1)
+	s CMItemStr=$p(CMOEOrdStr,$c(2),2)
+	s PrescPriorRowid=$p(PrescStr,"^",1)
+	s PrescDurRowid=$p(PrescStr,"^",2)
+	s PrescInstrRowid=$p(PrescStr,"^",3)
+	s PrescFreqRowid=$p(PrescStr,"^",4)
+	s PrescCookMode=$p(PrescStr,"^",5)
+	s PrescOrderQty=$p(PrescStr,"^",6)
+	s PrescRecDepRowid=$p(PrescStr,"^",7)
+	s PrescAdmReason=$p(PrescStr,"^",8)
+	s PrescNotes=$p(PrescStr,"^",9)
+	s PrescEmergency=$p(PrescStr,"^",10)
+	s PrescStartDate=$p(PrescStr,"^",11)
+	if (PrescStartDate="") s PrescStartDate=+$h
+    else  s PrescStartDate=##class(websys.Conversions).DateHtmlToLogical(PrescStartDate)
+    s PrescStartDate=$zd(PrescStartDate,3)
+    s PrescStartTime=$p(PrescStr,"^",12)
+    if (PrescStartTime="") s PrescStartTime=$p($h,",",2)
+    else  s PrescStartTime=##class(websys.Conversions).TimeHtmlToLogical(PrescStartTime)
+    s PrescStartTime=$zt(PrescStartTime,1)
+    ;
+    s OEOrdStr=""
+	for ItemSeq=1:1:$l(CMItemStr,$c(1)) {
+		s CMItemOne=$p(CMItemStr,$c(1),ItemSeq)
+		continue:CMItemOne=""
+		s ARCIMRowid=$p(CMItemOne,"^",1)
+		continue:ARCIMRowid=""
+		s ItemCatDr=$p($g(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1)),"^",10)
+		s OrderType=$p($g(^ARC("IC",ItemCatDr)),"^",7)
+		continue:OrderType'="R"
+		s DoseQty=$p(CMItemOne,"^",2)
+		s DurFactor=$p($g(^PHCDU(PrescDurRowid)),"^",2)
+		s PackQty=DoseQty*DurFactor
+		s OrderPrice=##class(web.UDHCJFPRICE).GetOrderPrice("","",ARCIMRowid,+$h,"","","","","","")
+		s UnitPrice=$p(OrderPrice,"^",4)
+		s DoseUOMRowid=$p(CMItemOne,"^",3)
+		if (DoseUOMRowid="") s DoseUOMRowid=$p($g(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),8)),"^",14)
+		if (DoseUOMRowid="") {
+			s Phcdf=$P($g(^ARCIM(+ARCIMRowid,$P(ARCIMRowid,"||",2),1)),"^",12)
+			if (Phcdf'="") s DoseUOMRowid=$p(^PHCD(+Phcdf,"DF",$p(Phcdf,"||",2),2),"^",4)
+		}
+		s PhSpecInstr=$p(CMItemOne,"^",4)
+		s OrderSeqNo="^"_PrescStartDate_"^"_PrescStartTime_"^"_ItemSeq
+		s OrderMasterSeqNo="^"_PrescStartDate_"^"_PrescStartTime
+		s OEOrdOne=ARCIMRowid_"^"_OrderType_"^"_PrescPriorRowid_"^"_PrescStartDate_"^"_PrescStartTime_"^"_PackQty	;1-6
+		s OEOrdOne=OEOrdOne_"^"_UnitPrice_"^"_""_"^"_""_"^"_""_"^"_""_"^"_DoseQty_"^"_DoseUOMRowid_"^"_""_"^"_PrescFreqRowid	;7-14
+		s OEOrdOne=OEOrdOne_"^"_PrescDurRowid_"^"_PrescInstrRowid_"^"_""_"^"_OrderMasterSeqNo_"^"_OrderSeqNo	;15-20
+		s $p(OEOrdOne,"^",22)=PhSpecInstr
+		s $p(OEOrdOne,"^",30)=PrescEmergency
+		s $p(OEOrdOne,"^",46)=PrescStartDate
+		s $p(OEOrdOne,"^",47)=PrescStartTime
+		s $p(OEOrdOne,"^",55)=DoseUOMRowid
+		if (OEOrdStr="") s OEOrdStr=OEOrdOne
+		else  s OEOrdStr=OEOrdStr_$c(1)_OEOrdOne
+	}
+	Q OEOrdStr
 }
 
 }
