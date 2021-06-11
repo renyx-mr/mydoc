@@ -1,4 +1,4 @@
-//界面初始加载  
+//鐣岄潰鍒濆鍔犺浇  
 function HtmlPageLoadInit(AdmId,AdmType,PageType){
     //PassFuncs.
     if (PageType=="Diag") {
@@ -8,7 +8,11 @@ function HtmlPageLoadInit(AdmId,AdmType,PageType){
         else PassFuncs.JHMKOrderPage(AdmId);
     }
 }
-//保存医嘱调用
+//医嘱状态：下达/审核/开始/撤销/停止、废除
+function HLYYUpdateOrdItemClick(AdmId,AdmType,SelOrdItemDrStr,StatusDesc){
+    PassFuncs.JHMKUpdateOrdItemClick(AdmId,AdmType,SelOrdItemDrStr,StatusDesc);
+}
+//医嘱的保存检查 
 function HLYYUpdateClick_Check(AdmId,AdmType,OrderItemStr){
     PassFuncs.JHMKCheckOrder(AdmId,AdmType,OrderItemStr);
 }
@@ -16,43 +20,58 @@ function HLYYUpdateDiagClick_Check(AdmId,DiagItemStr){
     PassFuncs.JHMKCheckDiagnos(AdmId,DiagItemStr);
 }
 var PassFuncs={
-    JHMKCheckOrder:function(AdmId,AdmType,OrderItemStr){ //保存医嘱时调用
+    JHMKUpdateOrdItemClick:function(AdmId,AdmType,SelOrdItemDrStr,StatusDesc){
         var Source="40-5"
         if (AdmType=="I") Source="40-2";
         var InputData=this.JHMKCommonInfo(AdmId,Source);
-        if (AdmType=="O") InputData.yizhu=this.JHMKGetOrdItem(AdmType,OrderItemStr);
-        else  InputData.menzhenxiyaochufang=this.JHMKGetOrdItem(AdmType,OrderItemStr)
+        if (AdmType=="O") InputData.yizhu=this.JHMKGetOrdItem(AdmType,"",SelOrdItemDrStr,StatusDesc);
+        else  InputData.menzhenxiyaochufang=this.JHMKGetOrdItem(AdmType,"",SelOrdItemDrStr,StatusDesc);
+        alert(JSON.stringify(InputData));
         var RetStr=cdssSendData(JSON.stringify(InputData),"");
-        alert(RetStr);
-        closeCdssFront();
+    },
+    JHMKCheckOrder:function(AdmId,AdmType,OrderItemStr){ //淇濆瓨鍖诲槺鏃惰皟鐢?
+        var Source="40-5"
+        if (AdmType=="I") Source="40-2";
+        var InputData=this.JHMKCommonInfo(AdmId,Source);
+        if (CDSSLayout=="CMOEOrd") OrderItemStr=this.JHMKGetOrdItemInfo("ConvertCMOEOrdToOEOrd",OrderItemStr);
+        if (AdmType=="O") InputData.yizhu=this.JHMKGetOrdItem(AdmType,OrderItemStr,"","");
+        else  InputData.menzhenxiyaochufang=this.JHMKGetOrdItem(AdmType,OrderItemStr,"","");
+        alert(JSON.stringify(InputData));
+        var RetStr=cdssSendData(JSON.stringify(InputData),"");
+        //alert(RetStr);
+        //closeCdssFront();
     },
     JHMKOpenPage:function(AdmId){
         var InputData=this.JHMKCommonInfo(AdmId,"40-4");
         InputData.menzhenjiuzhenjilu=this.JHMKGetPatAdmInfo(AdmId)
+        alert(JSON.stringify(InputData));
         var RetStr=cdssSendData(JSON.stringify(InputData),"");
-        alert(RetStr);
-        closeCdssFront();
+        //alert(RetStr);
+        //closeCdssFront();
     },
     JHMKCheckDiagnos:function(AdmId,DiagItemStr){
         var InputData=this.JHMKCommonInfo(AdmId,"50-2");
-        InputData.menzhenzhenduan=this.DiagItemStr(AdmId,DiagItemStr);
+        InputData.menzhenzhenduan=this.JHMKGetAdmDiagnos(DiagItemStr);
+        alert(JSON.stringify(InputData));
         var RetStr=cdssSendData(JSON.stringify(InputData),"");
-        alert(RetStr);
-        closeCdssFront();
+        //alert(RetStr);
+        //closeCdssFront();
     },
-    JHMKDiagPage:function(AdmId){ //保存医嘱时调用
+    JHMKDiagPage:function(AdmId){ //淇濆瓨鍖诲槺鏃惰皟鐢?
         var InputData=this.JHMKCommonInfo(AdmId,"50-1");
         //InputData.menzhenjiuzhenjilu=this.JHMKGetPatAdmInfo(AdmId)
+        alert(JSON.stringify(InputData));
         var RetStr=cdssSendData(JSON.stringify(InputData),"");
-        alert(RetStr);
-        closeCdssFront();
+        //alert(RetStr);
+        //closeCdssFront();
     },
     JHMKOrderPage:function(AdmId){
         var InputData=this.JHMKCommonInfo(AdmId,"40-1");
         //InputData.menzhenjiuzhenjilu=this.JHMKGetPatAdmInfo(AdmId)
+        alert(JSON.stringify(InputData));
         var RetStr=cdssSendData(JSON.stringify(InputData),"");
-        alert(RetStr);
-        closeCdssFront();
+        //alert(RetStr);
+        //closeCdssFront();
     },
     JHMKCommonInfo:function(AdmId,Source){
         var SendData={};
@@ -88,8 +107,13 @@ var PassFuncs={
         PatAdmObj.visit_doctor_code=GetPatAdmInfo.split("^")[8];
         return PatAdmObj;
     },
-    JHMKGetOrdItem:function(AdmType,OrderItemStr){
-        var OrdItemInfo=this.JHMKGetOrdItemInfo("GetOrdersInfo",OrderItemStr);
+    JHMKGetOrdItem:function(AdmType,OrderItemStr,SelOrdItemDrStr,StatusDesc){
+        if ((OrderItemStr!="")&&(StatusDesc="")){
+            StatusDesc="审核"
+            var OrdItemInfo=this.JHMKGetOrdItemInfo("GetOrdersInfo",OrderItemStr);
+        }else{
+            var OrdItemInfo=this.JHMKGetOrdItemInfo("GetVerifiedOrdersInfo",SelOrdItemDrStr);
+        }
         if ((!OrdItemInfo)||(OrdItemInfo=="")||(OrdItemInfo=="undefined")) return {};
         var ArrayOrder=new Array();
         var OrderInfoArr=OrdItemInfo.split(String.fromCharCode(1));
@@ -111,12 +135,13 @@ var PassFuncs={
             OrdItemObj.frequency_name=OrderArr[16];
             OrdItemObj.frequency_code=OrderArr[17];
             OrdItemObj.order_time=OrderArr[19];
+            OrdItemObj.order_status_name=StatusDesc;
             if (AdmType=="I"){
                 OrdItemObj.order_item_name=OrderArr[1];
                 OrdItemObj.order_begin_time=OrderArr[6];
                 OrdItemObj.order_end_time=OrderArr[7];
                 OrdItemObj.order_properties_name=OrderArr[10];
-                OrdItemObj.order_status_name=OrderArr[18];
+                
             }else{
                 OrdItemObj.charge_name="";
                 OrdItemObj.pharmacy_way_name=OrderArr[20];
@@ -138,9 +163,9 @@ var PassFuncs={
         for(var i=0; i<DiagnosInfoArr.length ;i++){
             var DiagArr=DiagnosInfoArr[i].split("^");
             var DiagnosObj={};
-            DiagObj.diagnosis_name=DiagArr[1];
+            DiagnosObj.diagnosis_name=DiagArr[2];
             DiagnosObj.diagnosis_desc=DiagArr[0];
-            DiagnosObj.diagnosis_code=DiagArr[2];
+            DiagnosObj.diagnosis_code=DiagArr[1];
             DiagnosObj.diagnosis_time=DiagArr[4];
             DiagnosObj.diagnosis_num=DiagArr[3];
             DiagnosObj.diagnosis_flag_name=DiagArr[5];
