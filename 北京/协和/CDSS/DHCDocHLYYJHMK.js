@@ -9,11 +9,11 @@ function HtmlPageLoadInit(AdmId,AdmType,PageType){
     }
 }
 //医嘱状态：下达/审核/开始/撤销/停止、废除
-function HLYYUpdateOrdItemClick(AdmId,AdmType,SelOrdItemDrStr,StatusDesc){
+function CDSSUpdateOrdItemClick(AdmId,AdmType,SelOrdItemDrStr,StatusDesc){
     PassFuncs.JHMKUpdateOrdItemClick(AdmId,AdmType,SelOrdItemDrStr,StatusDesc);
 }
 //医嘱的保存检查 
-function HLYYUpdateClick_Check(AdmId,AdmType,OrderItemStr){
+function CDSSUpdateClick_Check(AdmId,AdmType,OrderItemStr){
     PassFuncs.JHMKCheckOrder(AdmId,AdmType,OrderItemStr);
 }
 function HLYYUpdateDiagClick_Check(AdmId,DiagItemStr){
@@ -101,14 +101,14 @@ var PassFuncs={
         PatAdmObj.sex_name=GetPatAdmInfo.split("^")[2];
         PatAdmObj.date_for_birth=GetPatAdmInfo.split("^")[3];
         PatAdmObj.visit_time=GetPatAdmInfo.split("^")[4];
-        PatAdmObj.visit_dept_name=GetPatAdmInfo.split("^")[5];
-        PatAdmObj.visit_dept_code=GetPatAdmInfo.split("^")[6];
-        PatAdmObj.visit_doctor_name=GetPatAdmInfo.split("^")[7];
-        PatAdmObj.visit_doctor_code=GetPatAdmInfo.split("^")[8];
+        PatAdmObj.visit_dept_name=GetPatAdmInfo.split("^")[6];
+        PatAdmObj.visit_dept_code=GetPatAdmInfo.split("^")[5];
+        PatAdmObj.visit_doctor_name=GetPatAdmInfo.split("^")[8];
+        PatAdmObj.visit_doctor_code=GetPatAdmInfo.split("^")[7];
         return PatAdmObj;
     },
     JHMKGetOrdItem:function(AdmType,OrderItemStr,SelOrdItemDrStr,StatusDesc){
-        if ((OrderItemStr!="")&&(StatusDesc="")){
+        if ((OrderItemStr!="")&&(StatusDesc=="")){
             StatusDesc="审核"
             var OrdItemInfo=this.JHMKGetOrdItemInfo("GetOrdersInfo",OrderItemStr);
         }else{

@@ -1,0 +1,295 @@
+<html>
+<head>
+<title>提示信息</title>
+<EXTHEALTH:HEAD></EXTHEALTH:HEAD>
+<!--script src="../scripts/iflyJS/jquery-1.9.0.min.js"></script-->
+<HISUI/>
+</head>
+<!--body style="overflow-y:hidden;"-->
+<body>
+	<server>
+	;s BusinessNo=dialogArguments.BusinessNo
+	;s LocDesc=##Class(appcom.OEOrdItem).GetReurnFlag(BusinessNo)
+	s EpisodeID=%request.Get("EpisodeID")
+	</server>
+	<table style="width:100%;height:100%;background-color=#c7dffc;">
+		<tr>
+			<td><img src="../skin/default/images/icon-warning.gif"/></td>
+			<td style="align:left">
+				<div id="DivMsg"></div>
+			</td>
+			
+		<tr>
+		<tr>
+			<td colspan="2">
+			<table  align="center" style="width:400px;height:100%;background='images/logon_bg.jpg'" border=0 cellSpacing=0 cellPadding=0>
+				<tr>
+					<td>
+					</td>
+				</tr>
+				<!--tr id="reason">
+					<td>
+						<textarea id="RejectionReason"  placeholder="22" rows="5" cols="70"  onfocus="focustdown()" onblur="blurdown() ></textarea>
+					</td>
+				</tr-->
+			</table>
+			</td>
+		</tr>		
+		<!--tr>
+			<td align="center"><input type="button" id="submitResponse" value="提交" style="width:50px;height:20px;margin-left:100px;"></td>	
+		</tr-->
+	</table>
+	<script language="cache" runat="server">
+	s GroupID = %session.Get("LOGON.GROUPID")   //20191213
+   </script>
+	<script type="text/javascript">
+	var RejectionReason="请在此处填写拒绝原因，谢谢"
+	var EpisodeID="#(EpisodeID)#"
+	function focustdown(e){
+		var text = document.getElementById('RejectionReason');
+		if (text.innerHTML==RejectionReason){
+			text.innerHTML=""
+		}
+	}
+	function blurdown(e){
+		var text = document.getElementById('RejectionReason');
+		if(text.innerHTML==""){
+			text.innerHTML=RejectionReason
+		}	
+	}
+	function focusTextarea() {
+        document.getElementById('introTxt').style.display = 'none';
+        var temp = document.getElementById('textArea');
+        temp.focus();
+    }
+	var intervalId=""
+	var count=0;
+	var countFresh=20;    //20191213   控制门诊住院药师没审核则超时通过 时间不同（门诊快一些）
+	var GroupID = '#(GroupID)#';
+	if (GroupID==139) {
+			var countFresh=1
+	}
+	else{
+			var countFresh=20
+	}
+	window.returnValue=-100;
+		var YYDrugPrescNo=window.dialogArguments.YYDrugPrescNo;
+		var IPOrderGroupNos=window.dialogArguments.IPOrderGroupNos
+		var TimeintervalId=""
+		var Time=30   //30   //倒计时时间
+		var status=-1
+		var AuditInfo=""
+		var success=""
+		function SetTime(){
+			var divObj = document.getElementById("DivMsg");
+			if (divObj) {
+				if(AuditInfo==""){
+					divObj.innerHTML = "<font size='+1'>您的用药医嘱正在药师审核中，剩余"+"<td><font size='+3' color='red'>"+Time+"</font></td>"+"秒，请等待...</font>";
+				}else{
+					divObj.innerHTML = "<font size='+1'>您的用药医嘱正在药师审核中，剩余"+"<td><font size='+3' color='red'>"+Time+"</font></td>"+"秒，请等待...</font>";
+				}
+			}
+			//当审核状态（status）为1时，代表人工审核通过，当审核状态（status）为0时代表人工审方拒绝 
+			//and 这时需要在根据审核打回方式判断，当（advice）状态为0时代表修改医嘱，这时医生端则只能进行修改医嘱，当（advice）状态为1时代表双签名，这时医生可以进行双签名通过该医嘱，也可以修改医嘱（由医生自行选择修改或双签）
+			//1可双签名或修改；0,必须修改；2审核通过不做处理
+			if(YYDrugPrescNo!=""){
+				var Flag=tkMakeServerCall("web.DHCDocHLYYHZYY","CheckResultInfo",YYDrugPrescNo)
+				if(Flag=="1"){
+					//清除定时任务
+		            TimeintervalId=window.clearInterval(TimeintervalId);
+		            //window.close(); 
+				}
+				//var PrescArr=YYDrugPrescNo.split("^");
+				var OrdItemDrArr=YYDrugPrescNo.split("^");
+				for (var i=0;i<OrdItemDrArr.length;i++){
+					var OrdList=OrdItemDrArr[i].split("*")[1];
+					if ((!OrdList)||(OrdList=="")) continue;
+					var SFResult=tkMakeServerCall("web.DHCDocHLYYHZYY","GetHZYYErrorAndAdviceNew",OrdList);
+					var Advice=SFResult.split("^")[0];
+					if (Advice=="2"){
+						//window.returnValue=1;
+						//window.close();
+					}else if (Advice=="1"){
+						var DoubleSign = dhcsys_confirm("药师审方未通过:"+SFResult.split("^")[1]+"是否双签通过", true,"","",700);
+						if (DoubleSign==false){
+							//var OrdListStr = tkMakeServerCall("web.DHCDocHLYYHZYY", "GetPrescOrdId", PrescNo);
+							var OrdListStr = tkMakeServerCall("web.DHCOEOrdItem", "GetOrdList", OrdList);
+    						///var rtn = cspRunServerMethod(GlobalObj.StopOrderMethod, "", "", OrdListStr, session['LOGON.USERID'], "", "N");
+    						var rtn = tkMakeServerCall("web.UDHCStopOrderLook", "StopOrder", "", "", OrdListStr, session['LOGON.USERID'], "", "N");
+    						//window.returnValue=1;
+							//window.close();
+						}else{
+							var PrescNo=tkMakeServerCall("web.DHCDocHLYYHZYY", "GetPrescNoStrByOrder", OrdList);
+							var rtn = tkMakeServerCall("web.DHCDocHLYYHZYY", "SignHLYYInfo", EpisodeID,PrescNo,"", session['LOGON.USERID'], "S");
+							//window.returnValue=1;
+							//window.close();
+						}
+					}else if (Advice=="0"){
+						dhcsys_alert("药师审方未通过:"+SFResult.split("^")[1]+"请重新开立医嘱!",700);
+						//var OrdListStr = tkMakeServerCall("web.DHCDocHLYYHZYY", "GetPrescOrdId", PrescNo);
+						var OrdListStr = tkMakeServerCall("web.DHCOEOrdItem", "GetOrdList", OrdList);
+    					//var rtn = cspRunServerMethod(GlobalObj.StopOrderMethod, "", "", OrdListStr, session['LOGON.USERID'], "", "N");
+    					var rtn = tkMakeServerCall("web.UDHCStopOrderLook", "StopOrder", "", "", OrdListStr, session['LOGON.USERID'], "", "N");
+						
+					}
+				}if(Flag=="1"){
+					window.returnValue=1;
+					window.close();
+				}
+				/*for (var i=0;i<PrescArr.length;i++){
+					var PrescNo=PrescArr[i];
+					var SFResult=tkMakeServerCall("web.DHCDocHLYYHZYY","GetHZYYErrorAndAdviceNew",PrescNo);
+					var Advice=SFResult.split("^")[0];
+					if (Advice=="2"){
+						window.returnValue=1;
+						window.close();
+					}else if (Advice=="1"){
+						var DoubleSign = dhcsys_confirm("药师审方未通过:"+SFResult.split("^")[1]+"是否双签通过", true);
+						if (DoubleSign==false){
+							var OrdListStr = tkMakeServerCall("web.DHCDocHLYYHZYY", "GetPrescOrdId", PrescNo);
+    						///var rtn = cspRunServerMethod(GlobalObj.StopOrderMethod, "", "", OrdListStr, session['LOGON.USERID'], "", "N");
+    						var rtn = tkMakeServerCall("web.UDHCStopOrderLook", "StopOrder", "", "", OrdListStr, session['LOGON.USERID'], "", "N");
+    						window.returnValue=1;
+							window.close();
+						}else{
+							var rtn = tkMakeServerCall("web.DHCDocHLYYHZYY", "SignHLYYInfo", EpisodeID,PrescNo,"", session['LOGON.USERID'], "S");
+							window.returnValue=1;
+							window.close();
+						}
+					}else if (Advice=="0"){
+						dhcsys_alert("药师审方未通过:"+SFResult.split("^")[1]+"请重新开立医嘱!",300,300);
+						var OrdListStr = tkMakeServerCall("web.DHCDocHLYYHZYY", "GetPrescOrdId", PrescNo);
+    					//var rtn = cspRunServerMethod(GlobalObj.StopOrderMethod, "", "", OrdListStr, session['LOGON.USERID'], "", "N");
+    					var rtn = tkMakeServerCall("web.UDHCStopOrderLook", "StopOrder", "", "", OrdListStr, session['LOGON.USERID'], "", "N");
+						window.returnValue=1;
+						window.close();
+					}
+				}*/
+				
+				//alert("success="+success)
+				/*if (success=="1"){   //当审核状态（status）为1时，代表人工审核通过
+					window.returnValue=1;
+					window.close();				
+				}else if((success=="0")&&(status!="1")){
+					window.returnValue=2+"^"+AuditInfo;
+					window.close();   			
+				}else if((success=="0")&&(status=="1")){
+					window.returnValue=3+"^"+AuditInfo;
+					window.close();   			
+				}*/		
+				
+			}else if(IPOrderGroupNos!=""){
+				///住院一次审核 可能出现多组医嘱要进行人工审方，需循环处理
+				var HaveResult=0,DisplayInfo="",status1str="",advice1str=""
+			    for (var i = 0; i < IPOrderGroupNos.split(",").length; i++) {
+				    var IPOrderGroupNo=IPOrderGroupNos.split(",")[i]
+					var SFResult=tkMakeServerCall("web.DHCDocHZYYSF","GetHZYYSFResultBeforeInsOrd","",IPOrderGroupNo)
+					if((SFResult!="")&&(SFResult!="^^")){
+						//清除定时任务
+			            //TimeintervalId=window.clearInterval(TimeintervalId);
+						var status1=SFResult.split("^")[0]
+						var advice1=SFResult.split("^")[1]
+						var AuditInfo1=SFResult.split("^")[2]
+						alert("SFResult="+SFResult)
+						HaveResult=HaveResult+1
+						if(status1str==""){status1str=status1}else{status1str=status1str+","+status1}
+						if(advice1str==""){advice1str=advice1}else{advice1str=advice1str+","+advice1}
+						if (status1==1){   //当审核状态（status）为1时，代表人工审核通过
+							if(DisplayInfo==""){
+								DisplayInfo="<font size='+1'>药师审方结果:"+"<td><font size='+2' color='red'>"+"</br>"+IPOrderGroupNo+"审方通过!</font></td></font>"
+							}else{
+								DisplayInfo=DisplayInfo+"</br></br><font size='+1'>药师审方结果:"+"<td><font size='+2' color='red'>"+"</br>"+IPOrderGroupNo+"审方通过!</font></td></font>"
+							}
+						}else if(status1==0){
+							if (advice1==0){   //当审核状态（status）为0时，代表人工审核通过
+												//当（advice）状态为0  代表修改医嘱，这时医生端则只能进行修改医嘱
+								if(DisplayInfo==""){
+									DisplayInfo="<font size='+1'>药师审方结果:"+"<td><font size='+2' color='red'>"+"</br>"+IPOrderGroupNo+"药剂科人工审核不通过,请修改医嘱后再提交!</font>"+"</br><font size='+1'></br>审核人信息:</font></br><font size='+2' color='red'>"+AuditInfo1+"</font></td></font>"
+								}else{
+									DisplayInfo=DisplayInfo+"</br></br><font size='+1'>药师审方结果:"+"<td><font size='+2' color='red'>"+"</br>"+IPOrderGroupNo+"药剂科人工审核不通过,请修改医嘱后再提交!</font>"+"</br><font size='+1'></br>审核人信息:</font></br><font size='+2' color='red'>"+AuditInfo1+"</font></td></font>"
+								}
+							}
+							if (advice1==1){   //当审核状态（status）为0时，代表人工审核通过
+												//advice）状态为1时代表双签名，这时医生可以进行双签名通过该医嘱，也可以修改医嘱（由医生自行选择修改或双签）
+								if(DisplayInfo==""){
+									DisplayInfo="<font size='+1'>药师审方结果:"+"<td><font size='+2' color='red'>"+"</br>"+IPOrderGroupNo+"药剂科人工审核不通过,请 修改医嘱 或 双签 确认继续提交!</font>"+"</br><font size='+1'></br>审核人信息:</font></br><font size='+2' color='red'>"+AuditInfo1+"</font></td></font>"
+								}else{
+									DisplayInfo=DisplayInfo+"</br></br><font size='+1'>药师审方结果:"+"<td><font size='+2' color='red'>"+"</br>"+IPOrderGroupNo+"药剂科人工审核不通过,请 修改医嘱 或 双签 确认继续提交!</font>"+"</br><font size='+1'></br>审核人信息:</font></br><font size='+2' color='red'>"+AuditInfo1+"</font></td></font>"
+								}
+							}			
+						}else if(status1=='-1'){
+							//继续等待返回结果
+						}
+					}
+			    }
+			    ///需人工审方的所有组 全被审方完后
+			    if(HaveResult==IPOrderGroupNos.split(",").length){
+					//清除定时任务
+		            TimeintervalId=window.clearInterval(TimeintervalId);
+					if (divObj) {
+						if(DisplayInfo!=""){
+								divObj.innerHTML = DisplayInfo
+						}
+					}
+		            //alert(status1str+"######"+advice1str)
+					if((","+status1str+",").indexOf(",0,")=="-1"){
+						window.returnValue=1;
+						window.close();				
+					}else{
+						if((","+advice1str+",").indexOf(",0,")>-1){
+							window.returnValue=2;
+							return;
+						}else if((","+advice1str+",").indexOf(",1,")>-1){
+							window.returnValue=3;
+							return;
+						}
+					}
+				}
+			}
+			Time=Time-1
+			//if((Time<1)||(ReurnFlag==2)){
+			if((Time<1)){
+				//清除定时任务
+	            TimeintervalId=window.clearInterval(TimeintervalId);
+	            //alert("清除定时任务")
+				if (divObj) {
+					if(AuditInfo!=""){
+						divObj.innerHTML = "<font size='+1'>药师审方结果:"+"<td><font size='+2' color='red'></br>"+"等待超时,自动通过!"+"</font></td>"+"</font>";
+					}
+				}
+				window.returnValue=1;
+				
+				window.close();
+			}	
+		}
+		window.onload = function(){
+			//调用定时任务
+			TimeintervalId = window.setInterval("SetTime()", 1000);
+			
+			
+			//document.getElementById("submitResponse1111").style.visibility="hidden";//隐藏
+			//window.returnValue=false;
+			//隐藏拒绝理由输入框
+			//document.getElementById("reason").style.visibility="hidden";
+			//$("#BtnAccept").attr("checked","checked");
+			
+			
+			
+		}
+	/*$('input[type=radio][name=operation]').change(function() {
+		
+		if (this.value == '0') {
+			window.returnValue=false;
+			window.close();
+			document.getElementById("reason").style.visibility="hidden";
+			document.getElementById("submitResponse").style.visibility="visible";//隐藏
+		}else if (this.value == '1') {
+			document.getElementById("reason").style.visibility="visible";
+			document.getElementById("submitResponse").style.visibility="visible";//隐藏
+			document.getElementById('RejectionReason').innerHTML=RejectionReason
+		}
+	});*/
+	
+	</script>
+</body>
+</html>

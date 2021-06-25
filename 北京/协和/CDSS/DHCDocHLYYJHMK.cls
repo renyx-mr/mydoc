@@ -2,7 +2,7 @@ Class web.DHCDocHLYYJHMK Extends %RegisteredObject
 {
 
 /// 获取已经审核的医嘱信息
-/// w ##Class(web.DHCDocHLYYJHMK).GetVerifiedOrdersInfo("23||2","历史")
+/// w ##Class(web.DHCDocHLYYJHMK).GetVerifiedOrdersInfo("27005783||2","")
 ClassMethod GetVerifiedOrdersInfo(SelOrdItemDrStr As %String, Status As %String = "")
 {
     s VerifiedOrdersInfo=""
@@ -25,7 +25,7 @@ ClassMethod GetVerifiedOrdersInfo(SelOrdItemDrStr As %String, Status As %String 
         ;药品类型描述
         s ArcItemTypeDesc=$P($g(^ARC("IC",ItemCatDR)),"^",2)
         ;医嘱号
-        s OrderNo=""
+        s OrderNo=OrderRowid_"_"_ChildSub
         ;规格
         s Specification=""
 	    s InciRowid=##class(web.DHCDocOrderEntry).GetINCI(+ARCIMRowId)

@@ -19,7 +19,8 @@ ClassMethod StopSchedulePush(ASRowId)
 }
 
 /// 获取排班信息
-/// w ##Class(DHCDoc.Interface.Outside.OrganizationUnit.SelfReg).GetSchedule("{""date"":""2020-07-11""}","WX")
+/// w ##Class(DHCDoc.Interface.Outside.OrganizationUnit.SelfReg).GetSchedule("{""date"":""2020-07-11""}","WX")/// 获取排班信息
+/// w ##Class(DHCDoc.Interface.Outside.OrganizationUnit.SelfReg).GetSchedule("{""date"":""2021-05-13""}","HLWYH")
 ClassMethod GetSchedule(JsonInput, ExtUserID)
 {
 	s ^tmplyr("222",ExtUserID)=JsonInput
@@ -60,12 +61,13 @@ ClassMethod GetSchedule(JsonInput, ExtUserID)
 	s AppRegMethodRowID=##class(DHCDoc.Interface.Outside.Config).GetConfigNode(GroupRowId,"AppRegMethod")
 	if AppRegMethodRowID'="" s AppRegMethodCode=$P(^RBC("APTM",AppRegMethodRowID),"^",1)
 	if AppRegMethodCode="" s AppRegMethodCode="WIN"
-	b ;hhr h3
+	;b ;hhr h3
 	s RecordCount=0
 	s TimeRangeId=""
 	s PatientID=""
 	if DepartmentCode=""{
-		set myOPDeptStr=##class(DHCExternalService.RegInterface.SelfRegQueryMetods).GetOPDeptStr(UserID,"O^E","")
+		set myOPDeptStr=##class(DHCExternalService.RegInterface.SelfRegQueryMetods).GetOPDeptStr(UserID,"O^E","2")
+		//b ;;;;12
 		set myDeptNum=$length(myOPDeptStr,"^")
 		for loop=1:1:myDeptNum
 		{
@@ -79,18 +81,24 @@ ClassMethod GetSchedule(JsonInput, ExtUserID)
 			if ((flag=0)&&(GroupResRowIdStr'="")){
 				continue
 			}
-			b ;hhr h4
+			;b ;hhr h4
 			d GetOneSchedule
 		}
 	}else{
 		d GetOneSchedule	
 	}
+	if RecordCount=0 {
+		s MySchedule=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.schedule).%New()
+		s MySchedule.data=" "
+		do OutputObj.ScheduleData.Insert(MySchedule)
+	}
+	//b ;;;1
 	d OutputObj.XMLExportToString(.Input)
 	Q OutputObj
 GetScheduleErr
 	s OutputObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.common).%New()
 	d ..SetOutputCode(.OutputObj,"-100","GetSchedule调用异常"_$TR($TR($ZE,"<","!!"),">","!!"))
-	b ;00
+	;b ;00
 	Q OutputObj
     q OutputObj
 GetOneSchedule
@@ -100,23 +108,27 @@ GetOneSchedule
 	if (StartDate>+$H)
 	{
 		s val=DepartmentCode_"^"_UserID_"^"_$zd(StartDate,3)_"^^"_TimeRangeId_"^"_DoctorCode_"^"_GroupRowId_"^^false^^^1"
+		// renyx 日期大于当天修改号源方式  AppRegMethodCode
+		//s AppRegMethodCode="WEB"   ;   RYx  2021-05-19 增加取网络预约号院，注释掉取窗口预约
 	}
 	else
 	{
+		
 		s val=DepartmentCode_"^"_UserID_"^^^"_TimeRangeId_"^"_DoctorCode_"^"_GroupRowId_"^^false^^^1^^^1"
 	}
-	b ;hhr val
+	;hhr val
 	s rs=##Class(%ResultSet).%New("web.DHCOPAdmReg:OPDocList")
-	;查询时间段的预约排班信息
+	 ;b  ;查询时间段的预约排班信息
 	;s rs=##Class(%ResultSet).%New("DHCExternalService.RegInterface.SelfRegQueryMetods:OPDocList")
 	i rs.QueryIsValid() { 
-		Set Status=rs.Execute(val)
+		Set Status=rs.Execute(val,"1")
 		Set columns = rs.GetColumnCount()
 		If 'Status Quit
+		;3
 		While rs.Next() {
 			s ASRowId=rs.GetDataByName("ASRowId")
 			s Load=rs.GetDataByName("Load")
-			b ;hhr Load
+			;b ;hhr Load
 			continue:Load=0
 			s RegedCount=rs.GetDataByName("RegedCount")
 			s AppLoad=rs.GetDataByName("AppLoad")
@@ -128,7 +140,7 @@ GetOneSchedule
 			s SessStartTime=$p($g(^RBAS(ResID,Sub)),"^",4)
 			s SessEndTime=$p($g(^RBAS(ResID,Sub)),"^",5)
 			;不显示当前时段以前的号
-			Continue:(ASDate=+$H)&&(SessEndTime<$p($h,",",2))
+			;Continue:(ASDate=+$H)&&(SessEndTime<$p($h,",",2))
 			Continue:(EndDate'="")&&(ASDate>EndDate)
 			s status=$P($G(^RBAS(ResID,Sub,"DHC")),"^",10)
 			s statuscode=""
@@ -140,14 +152,163 @@ GetOneSchedule
 				s isOutOfService="true"
 			}
 			s OneAdmScheduleObj=##class(DHCExternalService.RegInterface.SelfRegMethods).QueryOneAdmSchedule(ASRowId,PatientID,AppRegMethodCode)
+			//b ;;2
 			if $IsObject(OneAdmScheduleObj) {
-				s OneScheduleObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.schedule).%New()
-				b ;hhr OneScheduleObj
+				;b:ASRowId["1152||325"
+				;Continue:(ExtUserID="HLWYH")&&(OneAdmScheduleObj.DoctorCode'="375") ;QJH 2021-01-12先开放苗涛的号 
+				Continue:(ExtUserID="HLWYH")&&((OneAdmScheduleObj.DoctorCode'="375")&&(OneAdmScheduleObj.DoctorCode'="406"))  ;QJH 2021-01-12先开放苗涛主任 + 马国耀 的号 
+				// 分时段数据
+				;w ASRowId,!
+				s SessRowid=$p($g(^RBAS(+ASRowId,$p(ASRowId,"||",2))),"^",12)
+				s TRStr=$g(^RBAS(+ASRowId,$p(ASRowId,"||",2),"DHC")) ;$g(^RB("RES",+SessRowid,"DATE",$p(SessRowid,"||",2),"SESS",$p(SessRowid,"||",3),"DHC"))
+				s TRRegNumStr=$p(TRStr,"^",24)
+				s TRRegTimeStr=$p(TRStr,"^",25)
+				s StartNum=0
+				s EndNum=0
+				s APPMethodRowId=$O(^RBC("APTM",0,"Code",AppRegMethodCode,0))
+				For{
+					Set AQRowid=$o(^RBAS(+ASRowId,$p(ASRowId,"||",2),"AQ",AQRowid))
+					Quit:AQRowid=""
+					s APPMethodDR=$p(^RBAS(+ASRowId,$p(ASRowId,"||",2),"AQ",AQRowid),"^",1)
+					continue:(APPMethodRowId'="")&&(APPMethodRowId'=APPMethodDR)
+					s StartNum=$p(^RBAS(+ASRowId,$p(ASRowId,"||",2),"AQ",AQRowid),"^",3)
+					s Num=$p(^RBAS(+ASRowId,$p(ASRowId,"||",2),"AQ",AQRowid),"^",2)
+					s EndNum=StartNum+Num
+				}
+				s SeqNoCount=EndNum-StartNum+1
+				s OneScheduleObj={} //##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.schedule).%New()
 				s OneScheduleObj.scheduleId=ASRowId
 				s OneScheduleObj.scheduleDate=$zd(ASDate,3)
 				s OneScheduleObj.scheduleStartTime=$zt(SessStartTime,1)
 				s OneScheduleObj.scheduleEndTime=$zt(SessEndTime,1)
 				s OneScheduleObj.providerId=OneAdmScheduleObj.DoctorCode
+				s OneScheduleObj.departmentId=OneAdmScheduleObj.DepartmentCode
+				s OneScheduleObj.patientCharge=$fn(OneAdmScheduleObj.Fee,"",2)
+				s OneScheduleObj.totalCount=SeqNoCount //OneAdmScheduleObj.AvailableTotalNum
+				s OneScheduleObj.availableCount=SeqNoCount //OneAdmScheduleObj.AvailableLeftNum
+				s DoctorSessType=OneAdmScheduleObj.DoctorSessType
+				i (DoctorSessType["普诊")||((DoctorSessType["普通")) s DoctorSessType=3
+				else  if DoctorSessType="特需" s DoctorSessType=5
+				else  s DoctorSessType=4
+				s OneScheduleObj.appointmentTypeId=DoctorSessType ;挂号类别（1 和 2 作为预留，暂不使用，3 普通、 4 专家、 5 特需）
+				s OneScheduleObj.isOutOfService=isOutOfService ;是否停诊（false 否 true 是）
+				s OneScheduleObj.comment=OneAdmScheduleObj.Note
+				if (TRRegNumStr'=""){
+					do OutputObj.ScheduleData.Insert(OneScheduleObj)
+					s RecordCount=RecordCount+1
+					f i=1:1:$l(TRRegNumStr,",") {
+						s oneRegNumStr=$p(TRRegNumStr,",",i)
+				    	s sRegNum=$p(oneRegNumStr,"-",1)
+				    	s eRegNum=$p(oneRegNumStr,"-",2)
+				    	continue:(StartNum>eRegNum)!(EndNum<sRegNum)
+				    	s oneRegTimeStr=$p(TRRegTimeStr,",",i)
+						s totalCount=$p(oneRegNumStr,"-",2)-$p(oneRegNumStr,"-",1)+1
+						s usedCount=..GetUsedCount(oneRegNumStr,QueueNO)
+						s availableCount=totalCount-usedCount
+						s SttTime=$p(oneRegTimeStr,"-",1) ;$zt($zth($p(oneRegTimeStr,"-",1)))
+						s EndTime=$p(oneRegTimeStr,"-",2) ;$zt($zth($p(oneRegTimeStr,"-",2)))
+						s SeqNoStatusStr = ##class(web.DHCOPAdmReg).GetSeqNoStatusStr(ASRowId,oneRegTimeStr)
+						f SeqNoStatusStrIndex=1:1:$l(SeqNoStatusStr,",") {
+							s SeqNoStatus = $p(SeqNoStatusStr,",",SeqNoStatusStrIndex)
+							q:SeqNoStatus=""
+							s OneScheduleObj.seqno=$p(SeqNoStatus,":",1)
+							s OneScheduleObj.seqnoStatus=$p(SeqNoStatus,":",2)
+							s OneScheduleObj.scheduleStartTime=SttTime
+							s OneScheduleObj.scheduleEndTime=EndTime
+							do OutputObj.ScheduleData.Insert(OneScheduleObj)
+							s RecordCount=RecordCount+1
+						}
+					}
+				}else{
+				do OutputObj.ScheduleData.Insert(OneScheduleObj)
+				s RecordCount=RecordCount+1
+				}
+				;w "TRStr=="_TRStr,!
+				/*if (TRRegNumStr'=""){
+					Set AQRowid=0
+	 				//Set AQStr=""
+	 				s StartNum=0
+	 				s EndNum=0
+	 				s APPMethodRowId=$O(^RBC("APTM",0,"Code",AppRegMethodCode,0))
+	 				For{
+		 				Set AQRowid=$o(^RBAS(+ASRowId,$p(ASRowId,"||",2),"AQ",AQRowid))
+		 				Quit:AQRowid=""
+						s APPMethodDR=$p(^RBAS(+ASRowId,$p(ASRowId,"||",2),"AQ",AQRowid),"^",1)
+						continue:(APPMethodRowId'="")&&(APPMethodRowId'=APPMethodDR)
+	 					s StartNum=$p(^RBAS(+ASRowId,$p(ASRowId,"||",2),"AQ",AQRowid),"^",3)
+	 					s Num=$p(^RBAS(+ASRowId,$p(ASRowId,"||",2),"AQ",AQRowid),"^",2)
+	 					s EndNum=StartNum+Num
+	 				}
+	 				
+					s QueueNO=$p($g(^RBAS(+ASRowId,$p(ASRowId,"||",2),"DHC")),"^",4)
+					s len=$l(TRRegNumStr,",")
+					f i=1:1:len d
+				    .s oneRegNumStr=$p(TRRegNumStr,",",i)
+				    .s sRegNum=$p(oneRegNumStr,"-",1)
+				    .s eRegNum=$p(oneRegNumStr,"-",2)
+				    .q:(StartNum>eRegNum)!(EndNum<sRegNum)
+				    .s oneRegTimeStr=$p(TRRegTimeStr,",",i)
+					.s totalCount=$p(oneRegNumStr,"-",2)-$p(oneRegNumStr,"-",1)+1
+					.s usedCount=..GetUsedCount(oneRegNumStr,QueueNO)
+					.s availableCount=totalCount-usedCount
+					.s SttTime=$p(oneRegTimeStr,"-",1) ;$zt($zth($p(oneRegTimeStr,"-",1)))
+					.s EndTime=$p(oneRegTimeStr,"-",2) ;$zt($zth($p(oneRegTimeStr,"-",2)))
+					.s SeqNoStatusStr = ##class(web.DHCOPAdmReg).GetSeqNoStatusStr(ASRowId,oneRegTimeStr)
+					.f SeqNoStatusStrIndex=1:1:$l(SeqNoStatusStr,",") d
+					..s SeqNoStatus = $p(SeqNoStatusStr,",",SeqNoStatusStrIndex)
+					..q:SeqNoStatus=""
+					..s OneScheduleObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.schedule).%New()
+					..s OneScheduleObj.seqno=$p(SeqNoStatus,":",1)
+					..s OneScheduleObj.seqnoStatus=$p(SeqNoStatus,":",2)
+					..s OneScheduleObj.scheduleId=ASRowId
+					..s OneScheduleObj.scheduleDate=$zd(ASDate,3)
+					..s OneScheduleObj.scheduleStartTime=SttTime
+					..s OneScheduleObj.scheduleEndTime=EndTime
+					..s OneScheduleObj.providerId=OneAdmScheduleObj.DoctorCode
+					..s OneScheduleObj.departmentId=OneAdmScheduleObj.DepartmentCode
+					..s OneScheduleObj.patientCharge=$fn(OneAdmScheduleObj.Fee,"",2)
+					..s OneScheduleObj.totalCount=OneAdmScheduleObj.AvailableTotalNum //totalCount
+					..s OneScheduleObj.availableCount=OneAdmScheduleObj.AvailableTotalNum //availableCount
+					..s DoctorSessType=OneAdmScheduleObj.DoctorSessType
+					..i (DoctorSessType["普诊")||((DoctorSessType["普通")) s DoctorSessType=3
+					..else  if DoctorSessType="特需" s DoctorSessType=5
+					..else  s DoctorSessType=4
+					..s OneScheduleObj.appointmentTypeId=DoctorSessType ;挂号类别（1 和 2 作为预留，暂不使用，3 普通、 4 专家、 5 特需）
+					..s OneScheduleObj.isOutOfService=isOutOfService ;是否停诊（false 否 true 是）
+					..s OneScheduleObj.comment=OneAdmScheduleObj.Note
+					..d OutputObj.ScheduleData.Insert(OneScheduleObj)
+					..s RecordCount=RecordCount+1
+					
+				}else{
+					s OneScheduleObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.schedule).%New()
+					s OneScheduleObj.scheduleId=ASRowId
+					s OneScheduleObj.scheduleDate=$zd(ASDate,3)
+					s OneScheduleObj.scheduleStartTime=$zt(SessStartTime,1)
+					s OneScheduleObj.scheduleEndTime=$zt(SessEndTime,1)
+					s OneScheduleObj.providerId=OneAdmScheduleObj.DoctorCode
+					s OneScheduleObj.departmentId=OneAdmScheduleObj.DepartmentCode
+					s OneScheduleObj.patientCharge=$fn(OneAdmScheduleObj.Fee,"",2)
+					s OneScheduleObj.totalCount=OneAdmScheduleObj.AvailableTotalNum
+					s OneScheduleObj.availableCount=OneAdmScheduleObj.AvailableLeftNum
+					s DoctorSessType=OneAdmScheduleObj.DoctorSessType
+					i (DoctorSessType["普诊")||((DoctorSessType["普通")) s DoctorSessType=3
+					else  if DoctorSessType="特需" s DoctorSessType=5
+					else  s DoctorSessType=4
+					s OneScheduleObj.appointmentTypeId=DoctorSessType ;挂号类别（1 和 2 作为预留，暂不使用，3 普通、 4 专家、 5 特需）
+					s OneScheduleObj.isOutOfService=isOutOfService ;是否停诊（false 否 true 是）
+					s OneScheduleObj.comment=OneAdmScheduleObj.Note
+					do OutputObj.ScheduleData.Insert(OneScheduleObj)
+					s RecordCount=RecordCount+1
+				}*/
+				
+				s OneScheduleObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.schedule).%New()
+				s OneScheduleObj.scheduleId=ASRowId
+				s OneScheduleObj.scheduleDate=$zd(ASDate,3)
+				s OneScheduleObj.scheduleStartTime=$zt(SessStartTime,1)
+				s OneScheduleObj.scheduleEndTime=$zt(SessEndTime,1)
+				s OneScheduleObj.providerId=OneAdmScheduleObj.DoctorCode
+				
+				;b;; DoctorCode
 				s OneScheduleObj.departmentId=OneAdmScheduleObj.DepartmentCode
 				s OneScheduleObj.patientCharge=$fn(OneAdmScheduleObj.Fee,"",2)
 				s OneScheduleObj.totalCount=OneAdmScheduleObj.AvailableTotalNum
