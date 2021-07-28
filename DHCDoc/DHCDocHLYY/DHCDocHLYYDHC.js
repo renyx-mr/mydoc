@@ -33,7 +33,7 @@ function HLYYYDTS_Click(){
 
 ///通用药品相互作用
 function XHZYClickHandler_HLYY(){
-	//return ;
+	return ;
 	new Promise(function(resolve){
 	if (GlobalObj.HLYYLayOut=="OEOrd"){
 		PassFuncs.DHCFuncs.DHCXHZY("",resolve);
@@ -57,6 +57,7 @@ function HYLLUpdateClick_HLYY(CallBackFunc,OrderItemStr,Mode){
 	return;
 }
 function DHCUpdateClick_Check(CallBackFunc,OrderItemStr,Mode) {
+	
 	new Promise(function(resolve){
 		if (Mode=="Check"){
 			PassFuncs.DHCFuncs.DHCXHZY(OrderItemStr,resolve);
@@ -85,7 +86,7 @@ function DHCUpdateClick_Check(CallBackFunc,OrderItemStr,Mode) {
 				});
 			}else{*/
 				//不存在问题
-				//return true;
+				//return true ;
 				CallBackFunc(true);
 			//}
 		}else if (HLYYInfo.passFlag=="0"){
@@ -140,6 +141,9 @@ function DHCUpdateClick_Save(CallBackFunc,OrderItemStr) {
 
 var PassFuncs={
 	DHCFuncs:{
+		DHCPdssCallBack:function(option){
+			//if (option.controlFlag=="Y") option.close() 
+		},
         DHCYDTS:function(OrderARCIMCode,OrderName){
 			var IncId=""
 			linkUrl="dhcckb.wiki.csp?IncId="+IncId+"&IncCode="+OrderARCIMCode+"&IncDesc="+OrderName
@@ -164,11 +168,19 @@ var PassFuncs={
 			PdssObj.ItemHisOrder=AdmOrdItem.ItemHisOrder;
 			PdssObj.ItemAyg=this.HisAllergiesData();
 			PdssObj.ItemOper=this.HisOperationsData();
+			/*var DHCPdss = new PDSS({});
+			DHCPdss.refresh(PdssObj, this.DHCPdssCallBack, 3);  /// 调用审查接口
+			debugger; 
+			return DHCPdss;*/
+			debugger; 
 			new Promise(function(resolve){
 				var DHCPdss = new PDSS({});
+				//DHCPdss.passFlag=1;
+				//resolve(DHCPdss);
 				DHCPdss.refresh(PdssObj, resolve, 3);  /// 调用审查接口
 			}).then(function(PdssOption){
 				PdssOption.close();
+				//resolve();
 				CallBackFunc(PdssOption);
 			});
 		},
@@ -188,13 +200,19 @@ var PassFuncs={
 			PdssObj.ItemHisOrder=AdmOrdItem.ItemHisOrder;
 			PdssObj.ItemAyg=this.HisAllergiesData();
 			PdssObj.ItemOper=this.HisOperationsData();
+			/*var DHCPdss = new PDSS({});
+			DHCPdss.refresh(PdssObj, this.DHCPdssCallBack, 3);  /// 调用审查接口
+			return DHCPdss;*/
+			debugger;
 			new Promise(function(resolve){
 				var DHCPdss = new PDSS({});
 				DHCPdss.refresh(PdssObj, resolve, 3);  /// 调用审查接口
 			}).then(function(PdssOption){
 				PdssOption.close();
 				CallBackFunc(PdssOption);
+				//resolve();
 			});
+			//return RetPdssObj;
 		},
 		HisOperationsData:function(){
 			var EpisodeID=GlobalObj.EpisodeID;
@@ -304,40 +322,6 @@ var PassFuncs={
 			var OrderInfo=RetOrderInfo.split(String.fromCharCode(2))[0]; 
 			if (OrderInfo=="") return false;
 			var HisOrderInfo=RetOrderInfo.split(String.fromCharCode(2))[1]; 
-			var ArrayOrder=this.GetOrderData(OrderInfo);
-			
-			if (ArrayOrder.length>0) OutPutObj.ItemOrder = ArrayOrder;
-			if ((!HisOrderInfo)||(HisOrderInfo=="")||(HisOrderInfo=="undefined")) return OutPutObj;
-			var ArrayHisOrder=this.GetOrderData(HisOrderInfo);
-			
-			if (ArrayHisOrder.length>0) OutPutObj.ItemHisOrder = ArrayHisOrder;
-			return OutPutObj;
-		},
-        HisQueryOrdData:function (OrderItemStr){
-			if ((OrderItemStr=="")||(OrderItemStr=="undefined")){return false;}
-			///var DocName=session['LOGON.USERNAME'];
-			var EpisodeID=GlobalObj.EpisodeID;
-			if ((EpisodeID=="")||(EpisodeID=="undefined")){return false;}
-			//获取医嘱信息  
-			var RetOrderInfo=tkMakeServerCall("web.DHCDocHLYYDHC","GetInsertItemOrder",EpisodeID,OrderItemStr);
-			if (RetOrderInfo==""){
-				return false;
-			}
-			var OutPutObj={};
-			var OrderInfo=RetOrderInfo.split(String.fromCharCode(2))[0]; 
-			if (OrderInfo=="") return false;
-			var HisOrderInfo=RetOrderInfo.split(String.fromCharCode(2))[1]; 
-			var ArrayOrder=this.GetOrderData(OrderInfo);
-			
-			if (ArrayOrder.length>0) OutPutObj.ItemOrder = ArrayOrder;
-			if ((!HisOrderInfo)||(HisOrderInfo=="")||(HisOrderInfo=="undefined")) return OutPutObj;
-			
-			//var HisOrderInfo=HisOrderInfo.split(String.fromCharCode(1));
-			var ArrayHisOrder=this.GetOrderData(HisOrderInfo);
-			if (ArrayHisOrder.length>0) OutPutObj.ItemHisOrder = ArrayHisOrder;
-			return OutPutObj;
-		},
-		GetOrderData:function(OrderInfo){
 			var ArrayOrder=new Array();
 			var OrderInfoArr=OrderInfo.split(String.fromCharCode(1));
 			for(var i=0; i<OrderInfoArr.length ;i++){			
@@ -360,7 +344,95 @@ var PassFuncs={
 				ItemOrder.OrdEndDate=OrderArr[14]; //	医嘱停止日期	必需(2020/12/17增加)
 				ArrayOrder[ArrayOrder.length] = ItemOrder;    
 			}
-			return ArrayOrder;
+			if (ArrayOrder.length>0) OutPutObj.ItemOrder = ArrayOrder;
+			if ((!HisOrderInfo)||(HisOrderInfo=="")||(HisOrderInfo=="undefined")) return OutPutObj;
+			var ArrayHisOrder=new Array();
+			var HisOrderInfo=HisOrderInfo.split(String.fromCharCode(1));
+			for(var i=0; i<HisOrderInfo.length ;i++){			
+				var HisOrderArr=HisOrderInfo[i].split("^");
+		      	var ItemHisOrder={};       
+				ItemHisOrder.SeqNo=HisOrderArr[0]; //	医嘱序号	必需
+				ItemHisOrder.PhDesc=HisOrderArr[1]; //	药品名称	必需
+				ItemHisOrder.FormProp=HisOrderArr[2]; //	剂型	必需
+				ItemHisOrder.OnceDose=HisOrderArr[3]; //	单次剂量	必需
+				ItemHisOrder.Unit=HisOrderArr[4]; //	单次剂量单位	必需
+				ItemHisOrder.DrugPreMet=HisOrderArr[5]; //	用法	必需
+				ItemHisOrder.DrugFreq=HisOrderArr[6]; //	频次	必需
+				ItemHisOrder.Treatment=HisOrderArr[7]; //	疗程	必需
+				ItemHisOrder.id=HisOrderArr[8]; //	标识	必需
+				ItemHisOrder.LinkSeqNo=HisOrderArr[9]; //	关联序号(1, 1.1, 1.2)	必需
+				ItemHisOrder.OrdDate=HisOrderArr[10]; //	医嘱日期	必需
+				ItemHisOrder.IsFirstUseProp=HisOrderArr[11]; //	是否首次(首次/非首次)	必需
+				ItemHisOrder.DurgSpeedProp=HisOrderArr[12]; //	给药速度	必需
+				ItemHisOrder.DrugSpeedPropUnit=HisOrderArr[13]; //	给药速度单位	必需
+				ItemHisOrder.OrdEndDate=HisOrderArr[14]; //	医嘱停止日期	必需(2020/12/17增加)
+				ArrayHisOrder[ArrayHisOrder.length] = ItemHisOrder;    
+			}
+			if (ArrayHisOrder.length>0) OutPutObj.ItemHisOrder = ArrayHisOrder;
+			return OutPutObj;
+		},
+        HisQueryOrdData:function (OrderItemStr){
+			if ((OrderItemStr=="")||(OrderItemStr=="undefined")){return false;}
+			///var DocName=session['LOGON.USERNAME'];
+			var EpisodeID=GlobalObj.EpisodeID;
+			if ((EpisodeID=="")||(EpisodeID=="undefined")){return false;}
+			//获取医嘱信息  
+			var RetOrderInfo=tkMakeServerCall("web.DHCDocHLYYDHC","GetInsertItemOrder",EpisodeID,OrderItemStr);
+			if (RetOrderInfo==""){
+				return false;
+			}
+			var OutPutObj={};
+			var OrderInfo=RetOrderInfo.split(String.fromCharCode(2))[0]; 
+			if (OrderInfo=="") return false;
+			var HisOrderInfo=RetOrderInfo.split(String.fromCharCode(2))[1]; 
+			var ArrayOrder=new Array();
+			var OrderInfoArr=OrderInfo.split(String.fromCharCode(1));
+			for(var i=0; i<OrderInfoArr.length ;i++){			
+				var OrderArr=OrderInfoArr[i].split("^");
+		      	var ItemOrder={};       
+				ItemOrder.SeqNo=OrderArr[0]; //	医嘱序号	必需
+				ItemOrder.PhDesc=OrderArr[1]; //	药品名称	必需
+				ItemOrder.FormProp=OrderArr[2]; //	剂型	必需
+				ItemOrder.OnceDose=OrderArr[3]; //	单次剂量	必需
+				ItemOrder.Unit=OrderArr[4]; //	单次剂量单位	必需
+				ItemOrder.DrugPreMet=OrderArr[5]; //	用法	必需
+				ItemOrder.DrugFreq=OrderArr[6]; //	频次	必需
+				ItemOrder.Treatment=OrderArr[7]; //	疗程	必需
+				ItemOrder.id=OrderArr[8]; //	标识	必需
+				ItemOrder.LinkSeqNo=OrderArr[9]; //	关联序号(1, 1.1, 1.2)	必需
+				ItemOrder.OrdDate=OrderArr[10]; //	医嘱日期	必需
+				ItemOrder.IsFirstUseProp=OrderArr[11]; //	是否首次(首次/非首次)	必需
+				ItemOrder.DurgSpeedProp=OrderArr[12]; //	给药速度	必需
+				ItemOrder.DrugSpeedPropUnit=OrderArr[13]; //	给药速度单位	必需
+				ItemOrder.OrdEndDate=OrderArr[14]; //	医嘱停止日期	必需(2020/12/17增加)
+				ArrayOrder[ArrayOrder.length] = ItemOrder;    
+			}
+			if (ArrayOrder.length>0) OutPutObj.ItemOrder = ArrayOrder;
+			if ((!HisOrderInfo)||(HisOrderInfo=="")||(HisOrderInfo=="undefined")) return OutPutObj;
+			var ArrayHisOrder=new Array();
+			var HisOrderInfo=HisOrderInfo.split(String.fromCharCode(1));
+			for(var i=0; i<HisOrderInfo.length ;i++){			
+				var HisOrderArr=HisOrderInfo[i].split("^");
+		      	var ItemHisOrder={};       
+				ItemHisOrder.SeqNo=HisOrderArr[0]; //	医嘱序号	必需
+				ItemHisOrder.PhDesc=HisOrderArr[1]; //	药品名称	必需
+				ItemHisOrder.FormProp=HisOrderArr[2]; //	剂型	必需
+				ItemHisOrder.OnceDose=HisOrderArr[3]; //	单次剂量	必需
+				ItemHisOrder.Unit=HisOrderArr[4]; //	单次剂量单位	必需
+				ItemHisOrder.DrugPreMet=HisOrderArr[5]; //	用法	必需
+				ItemHisOrder.DrugFreq=HisOrderArr[6]; //	频次	必需
+				ItemHisOrder.Treatment=HisOrderArr[7]; //	疗程	必需
+				ItemHisOrder.id=HisOrderArr[8]; //	标识	必需
+				ItemHisOrder.LinkSeqNo=HisOrderArr[9]; //	关联序号(1, 1.1, 1.2)	必需
+				ItemHisOrder.OrdDate=HisOrderArr[10]; //	医嘱日期	必需
+				ItemHisOrder.IsFirstUseProp=HisOrderArr[11]; //	是否首次(首次/非首次)	必需
+				ItemHisOrder.DurgSpeedProp=HisOrderArr[12]; //	给药速度	必需
+				ItemHisOrder.DrugSpeedPropUnit=HisOrderArr[13]; //	给药速度单位	必需
+				ItemHisOrder.OrdEndDate=HisOrderArr[14]; //	医嘱停止日期	必需(2020/12/17增加)
+				ArrayHisOrder[ArrayHisOrder.length] = ItemHisOrder;    
+			}
+			if (ArrayHisOrder.length>0) OutPutObj.ItemHisOrder = ArrayHisOrder;
+			return OutPutObj;
 		},
 		GetOrderDataOnAdd:function(){
 			var OrderItemStr = "";
@@ -577,8 +649,8 @@ var PassFuncs={
 		},
 		GetOrderDataOnAddCM:function(){
 			var OrderItemStr=""; 
-		    var OrderItem=""; 
-		    try{
+		   var OrderItem=""; 
+		   try{
 				var OrderRecDepRowid=$('#RecLoc').combobox("getValue");
 				var PrescDurRowid=$('#PrescDuration').combobox("getValue");
 				var PrescDurFactor=GetDurFactor();
@@ -643,7 +715,32 @@ var PassFuncs={
 					   }
 					}
 				}
-				if (OrderItemStr=="") return "";
+				if (OrderItem=="") return "";
+				//材料费 
+				if ((OrderItemStr!="")&&(CNMedAppendItem!="")){
+					var PrescAppenItemQty=$('#PrescAppenItemQty').val();
+					if (PrescAppenItemQty==""){PrescAppenItemQty=0}
+					if (PrescAppenItemQty!=0){
+						var OrderItem=CNMedAppendItem+"^"+PrescAppenItemQty + "^" + "" + "^" + "" +"^"+"2"+"^"+"";
+						OrderItemStr=OrderItemStr+String.fromCharCode(1)+OrderItem;
+					}
+				}
+				//代煎费
+				if ((GlobalObj.PAAdmType!="I")||((GlobalObj.PAAdmType=="I")&&(IPCookModeFeeNoAutoAdd=="1"))){
+					if ((OrderItemStr!="")&&(CNMedCookModeFeeItemRowid!="")){
+						if (PrescCookDecoction=="Y") {
+							var OrderItem=CNMedCookModeFeeItemRowid + "^" + "1" + "^" + "" + "^" + ""+"^"+"1"+"^"+"";
+							OrderItemStr=OrderItemStr+String.fromCharCode(1)+OrderItem;
+						}
+					}
+				}
+				//处方类型关联其他费用列表
+				if (CMPrescTypeLinkFeeStr!=""){
+					for (var i=0;i<CMPrescTypeLinkFeeStr.split("^").length;i++){
+						var OrderItem=CMPrescTypeLinkFeeStr.split("^")[i] + "^" + "1" + "^" + "" + "^" + ""+"^"+"2"+"^"+"";
+						OrderItemStr=OrderItemStr+String.fromCharCode(1)+OrderItem;
+					}
+				}
 				if (OrderItemStr!=""){OrderItemStr=PrescStr+String.fromCharCode(2)+OrderItemStr};
 				return OrderItemStr;
 			}catch(e){$.messager.alert("提示",e.message);return false;}

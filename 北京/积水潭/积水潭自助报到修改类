@@ -1,0 +1,5 @@
+web.DHCInterface.Method.QueInfo
+    GetRoomInfo  同步诊室
+    GetRoomPatInfo  就诊同步
+RegInterface.Web.SelfRegMethods
+    PatCheckIn  京医通报到接口

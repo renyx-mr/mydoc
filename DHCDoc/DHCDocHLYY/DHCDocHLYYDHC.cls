@@ -72,7 +72,7 @@ ClassMethod GetPrescInfo(EpisodeID As %String)
 }
 
 /// 获取插入的医嘱信息  
-/// 入参为就诊id ,医嘱串，类型
+/// 入参为就诊id 
 ClassMethod GetInsertItemOrder(EpisodeID As %String, OrderStr As %String, HLYYLayOut As %String = "")
 {
     s OrderInfo=""

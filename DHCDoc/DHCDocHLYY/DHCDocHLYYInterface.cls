@@ -40,16 +40,16 @@ ClassMethod Init(AdmDepRowid As %String, Layout = "OEOrd") As %String
  	i (HLYYAdmDep'="")&("^"_HLYYAdmDep_"^"[("^"_AdmDepRowid_"^")){
 	 	Set HLYYInterface="1"
 	 	;按产家代码新增载入函数,在此自动根据产家代码执行
-	 	set ExecLoadCompanyFileMothod="set ret=..Load"_CurrCompanyCode_"()"
-	 	x ExecLoadCompanyFileMothod
-	 	
-	 	;按版本处理后台数据获取或保存方法
+	 	;set ExecLoadCompanyFileMothod="d ..Load"_CurrCompanyCode_"()"
+	 	;x ExecLoadCompanyFileMothod
+	 	//s RetjsonAry=[]
+	 	/*;按版本处理后台数据获取或保存方法
 	 	s GetPrescXML="web.DHCDocHLYY"_CurrCompanyCode_".GetPrescXML"
 	 	s GetDTYDTS="web.DHCDocHLYY"_CurrCompanyCode_"GetDTYDTS"
 	 	s BaseInfo="web.DHCDocHLYY"_CurrCompanyCode_"GetBaseInfo"
 	 	s RetjsonAry("GetPrescXML")=##Class(%CSP.Page).Encrypt($lb(GetPrescXML))
 		s RetjsonAry("GetDTYDTS")=##Class(%CSP.Page).Encrypt($lb(GetDTYDTS))
-		s RetjsonAry("BaseInfo")=##Class(%CSP.Page).Encrypt($lb(BaseInfo))
+		s RetjsonAry("BaseInfo")=##Class(%CSP.Page).Encrypt($lb(BaseInfo))*/
 		
 	 	s DTDepNotDoStr=##Class(web.DHCDocConfig).GetConfigNode1("DTAdmDep",AdmDepRowid)
 	 	s DTDepNotDoYDTS=$p(DTDepNotDoStr,"^",1)
@@ -57,10 +57,13 @@ ClassMethod Init(AdmDepRowid As %String, Layout = "OEOrd") As %String
 		s DTDepNotDoUpLoad=$p(DTDepNotDoStr,"^",3)
 		
 		;引用不同厂家或同厂家不同版本的js
-		w "<script type='text/javascript' src='../scripts/dhcdoc/DHCDocHLYY"_CurrCompanyCode_".js'></script>",!
+		;w "<script type='text/javascript' src='../scripts/dhcdoc/DHCDocHLYY"_CurrCompanyCode_".js'></script>",!
 		 	
 	}
-	
+	set ExecLoadCompanyFileMothod="d ..Load"_CurrCompanyCode_"()"
+	 	x ExecLoadCompanyFileMothod
+	;引用不同厂家或同厂家不同版本的js
+		w "<script type='text/javascript' src='../scripts/dhcdoc/DHCDocHLYY"_CurrCompanyCode_".js'></script>",!
 	s RetjsonAry("HLYYInterface")=$g(HLYYInterface)
 	s RetjsonAry("CurrCompanyCode")=$g(CurrCompanyCode)
 	s RetjsonAry("DTDepNotDoUpLoad")=$g(DTDepNotDoUpLoad)
@@ -93,28 +96,19 @@ ClassMethod LoadDTBS()
     Q 1
 }
 
+ClassMethod GetArcimInfo(ARCIMRowid As %String) As %String
+{
+	s OrderName=$P(^ARCIM(+ARCIMRowid,$P(ARCIMRowid,"||",2),1),"^",2)
+	s ARCIMCode=$P(^ARCIM(+ARCIMRowid,$P(ARCIMRowid,"||",2),1),"^",1)
+	q ARCIMCode_"^"_OrderName
+}
+
 /// 加载新产品组的合理用药
 ClassMethod LoadDHC()
 {
 	w "<link rel='stylesheet' href='../scripts/dhcnewpro/dhcckb/css/pdss.css'/>" ,!  
 	w "<script type='text/javascript' src='../scripts/dhcnewpro/dhcckb/pdss.js'></script>",!
 	Quit 1
-}
-
-///加载嘉和美康的合理用药  
-ClassMethod LoadJHMK()
-{
-	w "<script type='text/javascript' src='es5-shim.js' charset='utf-8'></script>"
-	w "<script type='text/javascript' src='sockjs.js' charset='utf-8'></script>"
-	w "<script type='text/javascript' src='savedata.js' charset='utf-8'></script>"
-    Q 1
-}
-
-ClassMethod GetArcimInfo(ARCIMRowid As %String) As %String
-{
-	s OrderName=$P(^ARCIM(+ARCIMRowid,$P(ARCIMRowid,"||",2),1),"^",2)
-	s ARCIMCode=$P(^ARCIM(+ARCIMRowid,$P(ARCIMRowid,"||",2),1),"^",1)
-	q ARCIMCode_"^"_OrderName
 }
 
 }
