@@ -35,7 +35,80 @@ ClassMethod PayOrder(InputXml As %String)
     }else{
     }
 }
+/// 2.1.2.1 医院信息查询接口(GetHosInfo)
+ClassMethod GetHosInfo(InputXml As %String)
+{
+    s InputObj=##class(DHCDoc.Util.XMLParse).XMLToObj(InputXml,"REQ")
+    // HOS_ID	REQ	String(32)	√	医院ID，规则：医保下发的定点医疗机构编号
+    s HospId=InputObj.%Get("HOS_ID")
+    if (HospId'=""){
 
+    }
+    s HsopObj=##class(%DynamicObject).%New()
+    s HOSPRowId=0
+    for {
+        s HOSPRowId=$o(^CT("HOSP",HOSPRowId))
+        q:HOSPRowId=""
+        s DateFrom=$p($g(^CT("HOSP",HOSPRowId)),"^",9)
+        continue:(DateFrom<+$h)
+        s DateTo=$p($g(^CT("HOSP",HOSPRowId)),"^",10)
+        continue:(DateTo>=+$h)
+        // HOS_ID	RES	String(32)	√	医院ID，规则：医保下发的定点医疗机构编号
+        d HsopObj.%Set("HOS_ID",HOSPRowId)
+        // NAME	RES	String(128)	√	医院名称
+        d HsopObj.%Set("NAME",$p($g(^CT("HOSP",HOSPRowId)),"^",2))
+        // SHORT_NAME	RES	String(64)	√	医院名称简称
+        d HsopObj.%Set("HOS_ID",$p($g(^CT("HOSP",HOSPRowId)),"^",1))
+        // WEBSITE	RES	String(128)		医院网站
+        d HsopObj.%Set("HOS_ID","")
+        // LEVEL	RES	String(2)	√	医院等级，详见 “医院等级”
+        d HsopObj.%Set("LEVEL","02")
+        // DESC	RES	String(2000)		医院介绍
+        d HsopObj.%Set("RES","")
+        // SPECIAL	RES	String(256)		医院专长
+        d HsopObj.%Set("SPECIAL","")
+        // MAX_REG_DAYS	RES	Int	√	最大预约天数
+        d HsopObj.%Set("MAX_REG_DAYS","7")
+        // NATURE	RES	String(1)	√	医院性质，详见 “医院性质”
+        d HsopObj.%Set("NATURE","1")
+        // WEIBO	RES	String(128)		医院微博地址
+        d HsopObj.%Set("WEIBO","")
+        // START_REG_TIME	RES	String(5)		开始预约时间，格式：HH:MI
+        d HsopObj.%Set("START_REG_TIME","")
+        // END_REG_TIME	RES	String(5)		停止预约时间，格式：HH:MI
+        d HsopObj.%Set("END_REG_TIME","")
+        // STOP_BOOK_TIMEA	RES	String(5)		上午停止取号时间，格式：HH:MI
+        d HsopObj.%Set("STOP_BOOK_TIMEA","")
+        // STOP_BOOK_TIMEP	RES	String(5)		下午停止取号时间，格式：HH:MI
+        d HsopObj.%Set("STOP_BOOK_TIMEP","")
+        // BRANCH_FLAG	RES	String(1)	√	是否按分院区挂号，0—否，1—是；为1时，BRANCH_INFO集合不允许为空
+        d HsopObj.%Set("BRANCH_FLAG","0")
+    }
+    q ##class(DHCDoc.Util.XMLParse).ObjToXML(HsopObj,"RES","")
+    // HOS_ID	RES	String(32)	√	医院ID，规则：医保下发的定点医疗机构编号
+    // NAME	RES	String(128)	√	医院名称
+    // SHORT_NAME	RES	String(64)	√	医院名称简称
+    // WEBSITE	RES	String(128)		医院网站
+    // LEVEL	RES	String(2)	√	医院等级，详见 “医院等级”
+    // DESC	RES	String(2000)		医院介绍
+    // SPECIAL	RES	String(256)		医院专长
+    // MAX_REG_DAYS	RES	Int	√	最大预约天数
+    // NATURE	RES	String(1)	√	医院性质，详见 “医院性质”
+    // WEIBO	RES	String(128)		医院微博地址
+    // START_REG_TIME	RES	String(5)		开始预约时间，格式：HH:MI
+    // END_REG_TIME	RES	String(5)		停止预约时间，格式：HH:MI
+    // STOP_BOOK_TIMEA	RES	String(5)		上午停止取号时间，格式：HH:MI
+    // STOP_BOOK_TIMEP	RES	String(5)		下午停止取号时间，格式：HH:MI
+    // BRANCH_FLAG	RES	String(1)	√	是否按分院区挂号，0—否，1—是；为1时，BRANCH_INFO集合不允许为空
+    // BRANCH_INFO	RES	List 节点		分院区信息集合
+    // BRANCH_ID	BRANCH_INFO	String(32)	√	分院区ID
+    // BRANCH_NAME	BRANCH_INFO	String(128)	√	分院区名称
+    // ADDRESS	BRANCH_INFO	String(128)	√	分院区地址
+    // TEL	BRANCH_INFO	String(32)	√	分院区联系电话
+    // LONGITUDE	BRANCH_INFO	String(12)		所在位置经度，例：113.452472 
+    // LATITUDE	BRANCH_INFO	String(12)		所在位置纬度，例：23.111814 
+    // SUBHOSPITALNO	BRANCH_INFO	String (2)	√	子门诊标识，规则：医保下发的定点医疗机构子门诊标识，总院标识需传0，其他子门诊标识按医保下发上传。
+}
 /// 2.1.2.2 科室查询接口(GetDeptInfo)
 ClassMethod GetDeptInfo(InputXml As %String)
 {

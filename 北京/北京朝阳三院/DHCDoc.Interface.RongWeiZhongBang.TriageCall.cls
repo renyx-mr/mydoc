@@ -148,6 +148,9 @@ ClassMethod CallAgain(IPAddress As %String,AdmId As %String,DocDr As %String,Use
     d InputObj.%Set("now_seq_no",SeqNo)
     q ##class(DHCDoc.Util.XMLParse).ObjToXML(InputObj,"root","")
 }
+/// 过号调用数据接口
+/// 入参：IPAddress 登录电脑ip，DocDr 医护人员id，UserId 用户id，DeptId 科室id
+/// 出参：第三方使用xml串
 ClassMethod OverNumber(IPAddress As %String,AdmId As %String,DocDr As %String,UserId As %String,DeptId As %String)
 {
     s QueRowId=##class(web.DHCDocOutPatientList).GetQueRowidByMore(AdmId,DocDr)

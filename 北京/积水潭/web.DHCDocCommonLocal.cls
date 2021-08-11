@@ -1,6 +1,7 @@
 Class web.DHCDocCommonLocal Extends %RegisteredObject
 {
-
+/// 提供给第三方调用接口
+/// 同步患者历史医嘱接口
 ClassMethod GetPatientOrderList(InputXml As %String)
 {
 	s $ZTRAP="GetPatientOrderListErr"
