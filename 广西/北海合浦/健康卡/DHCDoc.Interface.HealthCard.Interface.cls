@@ -57,19 +57,13 @@ ClassMethod RegisterHealthCard(PatientId As %String)
  	//} 
    d InPutObj.%Set("residentInfo",ResidentObj)		 	 
  	//"aPIVerify" 		 	API验证（对象） 
-   s aPIVerifyObj=##class(%DynamicObject).%New()
- 	//"Appid" 		"11" 	授权编码 
-   d aPIVerifyObj.%Set("Appid",..#APPID)
- 	//" Nonce_Str" 		"ceshi" 	随机字符串（8位以下，没有其他要求） 
-   d aPIVerifyObj.%Set("Nonce_Str","")
- 	//"Sign" 		"dsahdi" 	签名值(见附录2) 
-   d aPIVerifyObj.%Set("Sign","")
- 	//"Time" 		"332132132  1321321321" 	时间戳 格式:yyyyMMssHHmmss 格式yyyyMMddhhmmss 通过获取卫计委当前时间2.2接口获取 
-   d aPIVerifyObj.%Set("Time",..GetDateTimeStr())
+   s aPIVerifyJson=##class(web.DHCENS.STBLL.JKK.Method.JKKService).CreateSign()
+   s aPIVerifyObj=##class(%DynamicObject).%FromJSON(aPIVerifyJson)
    d InPutObj.%Set("aPIVerify",aPIVerifyObj)	
  	//"MAC" 		"123"  	完整性校验信息，可空 
    d InPutObj.%Set("MAC","")
-
+  s InPutJson=##class(DHCDoc.Util.FromJSON).GetJOSONByObj(InPutObj)
+  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0002",InPutJson)
 }
 /// 电子健康卡注册(优先完成)  出参接口 
 ClassMethod RegisterHealthCardOut(OutPutStr As %String)
@@ -107,18 +101,13 @@ ClassMethod ApplyQRcode(PatientId As %String)
  	//"FamilyName" 	"张三" 	家庭信息名称，如果为空则返回主二维码加家庭二维码，如果不为空则返回对应的单个二维码，家庭二维码集合为空 
    d InPutObj.%Set("FamilyName","")
  	//"aPIVerify" 	 	API验证(对象) 
-   s aPIVerifyObj=##class(%DynamicObject).%New()
- 	//"Appid" 	"11" 	授权编码 
-   d aPIVerifyObj.%Set("Appid",..#APPID)
- 	//"Nonce_Str" 	"ceshi" 	随机字符串（8位以下，无其他要求） 
-   d aPIVerifyObj.%Set("Nonce_Str","")
- 	//"Sign" 	"dsahd" 	签名值(见附录2) 
-   d aPIVerifyObj.%Set("Sign","")
- 	//"Time" 	"201903029164302" 	时间戳格式:yyyyMMssHHmmss 通过获取卫计委当前时间2.2 接口获取 
-   d aPIVerifyObj.%Set("Time",..GetDateTimeStr())
+   s aPIVerifyJson=##class(web.DHCENS.STBLL.JKK.Method.JKKService).CreateSign()
+   s aPIVerifyObj=##class(%DynamicObject).%FromJSON(aPIVerifyJson)
    d InPutObj.%Set("aPIVerify",aPIVerifyObj)
  	//"MAC" 	"123" 	完整性校验信息，可空 
    d InPutObj.%Set("MAC","")
+  s InPutJson=##class(DHCDoc.Util.FromJSON).GetJOSONByObj(InPutObj)
+  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0003",InPutJson)
 }
 ClassMethod ApplyQRcodeOut(PatId As %String,OutPutStr As %String)
 {
@@ -162,19 +151,13 @@ ClassMethod VerificationQrCode(QrCode As %String,ChannelCode As %String="" ,MedS
    s:MedStepCode="" MedStepCode="000000" 
  	d InPutObj.%Set("MedStepCode",MedStepCode)
    //"aPIVerify" 	 	API验证（对象）
-   s aPIVerifyObj=##class(%DynamicObject).%New()
-   // { 	 	 
- 	// "Appid" 	"11" 	授权编码 
-   d aPIVerifyObj.%Set("Appid",..#APPID)
- 	// "Nonce_Str" 	"ceshi" 	随机字符串（8位以下，无其他要求） 
-   d aPIVerifyObj.%Set("Nonce_Str","")
- 	// "Sign" 	"dsahd" 	签名值（见附录2） 
-   d aPIVerifyObj.%Set("Sign","")
- 	// "Time" 	"20190329165023" 	时间戳 格式: yyyyMMssHHmmss 通过获取卫计委当前时间（GetCommonTime）接口获取 
-   d aPIVerifyObj.%Set("Time",..GetDateTimeStr())
+   s aPIVerifyJson=##class(web.DHCENS.STBLL.JKK.Method.JKKService).CreateSign()
+   s aPIVerifyObj=##class(%DynamicObject).%FromJSON(aPIVerifyJson)
    d InPutObj.%Set("aPIVerify",aPIVerifyObj)
  	// "MAC" 	"123" 	完整性校验信息，可空 新增参数(1.87版本添加) 	"OfficeCode " 	"A01" 	科室代码，详细见字典表  	 	 
    d InPutObj.%Set("MAC","")
+  s InPutJson=##class(DHCDoc.Util.FromJSON).GetJOSONByObj(InPutObj)
+  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0004",InPutJson)
 }
 ClassMethod VerificationQrCodeOut(OutPutStr As %String)
 {
@@ -253,18 +236,13 @@ ClassMethod VerifyQrCode(QrCode As %String)
  	//"MedStepCode" 	"010101" 	诊疗环节代码(见字典) 	新增参数 	"OfficeCode " 	"0300" 	科室代码，详细见字典表 	 
    d InPutObj.%Set("MedStepCode","")
  	//"APIVerify" 	 	API验证（对象）
-   s aPIVerifyObj=##class(%DynamicObject).%New()
- 	//"Appid" 	"11" 	授权编码 	
-   d aPIVerifyObj.%Set("Appid",..#APPID)
- 	//"Nonce_Str" 	"kdaso" 	随机字符串（8 位以下，无其他要求） 	
-   d aPIVerifyObj.%Set("Nonce_Str","")
- 	//"Sign" 	"dsahdi" 	签名值(见附录2) 	
-   d aPIVerifyObj.%Set("Sign","")
- 	//"Time" 	"3321321321321321321" 	时间戳格式: yyyyMMssHHmmss 通过获取卫计委当前间（GetCommonTime）接口获取 	\
-   d aPIVerifyObj.%Set("Time",..GetDateTimeStr())
+   s aPIVerifyJson=##class(web.DHCENS.STBLL.JKK.Method.JKKService).CreateSign()
+   s aPIVerifyObj=##class(%DynamicObject).%FromJSON(aPIVerifyJson)
    d InPutObj.%Set("aPIVerify",aPIVerifyObj)
  	//"MAC" 	 "123abc" 	完整性校验信息，可空 	
    d InPutObj.%Set("MAC","")
+  s InPutJson=##class(DHCDoc.Util.FromJSON).GetJOSONByObj(InPutObj)
+  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0004",InPutJson)
 }
 ClassMethod VerifyQrCodeOut(OutPutStr As %String)
 {

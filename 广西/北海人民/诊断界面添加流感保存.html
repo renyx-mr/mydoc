@@ -1,0 +1,179 @@
+<csp:method name=OnPreHTTP arguments="" returntype=%Boolean>
+    i ##Class(websys.SessionEvents).SessionExpired() q 1
+    quit 1
+</csp:method>
+<!DOCTYPE html>
+<!--转出入诊 imedical/web/csp/dhcdoc.influenzainfo.hui.csp-->
+<HTML lang="zh-CN">
+
+<HEAD>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <TITLE>
+        <EXTHEALTH:TRANSLATE id=title>##(%session.Get("TITLE"))##</EXTHEALTH:TRANSLATE>
+    </TITLE>
+    <EXTHEALTH:HEAD></EXTHEALTH:HEAD>
+    <HISUI></HISUI>
+    <STYLE type='text/css'>
+        .form-table {
+            border-collapse: separate;
+            border-spacing: 0px 10px;
+        }
+
+        .form-table td {
+            white-space: nowrap;
+        }
+
+        .r-label,
+        .ifhidden {
+            text-align: right;
+        }
+
+        .minitext {
+            width: 80px !important;
+        }
+
+        .midtext {
+            width: 120px !important;
+        }
+
+        .maxtext {
+            width: 130px !important;
+        }
+
+        .line {
+            padding: 0px 5px;
+            color: #DCDCDC;
+        }
+
+        .ach-div {
+            width: 120px;
+            margin: 0px auto;
+        }
+
+        textarea {
+            width: 688px;
+            border-color: #40a2de
+        }
+
+        #patient-label label {
+            width: 100px;
+        }
+
+        #tree_panel ul,
+        #patient-label ul,
+        .form-table tr td ul {
+            list-style-type: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        #btnAddItem,
+        #btnUpdateItem {
+            display: inline-block;
+        }
+
+        #btnClose,
+        #btnUpdateItem {
+            margin-left: 20px;
+        }
+    </STYLE>
+</HEAD>
+<Server>
+    s EpisodeID=$g(%request.Data("EpisodeID",1))
+    s HospitalGradeJson=##class(web.DHCDocTransferAdmLocal).GetHospitalGradeJson("33")
+</Server>
+
+<body>
+    <div id="TransferAdmWin">
+        <table class="search-table">
+            <tr>
+                <td class="r-label">
+                    <label for="">腋下体温≥38℃</label>
+                </td>
+                <td>
+                    <select id="Temperature" class="hisui-combobox" name="Temperature"
+                        style="width:240px;"></select>
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">
+                    <label for="">咽痛（儿童为咽红）</label>
+                </td>
+                <td>
+                    <input class="hisui-validatebox" type="text" id="SoreThroat" style="margin-right:10px;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">
+                    <label for="">咳嗽</label>
+                </td>
+                <td>
+                    <input class="hisui-validatebox" type="text" id="Cough" style="margin-right:10px;" />
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <center><a href="#" class="hisui-linkbutton" id="ColdInfoSave" onClick="ColdInfoSaveClick()"
+                            data-options="iconCls: 'icon-save'">保存</a></center>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <SCRIPT language='javascript'>
+        //全局请求后台服务对象
+        var ServerObj = {
+            EpisodeID: "#(EpisodeID)#"
+        }
+        /// JQuery 初始化页面
+        $(function () { InitPageDefault(); })
+        function ColdInfoSaveClick() {
+            var Temperature = $("#Temperature").combobox("getValue")=="Y"?"Y":"N";
+            var SoreThroat = $("#SoreThroat").combobox("getValue")=="Y"?"Y":"N";
+            var Cough = $("#Cough").combobox("getValue")=="Y"?"Y":"N";
+            var RetStr = $.cm({
+                ClassName: "web.DHCDocTransferAdmLocal",
+                MethodName: "SaveInOtherHosname",
+                dataType: "text",
+                EpisodeID: ServerObj.EpisodeID,
+                InOtherHosname: TransferHospitalName,
+                Gradename: TransferHospitalGrade
+            }, false);
+            if (RetStr != "1") {
+                $.messager.alert("提示", "保存信息失败！");
+                websys_showModal('options').CallBackFunc(false)
+            } else {
+                websys_showModal('options').CallBackFunc(true)
+            }
+        }
+        function InitPageDefault() {
+            var DateStrObj = [{ id: "Y", text: "是" }, { id: "N", text: "否" }];
+            $HUI.combobox("#Temperature", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+            $HUI.combobox("#SoreThroat", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+            $HUI.combobox("#Cough", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+        }
+    </SCRIPT>
+</body>
+
+</html>

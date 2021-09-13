@@ -1,0 +1,242 @@
+<csp:method name=OnPreHTTP arguments="" returntype=%Boolean>
+    i ##Class(websys.SessionEvents).SessionExpired() q 1
+    quit 1
+</csp:method>
+<!DOCTYPE html>
+<!--脑卒中病人评分内容 imedical/web/csp/dhcdoc.CerebralApoplexy.hui.csp-->
+<HTML lang="zh-CN">
+
+<HEAD>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <TITLE>
+        <EXTHEALTH:TRANSLATE id=title>##(%session.Get("TITLE"))##</EXTHEALTH:TRANSLATE>
+    </TITLE>
+    <EXTHEALTH:HEAD></EXTHEALTH:HEAD>
+    <HISUI></HISUI>
+    <STYLE type='text/css'>
+        .form-table {
+            border-collapse: separate;
+            border-spacing: 0px 10px;
+        }
+
+        .form-table td {
+            white-space: nowrap;
+        }
+
+        .r-label,
+        .ifhidden {
+            text-align: right;
+        }
+
+        .minitext {
+            width: 80px !important;
+        }
+
+        .midtext {
+            width: 120px !important;
+        }
+
+        .maxtext {
+            width: 130px !important;
+        }
+
+        .line {
+            padding: 0px 5px;
+            color: #DCDCDC;
+        }
+
+        .ach-div {
+            width: 120px;
+            margin: 0px auto;
+        }
+
+        textarea {
+            width: 688px;
+            border-color: #40a2de
+        }
+
+        #patient-label label {
+            width: 100px;
+        }
+
+        #tree_panel ul,
+        #patient-label ul,
+        .form-table tr td ul {
+            list-style-type: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        #btnAddItem,
+        #btnUpdateItem {
+            display: inline-block;
+        }
+
+        #btnClose,
+        #btnUpdateItem {
+            margin-left: 20px;
+        }
+    </STYLE>
+</HEAD>
+<Server>
+    s EpisodeID=$g(%request.Data("EpisodeID",1))
+    //s HospitalGradeJson=##class(web.DHCDocTransferAdmLocal).GetHospitalGradeJson("33")
+</Server>
+
+<body>
+    <div id="TransferAdmWin">
+        <table class="search-table">
+            <tr>
+                <td class="r-label">
+                    <label for="">1、年龄等于或大于60岁</label>
+                </td>
+                <td>
+                    <select id="AdmAge" class="hisui-combobox" name="AdmAge" style="margin-right:10px;"></select>
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">
+                    <label for="">2、T1A发作后首次收缩压等于或大于140mmHg或舒张压等于或大于90mmHg</label>
+                </td>
+                <td>
+                    <input class="hisui-combobox"  id="AdmBlood" style="margin-right:10px;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">
+                    <label for="">3、单肢乏力</label>
+                </td>
+                <td>
+                    <input class="hisui-combobox"  id="SingleLimbFatigue" style="margin-right:10px;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">
+                    <label for="">4、不伴乏力的言语障碍</label>
+                </td>
+                <td>
+                    <input class="hisui-combobox" id="LanguageBarrier" style="margin-right:10px;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">
+                    <label for="">5、症状持续时间等于或大于60min</label>
+                </td>
+                <td>
+                    <input class="hisui-combobox" id="SymptomTime1" style="margin-right:10px;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">
+                    <label for="">6、症状持续时间10-59min</label>
+                </td>
+                <td>
+                    <input class="hisui-combobox" id="SymptomTime2" style="margin-right:10px;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">
+                    <label for="">7、有糖尿病</label>
+                </td>
+                <td>
+                    <input class="hisui-combobox" id="AdmDiabetes" style="margin-right:10px;" />
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <center><a href="#" class="hisui-linkbutton" id="CerebralApoplexySave" onClick="CerebralApoplexySaveClick()"
+                            data-options="iconCls: 'icon-save'">保存</a></center>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <SCRIPT language='javascript'>
+        //全局请求后台服务对象
+        var ServerObj = {
+            EpisodeID: "#(EpisodeID)#"
+        }
+        /// JQuery 初始化页面
+        $(function () { InitPageDefault(); })
+        function CerebralApoplexySaveClick() {
+            var AdmAge = $("#AdmAge").combobox("getValue");
+            var AdmBlood = $("#AdmBlood").combobox("getValue");
+            var SingleLimbFatigue = $("#SingleLimbFatigue").combobox("getValue");
+            var LanguageBarrier = $("#LanguageBarrier").combobox("getValue");
+            var SymptomTime1 = $("#SymptomTime1").combobox("getValue");
+            var SymptomTime2 = $("#SymptomTime2").combobox("getValue");
+            var AdmDiabetes = $("#AdmDiabetes").combobox("getValue");
+            var ParaStr=AdmAge+"^"+AdmBlood+"^"+SingleLimbFatigue+"^"+LanguageBarrier+"^"+SymptomTime1
+                +"^"+SymptomTime2+"^"+AdmDiabetes;
+            var RetStr = $.cm({
+                ClassName: "web.DHCDocDiagnosEntryV8Local",
+                MethodName: "InsertCerebralApoplexyInfo",
+                dataType: "text",
+                EpisodeID: ServerObj.EpisodeID,
+                ParaStr: ParaStr
+            }, false);
+            if (RetStr != "1") {
+                $.messager.alert("提示", "保存信息失败！");
+                websys_showModal('options').CallBackFunc(false)
+            } else {
+                websys_showModal('options').CallBackFunc(true)
+            }
+        }
+        function InitPageDefault() {
+            var DateStrObj = [{ id: "Y", text: "是" }, { id: "N", text: "否" }];
+            $HUI.combobox("#AdmAge", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+            $HUI.combobox("#AdmBlood", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+            $HUI.combobox("#SingleLimbFatigue", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+            $HUI.combobox("#LanguageBarrier", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+            $HUI.combobox("#SymptomTime1", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+            $HUI.combobox("#SymptomTime2", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+            $HUI.combobox("#AdmDiabetes", {
+                valueField: 'id',
+                textField: 'text',
+                editable: true,
+                multiple: false,
+                data: DateStrObj,
+            });
+        }
+    </SCRIPT>
+</body>
+</html>
