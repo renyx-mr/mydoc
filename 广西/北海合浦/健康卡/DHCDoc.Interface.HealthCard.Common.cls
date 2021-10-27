@@ -1,6 +1,7 @@
 Class DHCDoc.Interface.HealthCard.Common Extends (%RegisteredObject, %XML.Adaptor)
 {
 ///注册电子健康卡
+/// 入参 患者id，用户id
 ClassMethod RegisterHealthCard(PatientId As %String,UserId As %String)
 {
     q:'$d(^PAPER(PatientId)) "请先完成病人基本信息的登记再进行注册健康卡。"
@@ -23,6 +24,7 @@ ClassMethod RegisterHealthCard(PatientId As %String,UserId As %String)
     q CreateHealthCardRet
 }
 ///  静态二维码验证  
+/// 入参二维码数据
 ClassMethod VerificationQrCode(Qrcod As %String)
 {
     s VerificationQrCodeRet=##class(DHCDoc.Interface.HealthCard.Interface).VerificationQrCode(Qrcod)

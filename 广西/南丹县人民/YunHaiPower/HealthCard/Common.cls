@@ -1,10 +1,10 @@
-Class DHCDoc.YunHaiPower.HealthCard.Common Extends %RegisteredObject [ LegacyInstanceContext ]
+Class DHCDoc.YunHaiPower.HealthCard.Common Extends %RegisteredObject
 {
 
 /// 机构编码
-Parameter HospitalOrgCode = "12ceshi";
+Parameter HospitalOrgCode = 499638029;
 
-Parameter HospitalOrgName = "13ceshi";
+Parameter HospitalOrgName = "南丹县人民医院";
 
 /// 4.1.1 诊疗卡创建接口
 /// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).CreatePatientID()
@@ -96,10 +96,10 @@ CreatePatientIDErrMag(ErrText="")
 }
 
 /// 4.1.2 诊疗卡映射接口
-/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).RecivePatientID("5")
+/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).RecivePatientID("184472")
 ClassMethod RecivePatientID(PatDr As %String) As %String
 {
-	s $ZTRAP="RecivePatientIDErrMag"
+	;s $ZTRAP="RecivePatientIDErrMag"
 	//s InputObj=##class(ext.util.JsonObject).FromJSON(InputJsonStr)
 	s ParNo=..PatientIDToNo(PatDr)
 	s Content=##class(%ArrayOfDataTypes).%New()
@@ -107,19 +107,21 @@ ClassMethod RecivePatientID(PatDr As %String) As %String
     d Content.SetAt((..#HospitalOrgName),"orgName")
     d Content.SetAt(ParNo,"patintID")	;诊疗卡号 patintID 是 string 诊疗卡号或院内主索引号
     s healthCardId=..GetHealthInfoById(PatDr)
-    d Content.SetAt("","healthCardId")	;电子健康卡 ID healthCardId 是 string 电子健康卡
+    b ;;;23
+    d Content.SetAt(healthCardId,"healthCardId")	;电子健康卡 ID healthCardId 是 string 电子健康卡
 	s JsonStr=##class(web.INSUCacheJSON).Encode(Content)
     s JsonStr=$replace(JsonStr,"null","""""")
-    s Stream=##class(%GlobalCharacterStream).%New()
+    //s Stream=##class(%GlobalCharacterStream).%New()
    
-    d Stream.Write("{""head"":{""resultCode"":""0""},""errMsg"":""成功"",""rsp"":"_JsonStr_"}")
+    //d Stream.Write("{""head"":{""resultCode"":""0""},""errMsg"":""成功"",""rsp"":"_JsonStr_"}")
     
-    s RetJson=""
+    s RetJson=##class(web.DHCENS.BLL.JKK.Method.HealthCardServer).recivePatientID(JsonStr)
+    b ;;;;2
 	s RetJson=$replace(RetJson,"""head"":","")
 	s RetJson=$replace(RetJson,"""rsp"":","")
 	s OutputObj=##class(ext.util.JsonObject).FromJSON(RetJson)
 	s resultCode= OutputObj.GetValue("resultCode")
-	s errMsg=OutputObj.GetValue("errMsg")
+	s errMsg=OutputObj.GetValue("resultMsg")
     q resultCode_"^"_errMsg
 	
 RecivePatientIDErrMag(ErrText="")
@@ -136,10 +138,10 @@ RecivePatientIDErrMag(ErrText="")
 }
 
 /// 4.1.3 注册电子健康卡接口
-/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).ReceiveHealthCard("q2")
+/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).ReceiveHealthCard("1267","3")
 ClassMethod ReceiveHealthCard(PatDr As %String, AppMode As %String) As %String
 {
-	s $ZTRAP="ReceiveHealthCardErrMag"
+	//s $ZTRAP="ReceiveHealthCardErrMag"
 	s Content=##class(%ArrayOfDataTypes).%New()
     d Content.SetAt((..#HospitalOrgCode),"orgCode")
     d Content.SetAt((..#HospitalOrgName),"orgName")
@@ -153,7 +155,7 @@ ClassMethod ReceiveHealthCard(PatDr As %String, AppMode As %String) As %String
 	s address=$p($g(PatInfo),"^",9) ; 否 string
 	s phone=$p($g(PatInfo),"^",7) ; 是 string 注册人联系方式
 	s patid=..PatientIDToNo(PatDr) ; 否 string id 或就诊卡号
-	s appMode=AppMode ; 是 string1:APP 在线申请2:医疗卫生机构自助机申请3:医疗卫生机构窗口申请4:批量预生成
+	s appMode=AppMode ; 是 string  1:APP 在线申请2:医疗卫生机构自助机申请3:医疗卫生机构窗口申请4:批量预生成
 	s payAccType="0^1^2^3^4^5^9" ;0:无1:微信2:支付宝3:银联4:银行5:统一支付平台9:其他
     d Content.SetAt(name,"name")
     d Content.SetAt(gender,"gender")
@@ -168,18 +170,13 @@ ClassMethod ReceiveHealthCard(PatDr As %String, AppMode As %String) As %String
     d Content.SetAt(payAccType,"payAccType")
 	s JsonStr=##class(web.INSUCacheJSON).Encode(Content)
     s JsonStr=$replace(JsonStr,"null","""""")
-	//s Json=##class(ext.util.JsonObject).ObjToJson(InsertObj)
-	
-	
-	s RetJson="{""head"":{""resultCode"":""0"",""errMsg"":""成功""},"
-		_"""rsp"":{""idCard"":""xxxxxxxxxxxxxxxxx"",""cardType"":""01"",""name"":""张三"","
-		_"""qrCodeText"":""85:9A60D3D561E4ADBA89ACD9FBF2FB8D2C:1"",""healthCardId"":""9A60D3D561E4ADBA89ACD9FBF2FB8D2C"","
-		_"""healthCardNo"":""xxxxxxxxxxxxxxxxx"",""mainIndexId"":""xxxxxxxxxxxxxxxxx""}}"
+	s RetJson=##class(web.DHCENS.BLL.JKK.Method.HealthCardServer).receiveHealthCard(JsonStr)
+	b ;RetJson
 	s RetJson=$replace(RetJson,"""head"":","")
 	s RetJson=$replace(RetJson,"""rsp"":","")
 	s OutputObj=##class(ext.util.JsonObject).FromJSON(RetJson)
 	s resultCode= OutputObj.GetValue("resultCode")
-	s errMsg=OutputObj.GetValue("errMsg")
+	s errMsg=OutputObj.GetValue("resultMsg")
 	s (idCard,cardType,name,qrCodeText,healthCardId,healthCardNo,mainIndexId)=""
 	if (resultCode="0"){
 		s idCard= OutputObj.GetValue("idCard") 
@@ -190,6 +187,7 @@ ClassMethod ReceiveHealthCard(PatDr As %String, AppMode As %String) As %String
 		s healthCardNo= OutputObj.GetValue("healthCardNo")
 		s mainIndexId= OutputObj.GetValue("mainIndexId")
 		s reterr=..UpdatePatInfo(PatDr,healthCardNo,healthCardId,qrCodeText)
+		b ;;;;23
 		if (reterr="0"){
 			if (AppMode'="1"){
 				s reterr= ..RecivePatientID(PatDr)
@@ -212,6 +210,8 @@ ReceiveHealthCardErrMag(ErrText="")
 }
 
 /// 4.1.4 电子健康卡查询接口
+/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).GetHealthCard("184472","010105")
+/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).GetHealthCard("1354","010105")
 ClassMethod GetHealthCard(PatDr As %String, VisitSceneCode As %String) As %String
 {
 	s $ZTRAP="GetHealthCardErrMag"
@@ -221,19 +221,20 @@ ClassMethod GetHealthCard(PatDr As %String, VisitSceneCode As %String) As %Strin
     s PatInfo=..GetPatInfoById(PatDr)
     d Content.SetAt(VisitSceneCode,"visitSceneCode")	;用卡场景代码 visitSceneCode 是 string 见 6.4 用卡场景代码
     s healthCardId=..GetHealthInfoById(PatDr)
-    d Content.SetAt(healthCardId,"ID")	;电子健康卡 ID healthCardId 是 string
+    d Content.SetAt(healthCardId,"healthCardId")	;电子健康卡 ID healthCardId 是 string
     s idCard=$p(PatInfo,"^",4)
     s cardType=$p(PatInfo,"^",5)
     d Content.SetAt(idCard,"idCard")	;证件号 idCard 是 string
     d Content.SetAt(cardType,"cardType")	;证件类型 cardType 是 string 见身份证件类型代码
     s JsonStr=##class(web.INSUCacheJSON).Encode(Content)
     s JsonStr=$replace(JsonStr,"null","""""")
-	s RetJson=""
+	s RetJson=##class(web.DHCENS.BLL.JKK.Method.HealthCardServer).getHealthCard(JsonStr)
+	b ;RetJson
 	s RetJson=$replace(RetJson,"""head"":","")
 	s RetJson=$replace(RetJson,"""rsp"":","")
 	s InputObj=##class(ext.util.JsonObject).FromJSON(RetJson)
 	s resultCode= InputObj.GetValue("resultCode")
-	s errMsg=InputObj.GetValue("errMsg")
+	s errMsg=InputObj.GetValue("resultMsg")
 	s (qrCodeText,healthCardId,mainIndexId,name,gender,nation)=""
 	if (resultCode="0"){
 		s qrCodeText= InputObj.GetValue("qrCodeText")	;电子健康卡二维码 qrCodeText 是String（66）静态二维码
@@ -243,7 +244,7 @@ ClassMethod GetHealthCard(PatDr As %String, VisitSceneCode As %String) As %Strin
 		s gender= InputObj.GetValue("gender")	;性别 gender 是 string 见性别代码表
 		s nation= InputObj.GetValue("nation")	;民族 nation 否 string
 	}else{
-		q $$GetHealthCardErrMag("查询电子健康卡失败")
+		q $$GetHealthCardErrMag("查询电子健康卡失败:"_errMsg)
 	}
 	q resultCode_"^"_errMsg_"^"_qrCodeText_"^"_healthCardId_"^"_mainIndexId_"^"_name_"^"_gender_"^"_nation
 GetHealthCardErrMag(ErrText="")
@@ -260,7 +261,8 @@ GetHealthCardErrMag(ErrText="")
 }
 
 /// 4.1.5 获取电子健康卡二维码
-/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).GetHealthCardQrcode("q2")
+/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).GetHealthCardQrcode("184472")
+/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).GetHealthCardQrcode("1267")
 ClassMethod GetHealthCardQrcode(PatDr As %String) As %String
 {
 	s $ZTRAP="GetHealthCardQrcodeErrMag"
@@ -274,21 +276,21 @@ ClassMethod GetHealthCardQrcode(PatDr As %String) As %String
 	s cardType=$p($g(PatInfo),"^",5) ; 是 string 见身份证件类型代码表
     d Content.SetAt(idCard,"idCard")	;证件号 idCard 是 string 申领时证件号
     d Content.SetAt(cardType,"cardType")	;证件类型 cardType 是 string 见身份证件类型代码表
-    d Content.SetAt("","codeType")	;二维码类型 codeType 是 string1.静态2.动态
-    d Content.SetAt("","returnType")	;返回数据类型 returnType 是 string1.二维码图片字符串(BASE64)
+    d Content.SetAt("1","codeType")	;二维码类型 codeType 是 string1.静态2.动态
+    d Content.SetAt("2","returnType")	;返回数据类型 returnType 是 string1.二维码图片字符串(BASE64)
 	s JsonStr=##class(web.INSUCacheJSON).Encode(Content)
     s JsonStr=$replace(JsonStr,"null","""""")
-	s RetJson=""
+	s RetJson=##class(web.DHCENS.BLL.JKK.Method.HealthCardServer).getHealthCardQrcode(JsonStr)
 	s RetJson=$replace(RetJson,"""head"":","")
 	s RetJson=$replace(RetJson,"""rsp"":","")
 	s InputObj=##class(ext.util.JsonObject).FromJSON(RetJson)
 	s resultCode= InputObj.GetValue("resultCode")
-	s errMsg=InputObj.GetValue("errMsg")
+	s errMsg=InputObj.GetValue("resultMsg")
 	s qrCodeText=""
 	if (resultCode="0"){
 		s qrCodeText= InputObj.GetValue("qrCodeText")	;电子健康卡二维码 qrCodeText 是 String
 	}else{
-		q $$GetHealthCardQrcodeErrMag("获取电子健康卡二维码失败")
+		q $$GetHealthCardQrcodeErrMag("获取电子健康卡二维码失败:"_errMsg)
 	}
 	
 	q resultCode_"^"_errMsg_"^"_qrCodeText
@@ -298,7 +300,8 @@ GetHealthCardQrcodeErrMag(ErrText="")
 }
 
 /// 4.1.6 二维码校验接口
-ClassMethod VerifyHealthCardQrcode(PatDr As %String, QrCode As %String, VisitSceneType As %String) As %String
+/// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).VerifyHealthCardQrcode("2F7B548CDE10C37FFD2CDD8E452A7DAE9E1E5D2AF0CBA006FC25AB75CC465C89:1::4500A0028APPB0017","010105")
+ClassMethod VerifyHealthCardQrcode(QrCode As %String, VisitSceneType As %String) As %String
 {
 	s $ZTRAP="VerifyHealthCardQrcodeErrMag"
 	s Content=##class(%ArrayOfDataTypes).%New()
@@ -308,12 +311,13 @@ ClassMethod VerifyHealthCardQrcode(PatDr As %String, QrCode As %String, VisitSce
     d Content.SetAt(VisitSceneType,"visitSceneCode")	;用卡场景代码 visitSceneCode 是 string 见 6.4 用卡场景代码
     s JsonStr=##class(web.INSUCacheJSON).Encode(Content)
     s JsonStr=$replace(JsonStr,"null","""""")
-	s RetJson=""
+	s RetJson=##class(web.DHCENS.BLL.JKK.Method.HealthCardServer).verifyHealthCardQrcode(JsonStr)
+	;b ;RetJson
 	s RetJson=$replace(RetJson,"""head"":","")
 	s RetJson=$replace(RetJson,"""rsp"":","")
 	s InputObj=##class(ext.util.JsonObject).FromJSON(RetJson)
 	s resultCode= InputObj.GetValue("resultCode")
-	s errMsg=InputObj.GetValue("errMsg")
+	s errMsg=InputObj.GetValue("resultMsg")
 	s (qrCodeText,healthCardId,mainIndexId,name,gender,nation,birthday,idCard,cardType,address,phone)=""
 	if (resultCode="0"){
 		s qrCodeText= InputObj.GetValue("qrCodeText")	;电子健康卡二维码 qrCodeText 是string（99）
@@ -328,7 +332,7 @@ ClassMethod VerifyHealthCardQrcode(PatDr As %String, QrCode As %String, VisitSce
 		s address= InputObj.GetValue("address")	;联系地址 address 否 string
 		s phone= InputObj.GetValue("phone")	;联系电话 phone 是 string 联系方式
 	}else{
-		q $$VerifyHealthCardQrcodeErrMag("二维码校验失败")
+		q $$VerifyHealthCardQrcodeErrMag("二维码校验失败:"_errMsg)
 	}
 	q resultCode_"^"_errMsg_"^"_qrCodeText_"^"_healthCardId_"^"_mainIndexId_"^"_name_"^"_gender_"^"_nation_"^"
 		_birthday_"^"_idCard_"^"_cardType_"^"_address_"^"_phone
@@ -391,13 +395,14 @@ ClassMethod GetPatInfoById(PAPMIRowid As %String)
     s Address=$p($g(^PAPER(PAPMIRowid,"PER","ADD",1)),"^",1)
     s Marital=$p($g(^PAPER(PAPMIRowid,"PER",2)),"^",3)
     s:Marital'="" Marital=$p($g(^CT("MAR",Marital)),"^",1)
-    i Marital'="" s Marital=..GetRealationCode("Marital","N",Marital)
+    i Marital'="" s Marital=..GetRealationCode("Marital","Y",Marital)
     s Nation=$p($g(^PAPER(PAPMIRowid,"PER",2)),"^",1)
-    s:Nation'="" Nation=$p($g(^CT("NAT",Nation)),"^",2)
-    i Nation'="" s Nation=..GetRealationCode("Nation","N",Nation)
+    s:Nation'="" Nation=$p($g(^CT("NAT",Nation)),"^",1)
+    
+    i Nation'="" s Nation=..GetRealationCode("Nation","Y",Nation)
     s Country=$p($g(^PAPER(PAPMIRowid,"PER",1)),"^",8)
     s:Country'="" Country=$p($g(^CT("COU",Country)),"^",2)
-    i Country'="" s Country=..GetRealationCode("Country","N",Country)
+    i Country'="" s Country=..GetRealationCode("Country","Y",Country)
     s Company=$p($g(^PAPER(PAPMIRowid,"PER",4)),"^",18)
     
     ;姓名^性别^生日^证件号^证件类型^医保卡号^手机号^电话^居住地址^婚姻^民族^国籍^工作单位
@@ -411,7 +416,8 @@ ClassMethod GetPatInfoById(PAPMIRowid As %String)
 /// input:TypeFlag:字典类别、HisFlag：(Y\N):外部到his、Code:代码
 ClassMethod GetRealationCode(TypeFlag As %String, HisFlag As %String, Code As %String)
 {
-	q:(TypeFlag="")||(HisFlag="")||(Code) ""
+	
+	q:(TypeFlag="")||(HisFlag="")||(Code="") ""
     q:$d(^DHCDocTEXTDIC(0,"HisFlag",TypeFlag))=0 ""
     q:$d(^DHCDocTEXTDIC(0,"HisFlag",TypeFlag,HisFlag))=0 ""
     q:$d(^DHCDocTEXTDIC(0,"HisFlag",TypeFlag,HisFlag,Code))=0 ""
@@ -425,31 +431,60 @@ ClassMethod GetRealationCode(TypeFlag As %String, HisFlag As %String, Code As %S
 
 ClassMethod UpdatePatInfo(PatDr As %String, healthCardNo As %String, healthCardId As %String, qrCodeText As %String)
 {
-	s CardDr=$o(^DHCCARDi("CF",0,"PAPMIDR",PatDr,0))
-	q:CardDr="" "1"
-	s CardRefObj=##class(User.DHCCardRef).%OpenId(CardDr)
+	s CardDr=0
+	s MyCardDr=""
+	s RetFlag="0"
 	ts
-	if $ISOBJECT(CardRefObj){
-		s CardRefObj.CFElecCardNo=healthCardNo
-		s CardRefObj.CFElecPId=healthCardId
-		s CardRefObj.CFElecStaticQrcodePhoto=qrCodeText
-	}else{
-		tro
-		q "1"
-	}
-	s sc=CardRefObj.%Save()
-	If $$$ISERR(sc) {
-		Do $System.Status.DisplayError()
-		tro
-		q "1"
+	for {
+		s CardDr=$o(^DHCCARDi("CF",0,"PAPMIDR",PatDr,CardDr))
+		q:(CardDr="")
+		s ActiveFlag=$p(^DHCCARD("CF",CardDr),"^",10)
+		continue:ActiveFlag'="N"
+		s cfrowid=$p(^DHCCARD("CF",CardDr),"^",1)
+		//continue:cfrowid=""
+		//s AccStatus=$p(^DHCACD("AccM",cfrowid),"^",13)
+		//continue:AccStatus'="N"
+		s CardRefObj=##class(User.DHCCardRef).%OpenId(CardDr)
+	
+		if $ISOBJECT(CardRefObj){
+			s CardRefObj.CFElecCardNo=healthCardNo
+			s CardRefObj.CFElecPId=healthCardId
+			s CardRefObj.CFElecStaticQrcodePhoto=qrCodeText
+		}else{
+			tro
+			s RetFlag="1"
+			q 
+		}
+		s sc=CardRefObj.%Save()
+		If $$$ISERR(sc) {
+			Do $System.Status.DisplayError()
+			tro
+			s RetFlag="1"
+			q 
+		}
 	}
 	tc
-	q "0"
+	q RetFlag
 }
 
 ClassMethod GetHealthInfoById(PatDr As %String)
 {
 	s RetStr=""
+	s CardDr=0
+	for {
+		s CardDr=$o(^DHCCARDi("CF",0,"PAPMIDR",PatDr,CardDr))
+		q:(CardDr="")
+		s ActiveFlag=$p(^DHCCARD("CF",CardDr),"^",10)
+		continue:ActiveFlag'="N"
+		s cfrowid=$p(^DHCCARD("CF",CardDr),"^",1)
+		//continue:cfrowid=""
+		//s AccStatus=$p(^DHCACD("AccM",cfrowid),"^",13)
+		//continue:AccStatus'="N"
+		s ElecPId=$p(^DHCCARD("CF",CardDr),"^",22)
+		continue:ElecPId=""
+		s RetStr=ElecPId
+	}
+	q RetStr
 	s CardDr=$o(^DHCCARDi("CF",0,"PAPMIDR",PatDr,0))
 	q:CardDr="" RetStr
 	s CardRefObj=##class(User.DHCCardRef).%OpenId(CardDr)
