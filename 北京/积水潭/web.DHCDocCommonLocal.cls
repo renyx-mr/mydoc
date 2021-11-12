@@ -66,7 +66,7 @@ GetItemObjByItemDr()
     s PatientBirthday=##class(websys.Conversions).DateLogicalToHtml(PatientDOB)
     d ItemObj.%Set("birthday",PatientBirthday)
     ; age 年龄 病患年龄
-    s Age==##class(web.DHCBillInterface).GetPapmiAge(Patid,"")
+    s Age=##class(web.DHCBillInterface).GetPapmiAge(Patid,"")
     d ItemObj.%Set("age",Age)
     ; mobile 联系方式 病患联系方式
     s Mobile=$P($G(^PAPER(Patid,"PER",1)),"^",11)

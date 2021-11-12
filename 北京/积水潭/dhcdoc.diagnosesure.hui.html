@@ -1,0 +1,791 @@
+
+<!-- Copyright (c) 2010 DHC Software Co.,Ltd. ALL RIGHTS RESERVED. -->
+<!--dhcdoc.diagnosesure.hui.csp HISUI诊断证明-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<HTML lang="zh-CN">
+<HEAD>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<TITLE><EXTHEALTH:TRANSLATE id=title>##(%session.Get("TITLE"))##</EXTHEALTH:TRANSLATE></TITLE><EXTHEALTH:HEAD></EXTHEALTH:HEAD>
+<EXTHEALTH:HEAD></EXTHEALTH:HEAD>
+<HISUI></HISUI>	
+<style> 
+.inputc{
+	padding:0 0 0 5px;
+	border:1px solid #40a2de;
+	background-color: rgb(255, 255, 255);
+	scrollbar-arrow-color: #007cff;
+	
+	
+}
+.search-table{
+	border-collapse:separate;
+	border-spacing:0 10px;
+}
+.r-label{
+	padding-left: 10px;
+}
+.label{
+	text-align:right;
+	padding-right: 10px;
+}
+
+.clsRequired{
+	padding-left: 10px;
+	font-size: 14px;
+    background-image: url(../images/Required.gif);
+    background-repeat: no-repeat;
+    background-position: left center;
+    padding-left: 8px;
+}
+
+</style> 
+<script type="text/javascript" src="../scripts/dhcdoc/tools/tools.hui.js"></script>
+<script type="text/javascript" src="../scripts/websys.jquery.js"></script>
+
+<SCRIPT language="Cache" RUNAT="SERVER">
+
+	s EpisodeID=%request.Get("EpisodeID")
+	s sysDateFormat=##class(websys.Conversions).DateFormat()
+	s nowtdatehtml=$ZD(+$H,sysDateFormat)
+	s lononLocID=%session.Get("LOGON.CTLOCID")
+	s LogOnCtLocdesc=$P($G(^CTLOC(lononLocID)),"^",2)
+	s PatID="" s:EpisodeID'="" PatID=$P(^PAADM(EpisodeID),"^",1)
+	s PatNo="" s:PatID'="" PatNo=$p(^PAPER(PatID,"PAT",1),"^",2)
+	
+	;打印
+	d ##Class(web.DHCBillPrint).InvBillPrintCLSID()
+	w "<input id='XMLObject' name='XMLObject' type='hidden' value='"_##Class(%CSP.Page).Encrypt($lb("web.DHCXMLIO.ReadXML"))_"'>",$C(13,10)
+	d ##class(web.DHCXMLPConfig).LODOPInit() 
+</Script> 
+<SCRIPT language = 'javascript' >
+		//全局请求后台服务对象
+		var ServerObj={
+			EpisodeID:"#(EpisodeID)#",
+			nowtdatehtml:"#(nowtdatehtml)#",
+			LogOnCtLocdesc:"#(LogOnCtLocdesc)#",
+			PatID:"#(PatID)#",
+			PatNo:"#(PatNo)#",
+			sysDateFormat:"#(sysDateFormat)#"
+		};
+	</SCRIPT>
+ </head> 
+<body class="hisui-layout" onload="BodyLoadHandler()" data-options="fit:true,border:false">
+	<div data-options="region:'center',title:'',split:false,border:false">
+		<table class='search-table'>
+			<tr>
+				<td colspan=3 style='text-align:center;'><span style='font-size:30px;'>北京积水潭医院诊断证明</span></td>
+			</tr>
+			<tr>
+				<td>
+					<table>
+						<tr>
+							<td class='r-label'>病人姓名:</td>
+							<td><input id="PatName" class="textbox"  style="width:220px"></td>
+							<td class='r-label'>性别:</td>
+							<td><input id="PatSex" class="textbox"  style="width:220px"></td>
+						</tr>
+						<tr>
+							<td class='r-label'>年龄:</td>
+							<td><input id="Age" class="textbox"  style="width:220px"></td>
+							<td class='r-label'>登记号:</td>
+							<td><input id="PAPerNO" class="textbox"  style="width:220px"></td>
+						</tr>
+						<tr>
+							<td class='r-label'>登录医生:</td>
+							<td><input id="DocName"  class="textbox"  style="width:220px"></td>
+							<td class='r-label'>科室:</td>
+							<td><input id="DocLoc" class="textbox"  style="width:220px"></td>
+						</tr>
+						
+						<tr>
+							<td class='r-label'>证件号:</td>
+							<td><input id="GovNO" class="textbox"  style="width:220px"></td>
+							<td class='r-label'>病条日期:</td>
+							<td><input id="DateGet" style="width:228px" type="text" class="hisui-datebox" data-options="formatter:myformatter,parser:myparser"></td>
+						</tr>
+						
+						<tr>
+							<td></td>
+							<td style='text-align:left;'>诊断信息</td>
+							<td></td>
+							<td style='text-align:left;'>病情详解</td>
+							
+						</tr>
+						<tr>
+							<td></td>
+							<td><textarea id="DiagnosAll" style="padding: 5px 3px; border: 1px solid rgb(149, 184, 231); border-image: none; width: 98%; height: 200px; font-size: 14px;" ></textarea></td>
+							<td></td>
+							<td><textarea id="Desc" style="padding: 5px 3px; border: 1px solid rgb(149, 184, 231); border-image: none; width: 98%; height: 200px; font-size: 14px;" ></textarea></td>
+						</tr>
+						<tr>
+							<td></td>
+							<td><input class='hisui-checkbox' type="checkbox" checked=true id="CheckDiagnose" label="诊断证明"></div></td>
+							<td></td>
+							<td><input class='hisui-checkbox' type="checkbox"  id="HolidayCheck" label="休假证明"></div></td>
+							
+						</tr>
+						
+						<tr>
+							<td colspan=4 style='text-align:center;'>
+								
+								<div style="text-align:center;padding-top:10px;margin-top:10px">
+ 									<a href="#" id="Update" class="hisui-linkbutton" data-options="iconCls:'icon-w-save'">保存</a>
+									<div style="display:inline-block;margin:0 20px;"></div>
+									<a href="#" id="Print" class="hisui-linkbutton" data-options="iconCls:'icon-w-print'">打印</a>
+								</div>
+							</td>
+						</tr>
+					
+					
+					</table>
+				
+				</td>
+				<td class='r-label' style='vertical-align:top;padding-top:2px' >
+					<table>
+						<tr>
+							<td>
+								<select id="DescListMode" name="DescListMode" multiple size=4 style="WIDTH: 200px;HEIGHT: 382px"></select>
+							</td>
+						</tr>
+						
+					</table>
+				</td>
+			</tr>		
+			
+		</table>
+	
+	</div>
+</body>
+<script type="text/javascript" src="../scripts/DHCPrtComm.js"></script>
+<SCRIPT language = 'javascript' >
+		//全局请求后台服务对象
+var PageLogicObj = {
+	table:"",
+	DiaSureID:"",
+}
+
+
+$(function(){
+	//页面元素初始化
+	PageHandle();
+	//事件初始化
+	InitEvent();
+});
+function PageHandle()
+{
+	$("#DateGet").datebox('setValue',ServerObj.nowtdatehtml)
+	
+}
+function InitEvent()
+{
+	var Obj=document.getElementById("Print");
+	if (Obj){Obj.onclick=Print;}
+	var Obj=document.getElementById("Update");
+	if (Obj){Obj.onclick=Update;}
+	
+	$("#CheckDiagnose").checkbox({
+		onChecked:function(){
+			$("#HolidayCheck").checkbox('setValue',false)
+		}
+	})
+	
+	$("#HolidayCheck").checkbox({
+		onChecked:function(){
+			$("#CheckDiagnose").checkbox('setValue',false)
+		}
+		
+	})
+	
+	
+	
+}
+function BodyLoadHandler()
+{
+	CreaterDia();
+	CreaterPat();
+	DisableItem();
+	CreateListModel();
+}
+
+function Update()
+{
+	var CheLoc=CheckLoc();
+	if (CheLoc!="Y"){return; }
+	insert(true)
+	
+	
+}
+
+
+function insertPrintFlag(PrintFlagType)
+{
+	var ReturnFlag="-1"
+	ReturnValue=PageLogicObj.DiaSureID
+	if (ReturnValue==""){
+		$.messager.alert("提示","未找到已经保存的诊断证明信息！");
+		return "-1";
+	}
+	var ReturnFlag = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"InsertPrintFlag",
+		dataType:"text",
+		DiagSRowID:ReturnValue,
+		PrintType:PrintFlagType,
+	},false);
+	return ReturnFlag;
+}
+
+function insert(Flag)
+{
+	var DiaSureAdmDr="";
+	var DiaSureAge="" ;
+	var DiaSureDesc="";
+	var DiaSureDiagnosAll="";
+	var DiaSureDateGet="";
+	var DiaSureUserDr="";
+	var DiaSureCTLocDr="";
+	var DiaSureAdmDr=ServerObj.EpisodeID
+
+	var Obj=document.getElementById("Age");
+	if (Obj){DiaSureAge=Obj.value;}
+	
+	var DiaSureDateGet=$("#DateGet").datebox('getValue')
+	
+
+	var ReturnValue = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"GetAllDiangose",
+		dataType:"text",
+		PAAdmRowID:ServerObj.EpisodeID,
+	},false);
+	
+	if (ReturnValue!=""){DiaSureDiagnosAll=ReturnValue}
+	
+	var Obj=document.getElementById("Desc");
+	if (Obj){
+			DiaSureDesc=Obj.value;
+			DiaSureDesc=DiaSureDesc.replace(/(^\s*)|(\s*$)/g,'');
+			DiaSureDesc=DiaSureDesc.replace(/[\r\n]/g,'');
+	}
+	
+	DiaSureUserDr=session['LOGON.USERID'];
+	DiaSureCTLocDr=session['LOGON.CTLOCID'];
+	var ReturnValue = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"insert",
+		dataType:"text",
+		DiaSureAdmDr:DiaSureAdmDr, 
+		DiaSureAge:DiaSureAge, 
+		DiaSureDesc:DiaSureDesc, 
+		DiaSureDiagnosAll:DiaSureDiagnosAll, 
+		DiaSureDateGet :DiaSureDateGet, 
+		DiaSureUserDr:DiaSureUserDr, 
+		DiaSureCTLocDr:DiaSureCTLocDr
+	},false);
+	if (ReturnValue=="-1"){
+		$.messager.alert("提示","保存失败！");
+		return;
+	}
+	else{
+
+		PageLogicObj.DiaSureID=ReturnValue
+		$.messager.alert("提示","保存成功!");
+	}
+	
+}
+
+
+function DisableItem()
+{
+	
+	var Obj=document.getElementById("PatName");
+	if (Obj){Obj.disabled=true;}
+	var Obj=document.getElementById("PatSex");
+	if (Obj){Obj.disabled=true;}
+	var Obj=document.getElementById("DocName");
+	if (Obj){Obj.disabled=true;}
+	var Obj=document.getElementById("DocLoc");
+	if (Obj){Obj.disabled=true;}
+	var Obj=document.getElementById("DiagnosAll");
+	if (Obj){Obj.disabled=true;}
+	var Obj=document.getElementById("GovNO");
+	if (Obj){Obj.disabled=true;}
+	var Obj=document.getElementById("PAPerNO");
+	if (Obj){Obj.disabled=true;}
+	var Obj=document.getElementById("DateGet");
+	if (Obj){Obj.disabled=true;}
+	CheckLoc();
+	
+}
+
+
+
+function CheckLoc()
+{
+	
+	var ReturnValue = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"CheckLocSame",
+		dataType:"text",
+		Adm:ServerObj.EpisodeID,
+		LocID:session['LOGON.CTLOCID'],
+	
+	},false);
+	if (ReturnValue!="Y"){
+			$.messager.alert("提示","您的登录科室不是病人就诊科室不能开具诊断证明或休假证明等!");
+			return ReturnValue;
+	}
+	return ReturnValue;
+
+}
+
+function CreaterPat()
+{
+	
+	var UserName=session['LOGON.USERNAME'];
+	var Obj=document.getElementById("DocName");
+	if (Obj){Obj.value=UserName;}
+	
+	var Obj=document.getElementById("DocLoc");
+	if (Obj){Obj.value=ServerObj.LogOnCtLocdesc}
+	
+	var ReturnValue = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"GetPatInfoBroker",
+		dataType:"text",
+		GetStr:ServerObj.EpisodeID,
+	},false);
+	if (ReturnValue!=""){
+		var Str=ReturnValue.split("^");
+		var Obj=document.getElementById("PatName");
+		if (Obj){Obj.value=Str[0];}
+		var Obj=document.getElementById("Age");
+		if (Obj){Obj.value=Str[1];}
+		var Obj=document.getElementById("PatSex");
+		if (Obj){Obj.value=Str[2];}
+		var OccupationStr=Str[8]+"\n"+Str[9]
+		var Obj=document.getElementById("Occupation");
+		if (Obj){Obj.value=OccupationStr;}
+		var Obj=document.getElementById("GovNO");
+		if (Obj){Obj.value=Str[7];}
+		var Obj=document.getElementById("PAPerNO");
+		if (Obj){Obj.value=Str[11];}
+
+	}
+	
+	
+	var LasMes=GetLastMessage();
+	if (LasMes!="")
+	{
+		var Str=LasMes.split("&");
+		var DiaSureID=Str[0];
+		PageLogicObj.DiaSureID=DiaSureID
+		var Obj=document.getElementById("Desc");
+		if (Obj){Obj.value=Str[1].split("^")[2]};
+
+	}
+	
+	
+}
+
+
+
+function CreateListModel()
+{
+	var Obj=document.getElementById("DescListMode");
+	if (Obj) {
+		Obj.size=15;
+		Obj.multiple=false;
+		Obj.onclick=DescListModeGet;
+		Obj.options[0]=new Option("生活不能自理","生活不能自理");
+		Obj.options[1]=new Option("全休1天","全休1天");
+		Obj.options[2]=new Option("全休3天","全休3天");
+	    Obj.options[3]=new Option("全休1周","全休1周");
+	    Obj.options[4]=new Option("全休2周","全休2周");
+	    Obj.options[5]=new Option("全休1个月","全休1个月");
+	    Obj.options[6]=new Option("全休2个月","全休2个月");
+	    Obj.options[7]=new Option("全休3个月","全休3个月");
+	    Obj.options[8]=new Option("免体1个月","免体1个月");
+	    Obj.options[9]=new Option("免体3个月","免体3个月");
+	    Obj.options[10]=new Option("免体6个月","免体6个月");
+	    Obj.options[11]=new Option("供报销用","供报销用");
+	    Obj.options[12]=new Option("2020年  月  日回报的新型冠状病毒(2019-nCoV)核酸检测结果为阴性。特此证明。","2020年  月  日回报的新型冠状病毒(2019-nCoV)核酸检测结果为阴性。特此证明。");
+	    Obj.options[13]=new Option("供学校用");
+	    
+	}
+}
+function DescListModeGet()
+{
+	var ObjDesc=document.getElementById("Desc");
+	if (ObjDesc){
+			
+		var Obj=document.getElementById("DescListMode");
+		if (Obj) {
+			if (ObjDesc.value==""){ ObjDesc.value=ObjDesc.value+Obj.value;}
+			else{ObjDesc.value=ObjDesc.value+","+Obj.value;}
+			
+		}
+		}
+	
+}
+	
+
+function GetLastMessage()
+{
+	var ReturnValue = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"GetPatDiaMessage",
+		dataType:"text",
+		AdmDr:ServerObj.EpisodeID,
+	},false);
+	return ReturnValue;
+	
+}
+
+
+function CreaterDia(){
+	var AdmID="";
+	var Obj=document.getElementById("AdmID");
+	if (Obj){AdmID=Obj.value;}
+	
+	var ReturnValue = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"GetAllDiangose",
+		dataType:"text",
+		PAAdmRowID:ServerObj.EpisodeID,
+	},false);
+	if (ReturnValue!=""){
+		var Str=""
+		var Long=ReturnValue.split("/");
+		for(var i=1;i<Long.length;i++)
+		{
+		if (Str==""){Str=Long[i];}
+		else{Str=Str+"\n"+Long[i];}
+		}
+		
+		var Obj=document.getElementById("DiagnosAll");
+		if (Obj){Obj.value=Str}	
+	
+	}
+
+	
+}
+
+
+function Print()
+{
+	 var CheLoc=CheckLoc();
+	 if (CheLoc!="Y"){
+		 $.messager.alert("提示","您的登录科室不是病人就诊科室不能开具诊断证明或休假证明等!");
+			return ;
+	}
+	  var PrintFlagType=""
+	  var PrintTempName="JSTZDZMCA"
+      var HoliCheck=$("#HolidayCheck").checkbox('getValue')?"Y":"N";
+      if (HoliCheck=="Y"){
+	   	PrintFlagType="1";
+	   	PrintTempName="JSTXJZMCA"
+	  }
+	  //插入打印标志
+	  var DiaSureID=PageLogicObj.DiaSureID
+	  if (DiaSureID==""){alert("请先保存");return;}
+	  
+	  var FlagPrintSet=insertPrintFlag(PrintFlagType);
+	  if (FlagPrintSet!="0"){alert("插入打印标识失败,不能打印");return;}
+	  
+	  var Name="";var Age="";var PatSex="";var UserName="";var DocLoc=""
+	  var GovNO="";var PAPerNO=""
+	  var Obj=document.getElementById("PatName");
+	  if (Obj){Name=Obj.value}
+	  var Obj=document.getElementById("Age");
+	  if (Obj){Age=Obj.value;}
+	  var Obj=document.getElementById("PatSex");
+	  if (Obj){PatSex=Obj.value;}
+	  var Obj=document.getElementById("DocName");
+	  if (Obj){UserName=Obj.value;}
+	  var Obj=document.getElementById("DocLoc");
+	  if (Obj){DocLoc=Obj.value;}
+	  var Obj=document.getElementById("GovNO");
+	  if (Obj){GovNO=Obj.value}
+	  var Obj=document.getElementById("PAPerNO");
+	  if (Obj){PAPerNO=Obj.value}
+	  var DoctorGif=""
+	var InUseInfo=tkMakeServerCall("web.DHCDocPrescript","GetInUseSignImage",session['LOGON.USERID'])
+	if (InUseInfo!="") DoctorGif="data:image/png;base64,"+InUseInfo
+	var Desc=""
+		var ReturnValue = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"GetAllDiangose",
+		dataType:"text",
+		PAAdmRowID:ServerObj.EpisodeID,
+		},false);
+		if (ReturnValue!=""){
+		var DiagnosAll=ReturnValue
+		var Str=ReturnValue.split("/")
+		var NO=1;
+		var Get="";
+		for (var i=1;i<=Str.length;i++){
+			Get=Str[i-1]
+			Get=Get.replace(/(^\s*)|(\s*$)/g,'');
+			if(Get=="") continue;
+			if (Desc==""){Desc="诊断:"+Get}
+			else{Desc=Desc+","+Get}
+			}
+		}
+	//只使用最后一次保存的假条
+	var DateDesc=""
+	var LasMes=GetLastMessage();
+	if (LasMes!="")
+	{
+		var Str=LasMes.split("&");
+		var DescGet=Str[1].split("^")[2]
+		DescGet=DescGet.replace(/(^\s*)|(\s*$)/g,'');
+		DescGet=DescGet.replace(/[\r\n]/g,'');
+		//if (Desc!="") Desc=Desc+"\n"+"建议:"+DescGet;
+		//else{Desc="建议:"+DescGet}
+		if (Desc!="") Desc=Desc+"\n"+"     "+DescGet;
+		else{Desc="     "+DescGet}
+		DateDesc=Str[1].split("^")[7];
+		if (DateDesc!=""){ DateDesc=tkMakeServerCall("web.DocDiagnoseSure","GetDateReturn",DateDesc)}
+	
+	}
+	//var DateDesc="";
+	//var Obj=document.getElementById("DateGet");
+	//if(Obj){
+		//DateDesc=Obj.value;
+	if (DateDesc!="") {
+		var DetGet=DateDesc.split("/");
+		DateDesc=DetGet[2]+"年"+DetGet[1]+"月"+DetGet[0]+"日"
+	}
+	// renyx 添加内容的打印
+	//DHCP_GetXMLConfig("encryptItemId","xmlFlagName");  //xmlFlagName为XML模板, 用于加载XML内容
+	DHCP_GetXMLConfig("XMLObject",PrintTempName);
+	var LODOP = getLodop();
+	var PDlime=String.fromCharCode(2);
+	var MyPara="Name"+PDlime+Name+"^"+"Age"+PDlime+Age+"^"+"PatSex"+PDlime+PatSex+"^"+"UserName"+PDlime+UserName+"^"+"DocLoc"+PDlime+DocLoc
+	var MyPara=MyPara+"^"+"GovNO"+PDlime+GovNO+"^"+"PAPerNO"+PDlime+PAPerNO+"^"+"Desc"+PDlime+Desc+"^"+"DateDesc"+PDlime+DateDesc+"^"+"DoctorGif"+PDlime+DoctorGif
+	DHC_PrintByLodop(LODOP,MyPara,"","","","");
+}
+function PrintOld()
+{
+ try{
+	 var CheLoc=CheckLoc();
+	 if (CheLoc!="Y"){
+		 $.messager.alert("提示","您的登录科室不是病人就诊科室不能开具诊断证明或休假证明等!");
+			return ;
+	}
+	  var TemplatePath=""
+	  var PrintFlagType=""
+	  TemplatePath=tkMakeServerCall("web.UDHCJFCOMMON","getpath","","")
+      var xlApp,xlsheet,xlBook
+      Template=TemplatePath+"DiagnosSure2.xls";
+      
+      var HoliCheck=$("#HolidayCheck").checkbox('getValue')?"Y":"N";
+      if (HoliCheck=="Y"){
+	   	Template=TemplatePath+"DiagnosSure.xls";
+	   	PrintFlagType="1";
+	  }
+	   
+	  xlApp = new ActiveXObject("Excel.Application");
+	  xlBook = xlApp.Workbooks.Add(Template);
+	  xlsheet = xlBook.ActiveSheet  
+	  xlsheet.PageSetup.LeftMargin=0; 
+	  xlsheet.PageSetup.RightMargin=0;
+	  var xlsrow=5;
+	  var xlsCurcol=0; 
+	 
+	  //插入打印标志
+	 
+	  var DiaSureID=PageLogicObj.DiaSureID
+	  if (DiaSureID==""){alert("请先保存");return;}
+	
+	  var FlagPrintSet=insertPrintFlag(PrintFlagType);
+	  if (FlagPrintSet!="0"){alert("插入打印标识失败,不能打印");return;}
+	  
+	  var Name="";var Age="";var PatSex="";var UserName="";var DocLoc=""
+	  var GovNO="";var PAPerNO=""
+	  var Obj=document.getElementById("PatName");
+	  if (Obj){Name=Obj.value}
+	  var Obj=document.getElementById("Age");
+	  if (Obj){Age=Obj.value;}
+	  var Obj=document.getElementById("PatSex");
+	  if (Obj){PatSex=Obj.value;}
+	  var Obj=document.getElementById("DocName");
+	  if (Obj){UserName=Obj.value;}
+	  var Obj=document.getElementById("DocLoc");
+	  if (Obj){DocLoc=Obj.value;}
+	  var Obj=document.getElementById("GovNO");
+	  if (Obj){GovNO=Obj.value}
+	  var Obj=document.getElementById("PAPerNO");
+	  if (Obj){PAPerNO=Obj.value}
+	 // 
+	GetGifInfo(session['LOGON.USERID'])
+	var InUseInfo=tkMakeServerCall("CA.UsrSignatureInfo","GetInUseInfo",session['LOGON.USERID'])
+	if (InUseInfo!="") UserName="data:image/png;base64,"+InUseInfo
+	xlsheet.cells(xlsrow-2,xlsCurcol+11)=PAPerNO; 
+	xlsheet.cells(xlsrow,xlsCurcol+4)=Name; 
+	xlsheet.cells(xlsrow,xlsCurcol+7)=PatSex;
+	xlsheet.cells(xlsrow,xlsCurcol+9)=Age;
+	//xlsheet.cells(xlsrow,xlsCurcol+4)=GovNO; //证件号
+	//xlsheet.Cells(xlsrow,xlsCurcol+4).Font.Size =10; //字体
+	//
+	xlsheet.cells(xlsrow,xlsCurcol+11)=DocLoc;
+	xlsrow=xlsrow+3
+	var Desc=""
+	
+	//var CheckDiagnose=$("#CheckDiagnose").checkbox('getValue')?"Y":"N";
+	//if (CheckDiagnose=="Y"){
+		var ReturnValue = $cm({
+		ClassName:"web.DocDiagnoseSure",
+		MethodName:"GetAllDiangose",
+		dataType:"text",
+		PAAdmRowID:ServerObj.EpisodeID,
+		},false);
+		if (ReturnValue!=""){
+		var DiagnosAll=ReturnValue
+		var Str=ReturnValue.split("/")
+		var NO=1;
+		var Get="";
+		for (var i=1;i<=Str.length;i++){
+			Get=Str[i-1]
+			Get=Get.replace(/(^\s*)|(\s*$)/g,'');
+			if(Get=="") continue;
+			if (Desc==""){Desc="诊断:"+Get}
+			else{Desc=Desc+","+Get}
+			}
+		}
+	//};
+	
+	//只使用最后一次保存的假条
+	var DateDesc=""
+	var LasMes=GetLastMessage();
+	if (LasMes!="")
+	{
+		var Str=LasMes.split("&");
+		var DescGet=Str[1].split("^")[2]
+		DescGet=DescGet.replace(/(^\s*)|(\s*$)/g,'');
+		DescGet=DescGet.replace(/[\r\n]/g,'');
+		//if (Desc!="") Desc=Desc+"\n"+"建议:"+DescGet;
+		//else{Desc="建议:"+DescGet}
+		if (Desc!="") Desc=Desc+"\n"+"     "+DescGet;
+		else{Desc="     "+DescGet}
+		DateDesc=Str[1].split("^")[7];
+		if (DateDesc!=""){ DateDesc=tkMakeServerCall("web.DocDiagnoseSure","GetDateReturn",DateDesc)}
+	
+	}
+	xlsheet.cells(xlsrow,xlsCurcol+4)=Desc;
+	xlsrow=xlsrow+8;
+	//var DateDesc="";
+	//var Obj=document.getElementById("DateGet");
+	//if(Obj){
+		//DateDesc=Obj.value;
+	if (DateDesc!="") {
+		var DetGet=DateDesc.split("/");
+		DateDesc=DetGet[2]+"年"+DetGet[1]+"月"+DetGet[0]+"日"
+	}
+	//if (Name=="赵媛"){DateDesc="2014年09月25日"}
+	//};
+	xlsheet.cells(xlsrow,xlsCurcol+10)=UserName;
+	xlsrow=xlsrow+1;
+	xlsheet.cells(xlsrow,xlsCurcol+9)=DateDesc;
+	var d=new Date();
+	var h=d.getHours();
+	var m=d.getMinutes();
+	var s=d.getSeconds();
+	//alert("文件将保存在C盘目录下");
+	//xlBook.SaveAs("C:\\门诊医生日志"+h+m+s+".xls");
+	xlBook.Printout;
+	xlBook.Close (savechanges=false);
+	xlApp=null;
+	xlsheet.Quit;
+	xlsheet=null;
+	
+ }catch(e){
+	 
+}
+
+}
+
+
+function gridlist(objSheet,row1,row2,c1,c2)
+{
+	objSheet.Range(objSheet.Cells(row1, c1), objSheet.Cells(row2,c2)).Borders(1).LineStyle=1;
+	objSheet.Range(objSheet.Cells(row1, c1), objSheet.Cells(row2,c2)).Borders(2).LineStyle=1;
+	objSheet.Range(objSheet.Cells(row1, c1), objSheet.Cells(row2,c2)).Borders(3).LineStyle=1;
+	objSheet.Range(objSheet.Cells(row1, c1), objSheet.Cells(row2,c2)).Borders(4).LineStyle=1; 
+}
+
+
+function myformatter(date){
+	var y = date.getFullYear();
+	var m = date.getMonth()+1;
+	var d = date.getDate();
+	if (ServerObj.sysDateFormat=="3") return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);
+	else if (ServerObj.sysDateFormat=="4") return (d<10?('0'+d):d)+"/"+(m<10?('0'+m):m)+"/"+y
+	else return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);
+}
+
+function myparser(s){
+    if (!s) return new Date();
+    if(ServerObj.sysDateFormat=="4"){
+		var ss = s.split('/');
+		var y = parseInt(ss[2],10);
+		var m = parseInt(ss[1],10);
+		var d = parseInt(ss[0],10);
+	}else{
+		var ss = s.split('-');
+		var y = parseInt(ss[0],10);
+		var m = parseInt(ss[1],10);
+		var d = parseInt(ss[2],10);
+	}
+	if (!isNaN(y) && !isNaN(m) && !isNaN(d)){
+		return new Date(y,m-1,d);
+	} else {
+		return new Date();
+	}
+}
+var getNewString = function (){ 
+	var getIc = function (ic){ 
+	var arric = ic.split(","); 
+		randomIc = arric[Math.floor(Math.random()*(arric.length))]; 
+		return randomIc 
+	}; 
+	return function (oc,ic,re){ 
+	var reStr = "(.{"+re+"}|.*)"; 
+	var reg = new RegExp(reStr,"g"); 
+	var ocArray = oc.match(reg) 
+	var arrLength = ocArray.length+1; 
+	for(var element=0;element<arrLength;element+=2){ 
+		ocArray.splice(element+1,0,getIc(ic)) 
+	} 
+	return ocArray.join(''); 
+	} 
+}(); 
+var firstInput = "我们的祖国是花园，花园的花朵真鲜艳。"; 
+var secondInput = "%%%%%%%,&&&&&&&&&,##########,@@@@@@@@@"; 
+var interval = 5; 
+alert(tt1(firstInput,secondInput,interval));
+function  tt1(oc,ic,re){
+	var getIc = function (ic){ 
+	var arric = ic.split(","); 
+		randomIc = arric[Math.floor(Math.random()*(arric.length))]; 
+		return randomIc 
+	};
+	var reStr = "(.{"+re+"}|.*)"; 
+	var reg = new RegExp(reStr,"g"); 
+	var ocArray = oc.match(reg) 
+	var arrLength = ocArray.length+1; 
+	for(var element=0;element<arrLength;element+=2){ 
+		ocArray.splice(element+1,0,ic) 
+	} 
+	return ocArray.join(''); 
+}
+</SCRIPT>
+
+
+</html>
+
+
+

@@ -442,6 +442,7 @@ ClassMethod UpdatePatientInfo(JsonInput, ExtUserID)
 	s OutputObj.Data=PatObj
 	q OutputObj
 UpdatePatientInfoErr
+	s $ZTRAP=""
 	s OutputObj=##class(DHCDoc.Interface.Outside.OrganizationUnit.Entity.common).%New()
 	d ..SetOutputCode(.OutputObj,"-100","SavePatient调用异常"_$TR($TR($ZE,"<","!!"),">","!!"))
 	q OutputObj
