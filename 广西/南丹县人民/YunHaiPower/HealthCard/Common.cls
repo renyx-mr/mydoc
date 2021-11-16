@@ -6,6 +6,94 @@ Parameter HospitalOrgCode = 499638029;
 
 Parameter HospitalOrgName = "南丹县人民医院";
 
+/// 卡类型 code
+Parameter PatientCard = "";
+
+/// 用户code
+Parameter UserID = "";
+/// 
+/// 费用类型code
+Parameter PatientType = "";
+/// 创建院内就诊卡
+ClassMethod CreateCardInfo(InputJsonStr As %String = "") As %Status
+{
+	s $ZTRAP="CreateCardInfoErr"
+	s InputJsonObj=##class(ext.util.JsonObject).FromJSON(InputJsonStr)
+	s name= InputJsonObj.GetValue("name")
+	s gender= InputJsonObj.GetValue("gender")
+	s nation= InputJsonObj.GetValue("nation")
+	s birthday= InputJsonObj.GetValue("birthday")
+	s idCard= InputJsonObj.GetValue("idCard")
+	s cardType= InputJsonObj.GetValue("cardType")
+	s address= InputJsonObj.GetValue("address")
+	s phone= InputJsonObj.GetValue("phone")
+	s PatientIDStr=..GetAllPatIDByIDCardAndName(idCard,name)
+	i '$d(^PAPER(+PatientIDStr,"ALL")) {
+		s InputObj=##class(DHCExternalService.CardInterface.Entity.SavePatientCardRt).%New()
+		Set InputObj.TradeCode=""
+		Set CardTypeCode=InputObj.CardTypeCode
+		Set InputObj.PatientCard=..#PatientCard
+		Set InputObj.SecurityNo=""
+		Set InputObj.PatientName=name
+		; 0 未知性别,1 男,2 女,9 未说明的性别
+		Set InputObj.Sex=$case(gender) ;?
+		Set InputObj.DOB=birthday
+		; 01 居民身份证,02 居民户口簿,03 护照,04 军官证,05 驾驶证,06 港澳居民来往内地通行证,07 台湾居民来往内地通行证,99 其他法定有效证,
+		Set InputObj.IDType="" ;?
+		Set InputObj.IDNo=idCard
+		Set InputObj.Mobile=phone
+		Set InputObj.UserID=..#UserID
+		Set InputObj.TerminalID=""
+		Set InputObj.CardDepositAmt=""
+		Set InputObj.PayModeCode=""
+		Set InputObj.PayBankCode=""
+		Set InputObj.PayCardNo=""
+		Set InputObj.PayTradeStr=""
+		set InputObj.PatientType=..#PatientType
+		set InputObj.ChargeDepositAmt=""
+		set InputObj.AccountPassword=""
+		set InputObj.TheArea=""
+		set InputObj.BankTradeInfo=""
+		set InputObj.HospitalId=""
+		s InputObj.Address=address
+		d RtnObj.XMLExportToStream(.Input,"Request")
+		s PatientCardObj=##class(DHCExternalService.CardInterface.CardManager).FindPatientCard(Input)
+		s PatientNo=PatientCardObj.PatientID
+		q:(PatientNo="") $$CreatePatientIDErrMag("创建院内卡失败："_PatientCardObj.ResultContent_"请联系客服或者到医院处理。")
+		s PatientIDStr=$Order(^PAPERi("PAPMI_PatNo",PatientNo,0))
+
+	}
+	s PatDr=+PatientIDStr
+	s RetErr=..ReceiveHealthCard(PatDr,"1")
+	if (+RetErr'="0") q $$CreatePatientIDErrMag("关联健康卡失败:"_$p(RetErr,"^",2)_"请联系客服或者到医院处理。")
+	
+	s Content=##class(%ArrayOfDataTypes).%New()
+    s patintID=..PatientIDToNo(PatDr)
+    d Content.SetAt(patintID,"patintID")	;诊疗卡号 patintID 是 string 诊疗卡号或院内主索引号
+    s name=$p(RetErr,"^",5)
+    d Content.SetAt(name,"name")	;姓名 name 是 string
+    s idCard=$p(RetErr,"^",3)
+    s cardType=$p(RetErr,"^",4)
+    d Content.SetAt(idCard,"idCard")	;证件号 idCard 是 string
+    d Content.SetAt(cardType,"cardType")	;证件类型 cardType 是 string 见身份证件类型代码
+    s JsonStr=##class(web.INSUCacheJSON).Encode(Content)
+    s JsonStr=$replace(JsonStr,"null","""""")
+    s Stream=##class(%GlobalCharacterStream).%New()
+    d Stream.Write("{""head"":"_JsonStr_",""rsp"":{}}")
+	q Stream
+	// q $$CreatePatientIDErrMag("系统中未找到对应信息,请先到医院建立实体卡。")
+CreateCardInfoErr(ErrText ="")
+	s $ZTRAP=""
+	if (ErrText="") s ErrText="操作失败"
+	s Stream=##class(%GlobalCharacterStream).%New()
+	s Content=##class(%ArrayOfDataTypes).%New()
+    d Content.SetAt("1","resultCode")
+    d Content.SetAt(ErrText,"errMsg")
+    s JsonStr=##class(web.INSUCacheJSON).Encode(Content)
+    s JsonStr=$replace(JsonStr,"null","""""")
+    d Stream.Write("{""head"":"_JsonStr_",""rsp"":{}}")
+    q Stream
+}
 /// 4.1.1 诊疗卡创建接口
 /// w ##class(DHCDoc.YunHaiPower.HealthCard.Common).CreatePatientID()
 ClassMethod CreatePatientID(InputJsonStr As %String = "") As %GlobalCharacterStream
@@ -84,6 +172,7 @@ ClassMethod CreatePatientID(InputJsonStr As %String = "") As %GlobalCharacterStr
     d Stream.Write("{""head"":"_JsonStr_",""rsp"":{}}")
 	q Stream
 CreatePatientIDErrMag(ErrText="")
+	s $ZTRAP=""
 	if (ErrText="") s ErrText="操作失败"
 	s Stream=##class(%GlobalCharacterStream).%New()
 	s Content=##class(%ArrayOfDataTypes).%New()
@@ -125,6 +214,7 @@ ClassMethod RecivePatientID(PatDr As %String) As %String
     q resultCode_"^"_errMsg
 	
 RecivePatientIDErrMag(ErrText="")
+	s $ZTRAP=""
 	if (ErrText="") s ErrText="操作失败"
 	q "1^"_ErrText
 	/*s Stream=##class(%GlobalCharacterStream).%New()
@@ -205,6 +295,7 @@ ClassMethod ReceiveHealthCard(PatDr As %String, AppMode As %String) As %String
 		_healthCardNo_"^"_mainIndexId
 	///Do objStream.Write(Json)
 ReceiveHealthCardErrMag(ErrText="")
+	s $ZTRAP=""
 	if (ErrText="") s ErrText="操作失败"
 	q "1^"_ErrText
 }
@@ -248,6 +339,7 @@ ClassMethod GetHealthCard(PatDr As %String, VisitSceneCode As %String) As %Strin
 	}
 	q resultCode_"^"_errMsg_"^"_qrCodeText_"^"_healthCardId_"^"_mainIndexId_"^"_name_"^"_gender_"^"_nation
 GetHealthCardErrMag(ErrText="")
+	s $ZTRAP=""
 	if (ErrText="") s ErrText="操作失败"
 	q resultCode_"^"_ErrText
 	/*s Stream=##class(%GlobalCharacterStream).%New()
@@ -295,6 +387,7 @@ ClassMethod GetHealthCardQrcode(PatDr As %String) As %String
 	
 	q resultCode_"^"_errMsg_"^"_qrCodeText
 GetHealthCardQrcodeErrMag(ErrText="")
+	s $ZTRAP=""
 	if (ErrText="") s ErrText="操作失败"
 	q "1^"_ErrText
 }
@@ -337,6 +430,7 @@ ClassMethod VerifyHealthCardQrcode(QrCode As %String, VisitSceneType As %String)
 	q resultCode_"^"_errMsg_"^"_qrCodeText_"^"_healthCardId_"^"_mainIndexId_"^"_name_"^"_gender_"^"_nation_"^"
 		_birthday_"^"_idCard_"^"_cardType_"^"_address_"^"_phone
 VerifyHealthCardQrcodeErrMag(ErrText="")
+	s $ZTRAP=""
 	if (ErrText="") s ErrText="操作失败"
 	q resultCode_"^"_errMsg
 	/*s Stream=##class(%GlobalCharacterStream).%New()
