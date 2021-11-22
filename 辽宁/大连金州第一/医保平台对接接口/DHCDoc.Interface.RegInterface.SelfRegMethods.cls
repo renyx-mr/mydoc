@@ -50,9 +50,9 @@ ClassMethod GetHosInfo(InputXml As %String)
         s HOSPRowId=$o(^CT("HOSP",HOSPRowId))
         q:HOSPRowId=""
         s DateFrom=$p($g(^CT("HOSP",HOSPRowId)),"^",9)
-        continue:(DateFrom<+$h)
+        continue:(DateFrom'="")&(DateFrom>+$h)
         s DateTo=$p($g(^CT("HOSP",HOSPRowId)),"^",10)
-        continue:(DateTo>=+$h)
+        continue:(DateTo'="")&(DateTo<=+$h)
         // HOS_ID	RES	String(32)	√	医院ID，规则：医保下发的定点医疗机构编号
         d HsopObj.%Set("HOS_ID",HOSPRowId)
         // NAME	RES	String(128)	√	医院名称
