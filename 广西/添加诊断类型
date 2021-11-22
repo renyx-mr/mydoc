@@ -1,0 +1,25 @@
+;renyx  添加诊断类型
+	.s DiagnosCat=""
+	.if CodeRowid'="" d
+	..s BillFlag1=$P($G(^MRC("ID",+CodeRowid)),"^",13)
+	..s BillFlag2=$P($G(^MRC("ID",+CodeRowid)),"^",14)
+	..s BillFlag3=$P($g(^MRC("ID",+CodeRowid)),"^",15)
+	..
+	..i BillFlag3'="Y" d
+	...s DiagnosCat="西医"
+	..else  if (BillFlag3="Y")&&(BillFlag1'="Y")&&(BillFlag2'="Y") d
+	...s DiagnosCat="中医"
+	..else  if (BillFlag3="Y")&&(BillFlag2="Y") d
+	...s DiagnosCat="治法"
+	..else  d
+	...s DiagnosCat="证候"
+	.e  d
+	..s Questionnaire=$P($G(^MR($P(Rowid,"||",1),"DIA",$P(Rowid,"||",2))),"^",22)
+	..i Questionnaire=1 d
+	...s DiagnosCat="西医"
+	..else  if (Questionnaire=2) d
+	...s DiagnosCat="中医"
+	..else  if (Questionnaire=3) d
+	...s DiagnosCat="证候"
+	..else  if (Questionnaire=4) d
+	...s DiagnosCat="治法"

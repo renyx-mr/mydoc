@@ -13,7 +13,6 @@ ClassMethod getXMLJSONObj(XMLName, MesaObj As %DynamicObject) As %DynamicObject
    s Id=$O(^User.DHCXMLPConfigI("XPCFlagIndex",XMLName,0))
    s XMLC=##class(User.DHCXMLPConfig).%OpenId(Id)
    s XMLStr=XMLC.XPCFileData.Read()
- 	w XMLStr
    ;组织txt数据
    s TxtData=$P(XMLStr,"<TxtData",2)
    s TxtData=$P(TxtData,"</TxtData>",1)
