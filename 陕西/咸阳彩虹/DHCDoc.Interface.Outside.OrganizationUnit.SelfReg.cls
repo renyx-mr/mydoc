@@ -6,7 +6,36 @@ Class DHCDoc.Interface.Outside.OrganizationUnit.SelfReg Extends (%RegisteredObje
 {
 
 Parameter CardType = 07;
-
+ClassMethod ReturnRegister()
+{
+	s ExtUserID=##class(DHCDoc.Interface.Outside.OrganizationUnit.Public).#ExtUserID
+	s UserID=##class(DHCExternalService.RegInterface.GetRelate).GetUser(ExtUserID)
+	s DefaultDeptDR=$p($g(^SSU("SSUSR",UserID)),"^",4)
+	s GroupRowId=$p($g(^SSU("SSUSR",UserID)),"^",5)
+	s HospitalDR=""
+	s:DefaultDeptDR'="" HospitalDR=$p($g(^CTLOC(DefaultDeptDR)),"^",22)
+	s AdmDate=$h-1
+	s AdmId =0
+	For {
+		Set AdmId = $ORDER(^PAADMi("PAADM_AdmDate",AdmDate,AdmId))
+		Quit:AdmId=""
+		s CreateUser=$p(^PAADM(AdmId),"^",43)
+		continue:UserID'=CreateUser
+		s VisitStatus=$p(^PAADM(AdmId),"^",20)
+		continue:VisitStatus'="A"
+		d $$CancelOPRegist
+	}
+	q ""
+CancelOPRegist
+	s EpisodeID=" "_AdmId
+	S RegfeeRowId=$O(^User.DHCRegistrationFeeI("ADM",EpisodeID,0))
+	q:RegfeeRowId=""
+	s CancelOPRegistRtn=##class(web.DHCOPAdmReg).CancelOPRegist(RegfeeRowId,UserID,GroupRowId,DefaultDeptDR,"","N","",HospitalDR)
+	d:+CancelOPRegistRtn'=0 ##class(DHCDoc.Log.Common).General("Insert","web.DHCOPAdmReg","CancelOPRegist","互联网自动退号接口调用失败","RetReg"_RegfeeRowId,$tr(CancelOPRegistRtn,"^",","))
+	d:+CancelOPRegistRtn=0 ##class(DHCDoc.Log.Common).General("Insert","web.DHCOPAdmReg","CancelOPRegist","互联网自动退号接口调用成功","RetReg"_RegfeeRowId,$tr(CancelOPRegistRtn,"^",","))
+	; 调用计费组的退费接口 
+	q
+}
 /// 获取排班信息
 /// w ##Class(DHCDoc.Interface.Outside.OrganizationUnit.SelfReg).GetSchedule("{""date"":""2021-05-13""}","HLWYH")
 ClassMethod GetSchedule(JsonInput, ExtUserID)
