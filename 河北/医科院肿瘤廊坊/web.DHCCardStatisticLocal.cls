@@ -1,6 +1,7 @@
 Class web.DHCCardStatisticLocal Extends (%RegisteredObject, %XML.Adaptor) [ ProcedureBlock ]
 {
 
+
 ClassMethod CardStatisticCountClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = CardStatisticCountExecute ]
 {
 	Set repid=$LIST(qHandle,2)
@@ -8,6 +9,7 @@ ClassMethod CardStatisticCountClose(ByRef qHandle As %Binary) As %Status [ Place
 	Quit $$$OK
 }
 
+/// d ##class(%ResultSet).RunQuery("web.DHCCardStatistic","CardStatisticCount","2021-11-05","2021-11-15")
 ClassMethod CardStatisticCountExecute(ByRef qHandle As %Binary, StartDate As %String = "", EndDate As %String = "") As %Status
 {
 	s repid=$I(^CacheTemp)
@@ -26,20 +28,24 @@ ClassMethod CardStatisticCountExecute(ByRef qHandle As %Binary, StartDate As %St
 			q:CFRowid=""
 			s CFUserDr=$p(^DHCCARD("CF",CFRowid),"^",9)
 			s CFChangeID=$o(^DHCCARD("CF",CFRowid,"CSC","0"))
-			s CFFormerCardInform=$$GetFormerCardInform(CFRowid,PapmiDr)
+			s PapmiDr=$p(^DHCCARD("CF",CFRowid),"^",4)		;病人基本信息
+			s CFFormerCardInform=$$CardStatisticCountform(CFRowid,PapmiDr)
 			s FormerCardActiveFlag=$p(CFFormerCardInform,"^",1)
 			s NewCardChangeActiveFlag="N"
 			s:CFChangeID'="" NewCardChangeActiveFlag=$P(^DHCCARD("CF",CFRowid,"CSC",CFChangeID),"^",3)
-			s ChangeCard=0
-			s:(FormerCardActiveFlag="D")&&(NewCardChangeActiveFlag="E") ChangeCard=1
-			s:(FormerCardActiveFlag="D")&&(NewCardChangeActiveFlag="RN") ChangeCard=2
+			;s ChangeCard=0
+			;s:(FormerCardActiveFlag="D")&&(NewCardChangeActiveFlag="E") ChangeCard=1
+			;s:(FormerCardActiveFlag="D")&&(NewCardChangeActiveFlag="RN") ChangeCard=2
 			s CFUserDesc=$p(^SSU("SSUSR",CFUserDr),"^",2)
 			s:'$d(CardStatistic(Job,CFUserDr)) CardStatistic(Job,CFUserDr)=$lb("","","","")
 			s $list(CardStatistic(Job,CFUserDr),1)=CFUserDesc
-			s CardStatisticStr=$case(ChangeCard,"0":"s $list(CardStatistic(Job,CFUserDr),2)=$list(CardStatistic(Job,CFUserDr),2)+1",:"s $list(CardStatistic(Job,CFUserDr),3)=$list(CardStatistic(Job,CFUserDr),3)+1")
-			x CardStatisticStr
-			s ^CacheTemp(repid,ind)=CardStatistic(Job,CFUserDr)
-			s ind=ind+1
+			//s CardStatisticStr=$case(ChangeCard,"0":"s $list("_CardStatistic_"("_Job_","_CFUserDr_"),2)=$list("_CardStatistic_"("_Job_","_CFUserDr_"),2)+1",:"s $list("_CardStatistic_"("_Job_","_CFUserDr_"),3)=$list("_CardStatistic_"("_Job_","_CFUserDr_"),3)+1")
+			//x CardStatisticStr
+			s $list(CardStatistic(Job,CFUserDr),2)=$list(CardStatistic(Job,CFUserDr),2)+1
+			;if ChangeCard=0 s $list(CardStatistic(Job,CFUserDr),2)=$list(CardStatistic(Job,CFUserDr),2)+1
+			;else  s $list(CardStatistic(Job,CFUserDr),3)=$list(CardStatistic(Job,CFUserDr),3)+1
+			;;s ^CacheTemp(repid,ind)=CardStatistic(Job,CFUserDr)
+			;;s ind=ind+1
 		}
 		// 卡合并
 		s OldID=" "
@@ -59,19 +65,38 @@ ClassMethod CardStatisticCountExecute(ByRef qHandle As %Binary, StartDate As %St
 					s:'$d(CardStatistic(Job,CFUserDr)) CardStatistic(Job,CFUserDr)=$lb("","","","")
 					s $list(CardStatistic(Job,CFUserDr),1)=CFUserDesc
 					s $list(CardStatistic(Job,CFUserDr),4)=$list(CardStatistic(Job,CFUserDr),4)+1
-					s ^CacheTemp(repid,ind)=CardStatistic(Job,CFUserDr)
-					s ind=ind+1
+					;;s ^CacheTemp(repid,ind)=CardStatistic(Job,CFUserDr)
+					;;s ind=ind+1
 				}
 			}
 		}
+		//  患者信息修改
+		s DataChangeLogDr=0
+		for {
+			s DataChangeLogDr=$o(^User.DHCDocDataChangeLogI("UpdateDateIndex",CreateDate,DataChangeLogDr)) 
+			Q:DataChangeLogDr=""
+			s UpdateUserDR=$lg(^User.DHCDocDataChangeLogD(DataChangeLogDr),5)
+			s UpdateUserDesc=$p(^SSU("SSUSR",UpdateUserDR),"^",2)
+			s:'$d(CardStatistic(Job,UpdateUserDR)) CardStatistic(Job,UpdateUserDR)=$lb("","","","")
+			s $list(CardStatistic(Job,UpdateUserDR),1)=UpdateUserDesc
+			s $list(CardStatistic(Job,UpdateUserDR),3)=$list(CardStatistic(Job,UpdateUserDR),3)+1
+		}
+	}
+	
+	s UserId=0
+	for {
+		s UserId=$o(CardStatistic(Job,UserId))
+		q:UserId=""
+		s ^CacheTemp(repid,ind)=CardStatistic(Job,UserId)
+		s ind=ind+1
 	}
 	i ind=1  {s qHandle=$lb(0,repid,0) q $$$OK}
 	;合计
-	s ^CacheTemp(repid,ind)=$LB("合计^"_(ind-1),"m_999","合计",ind-1,"","","","","","","","","","","")
+	//s ^CacheTemp(repid,ind)=$LB("合计^"_(ind-1),"m_999","合计",ind-1,"","","","","","","","","","","")
 	s qHandle=$lb(0,repid,0)
 	q $$$OK
 	
-GetFormerCardInform(CFRowid,PapmiDr)
+CardStatisticCountform(CFRowid,PapmiDr)
 	s CFFormerCardInform=""
 	s CFFormerCardDr=$o(^DHCCARDi("CF",0,"PAPMIDR",PapmiDr,CFRowid),-1)
 	i CFFormerCardDr'=""  d 
@@ -101,8 +126,7 @@ ClassMethod CardStatisticCountFetch(ByRef qHandle As %Binary, ByRef Row As %List
 	Quit $$$OK
 }
 
-Query CardStatisticCount(StartDate As %String = "", EndDate As %String = "") As %Query(ROWSPEC = "UserDesc:%String,CreateCardNum:%String,UpdateCardNum:%String,UniteCardNum:%String")
+Query CardStatisticCount(StartDate As %String = "", EndDate As %String = "") As %Query(ROWSPEC = "UserDesc:%String,CreateCardNum:%String,UpdateCardNum:%String,UniteCardNum:%String") [ SqlProc ]
 {
 }
-
 }

@@ -134,6 +134,7 @@ ClassMethod GetDeptInfo(InputXml As %String)
 			set myOneDeptStr=$piece(myOPDeptStr,"^",i)
 			set DepartmentCode=$piece(myOneDeptStr,$C(1),1)
 			continue:DepartmentCode=""
+            continue:DepartmentCode="科室id"
 			set DepartmentName=$piece(myOneDeptStr,$C(1),2)
 			if (DepartmentName["-") d
 			.set DepartmentName=$piece(DepartmentName,"-",1)
@@ -536,47 +537,44 @@ GetRBASRecObjByRBASObj(ScheduleObj,DHCRBASObj)
     s RegFeeList=[]  ;##class(%GlobalCharacterStream).%New()
     i SerIdStr'="" {
         f i=1:1:$l(SerIdStr,"^") {
-            s ArcimId=$P(SerIdStr,"^",i)
-            s TariffDR=0
+            s OneArcimId=$P(SerIdStr,"^",i)
+            s TarifStartDate=0
             for {
-                s TariffDR=$o(^DHCOLT(0,"ARTTA",ArcimId,TariffDR))
-                q:TariffDR=""
-                s StartDate=0
+                s TarifStartDate=$o(^DHCOLT(0,"ARCIM",OneArcimId,"Z",TarifStartDate))
+                q:TarifStartDate=""
+                continue:TarifStartDate>+$h
+                s LkTarID=0
                 for {
-                    s StartDate=$o(^DHCOLT(0,"ARTTA",ArcimId,TariffDR,StartDate))
-                    q:StartDate=""
-                    s OLTRowId=0
+                    s LkTarID=$o(^DHCOLT(0,"ARCIM",OneArcimId,"Z",TarifStartDate,LkTarID))
+                    q:LkTarID=""
+                    s TarifEndDate=$p($g(^DHCOLT(LkTarID)),"^",5)
+                    continue:(TarifEndDate'="")&&(TarifEndDate<+$H)
+                    s TariffDR=$p($g(^DHCOLT(LkTarID)),"^",2) //收费项id
+                    s TarPrice=##class(web.DHCBL.CT.ARCItmMast).GetTariPrice(TariffDR,hospid)
+                    s InsuCode="",InsuDesc="",DetailMiPortion=""
+                    s INTCTRowid=0 ;$o(^DHCINTCT("0","DHCTID",TariffDR,""),-1)
                     for {
-                        s OLTRowId=$o(^DHCOLT(0,"ARTTA",ArcimId,TariffDR,StartDate,OLTRowId))
-                        q:OLTRowId=""
-                        s TariffDR=$p($g(^DHCOLT(OLTRowId)),"^",2)
-                        s TarPrice=##class(web.DHCBL.CT.ARCItmMast).GetTariPrice(TariffDR,hospid)
-                        //s ^DHCINTIM({INTIM_Rowid})=
-                        s InsuCode="",InsuDesc="",DetailMiPortion=""
-                        s INTCTRowid=0 ;$o(^DHCINTCT("0","DHCTID",TariffDR,""),-1)
-                        for {
-                            s INTCTRowid=$o(^DHCINTCT("0","DHCTID",TariffDR,INTCTRowid))
-                            q:INTCTRowid=""
-                            s InsuDr=$p($g(^DHCINTCT(INTCTRowid)),"^",4)
-                            continue:InsuDr=""
-                            s InsuCode=$p($g(^DHCINTIM(InsuDr)),"^",27)
-                            s InsuDesc=$p($g(^DHCINTIM(InsuDr)),"^",4)
-                            s DetailMiPortion=$p($g(^DHCINTIM(InsuDr)),"^",17)
-                        }
-                        s RegFeeObj=##class(%DynamicObject).%New()
-                        ; FEE_DETAIL	REG_TIME_LIST	List 节点	√	挂号费用信息集合
-                        ; DETAIL_NAME	FEE_DETAIL	String(30)	√	费用项目医保名称（医保目录项目名称）
-                        d RegFeeObj.%Set("DETAIL_NAME",InsuDesc)
-                        ; DETAIL_CODE	FEE_DETAIL	String(23)	√	费用项目编码（医保目录项目代码）
-                        d RegFeeObj.%Set("DETAIL_CODE",InsuCode)
-                        ; DETAIL_CLASS	FEE_DETAIL	String(1)	√	医保项目统计分类，医保统一制定分类编码：A中草药费、B中成药费、C西药费、D检查费、E输氧费、F放射费、G手术费、H化验费、I诊疗费、J麻醉费、K床位费、L护理费、M材料费、N大检费、O特殊治疗费、X输血费、Y诊察费
-                        d RegFeeObj.%Set("DETAIL_CLASS","Y")
-                        ; DETAIL_MI_PROPORTION	FEE_DETAIL	String(6)	√	医保自费比例（大于等于0小于等于1，包括小数点在内，不能超过6位）
-                        d RegFeeObj.%Set("DETAIL_MI_PROPORTION",DetailMiPortion)
-                        ; DETAIL_AMOUT	FEE_DETAIL	Number(10，2)	√	项目金额
-                        d RegFeeObj.%Set("DETAIL_AMOUT",TarPrice)
-                        d OutPutObj.Write(##class(DHCDoc.Util.XMLParse).ObjToXML(RegFeeObj,"FEE_DETAIL","").Read())
+                        s INTCTRowid=$o(^DHCINTCT("0","DHCTID",TariffDR,INTCTRowid))
+                        q:INTCTRowid=""
+                        s InsuDr=$p($g(^DHCINTCT(INTCTRowid)),"^",4)
+                        continue:InsuDr=""
+                        s InsuCode=$p($g(^DHCINTIM(InsuDr)),"^",27)
+                        s InsuDesc=$p($g(^DHCINTIM(InsuDr)),"^",4)
+                        s DetailMiPortion=$p($g(^DHCINTIM(InsuDr)),"^",17)
                     }
+                    s RegFeeObj=##class(%DynamicObject).%New()
+                    ; FEE_DETAIL	REG_TIME_LIST	List 节点	√	挂号费用信息集合
+                    ; DETAIL_NAME	FEE_DETAIL	String(30)	√	费用项目医保名称（医保目录项目名称）
+                    d RegFeeObj.%Set("DETAIL_NAME",InsuDesc)
+                    ; DETAIL_CODE	FEE_DETAIL	String(23)	√	费用项目编码（医保目录项目代码）
+                    d RegFeeObj.%Set("DETAIL_CODE",InsuCode)
+                    ; DETAIL_CLASS	FEE_DETAIL	String(1)	√	医保项目统计分类，医保统一制定分类编码：A中草药费、B中成药费、C西药费、D检查费、E输氧费、F放射费、G手术费、H化验费、I诊疗费、J麻醉费、K床位费、L护理费、M材料费、N大检费、O特殊治疗费、X输血费、Y诊察费
+                    d RegFeeObj.%Set("DETAIL_CLASS","Y")
+                    ; DETAIL_MI_PROPORTION	FEE_DETAIL	String(6)	√	医保自费比例（大于等于0小于等于1，包括小数点在内，不能超过6位）
+                    d RegFeeObj.%Set("DETAIL_MI_PROPORTION",DetailMiPortion)
+                    ; DETAIL_AMOUT	FEE_DETAIL	Number(10，2)	√	项目金额
+                    d RegFeeObj.%Set("DETAIL_AMOUT",TarPrice)
+                    d OutPutObj.Write(##class(DHCDoc.Util.XMLParse).ObjToXML(RegFeeObj,"FEE_DETAIL","").Read())
                 }
             }
         }

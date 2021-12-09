@@ -1,0 +1,68 @@
+/// w ##class(web.DHCRBResSession).TRInfoCalculate("13:00:00","17::00",30,20)
+ClassMethod TRInfoCalculate(StartDate, EndDate, TimeLength, RegNum)
+{
+    q:(+TimeLength=0)||(+RegNum=0) "0^^"
+	s StartDate=$ZTH(StartDate,3)
+	s EndDate=$ZTH(EndDate,3)
+	s CheckTime=$zth("15:00:00")
+	s TimeLength=TimeLength*60
+	s TimeInterval=EndDate-StartDate
+	q:TimeInterval<=0 "-1^分时段开始时间不小于结束时间"
+	s Step=TimeInterval/TimeLength
+	q:Step>RegNum "-3^分时段时间间隔数不能大于分时段号数"
+	s RegNumInfo="",TimeRangeInfo=""
+	s OneMod=0,TwoMod=0,RetStr="^"
+	if (StartDate<CheckTime)&&(CheckTime<EndDate){
+		s OneMod=(CheckTime-StartDate)#TimeLength
+		q:OneMod>0 "-2^分时段时间间隔数不是整数"
+		s TwoMod=(EndDate-CheckTime)#TimeLength
+		q:TwoMod>0 "-2^分时段时间间隔数不是整数"
+		s OneRegNum=$p(RegNum/3,".",1)
+		s TwoRegNum=RegNum //-OneRegNum
+		s OneStep=(CheckTime-StartDate)/TimeLength
+		q:OneStep>OneRegNum "-3^分时段时间间隔数不能大于分时段号数"
+		s TowStep=(CheckTime-StartDate)/TimeLength
+		q:TowStep>TwoRegNum "-3^分时段时间间隔数不能大于分时段号数"
+		
+		b ;2
+		s OneRetStr=..GetRegNumTimeRangeInfo(StartDate,TimeLength,OneRegNum,1,OneStep)
+		s TwoRetStr=..GetRegNumTimeRangeInfo(CheckTime,TimeLength,TwoRegNum,(OneRegNum+1),(TowStep))
+		s RetStr=$p(OneRetStr,"^",1)_","_$p(TwoRetStr,"^",1)_"^"_$p(OneRetStr,"^",2)_","_$p(TwoRetStr,"^",2)
+	}else{
+		s mod=TimeInterval#TimeLength
+		q:mod>0 "-2^分时段时间间隔数不是整数"
+		s Step=TimeInterval/TimeLength
+		q:Step>RegNum "-3^分时段时间间隔数不能大于分时段号数"
+		s RetStr=..GetRegNumTimeRangeInfo(StartDate,TimeLength,RegNum,1,Step)
+	}
+	q "0^"_RetStr //RegNumInfo_"^"_TimeRangeInfo
+}
+
+/// w ##class(web.DHCRBResSession).GetRegNumTimeRangeInfo("08:000:00",30,15,7)
+ClassMethod GetRegNumTimeRangeInfo(StartDate, TimeLength, RegNum, StartNum, Step)
+{
+	s RegNumInfo="",TimeRangeInfo=""
+	s mod=RegNum#Step
+	s OneStepNum=(RegNum-StartNum+1)\Step
+	s One=StartNum
+	s OneNum=StartNum-1		
+	b 
+	f i=1:1:Step
+	{
+		i i<=mod{
+			s OneNum=OneNum+OneStepNum+1
+		}else{
+			s OneNum=OneNum+OneStepNum
+		}
+		s time=StartDate+((i-1)*TimeLength)
+		s time2=StartDate+((i)*TimeLength)
+		i RegNumInfo="" d
+		.s RegNumInfo=One_"-"_OneNum
+		.s TimeRangeInfo=$ZT(time,2)_"-"_$ZT(time2,2)
+		e  d
+		.s RegNumInfo=RegNumInfo_","_One_"-"_OneNum
+		.s TimeRangeInfo=TimeRangeInfo_","_$ZT(time,2)_"-"_$ZT(time2,2)
+		s One=1+OneNum
+	}
+	q RegNumInfo_"^"_TimeRangeInfo
+}
