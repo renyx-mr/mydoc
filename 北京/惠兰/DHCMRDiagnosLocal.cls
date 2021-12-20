@@ -2,7 +2,6 @@ Class DHCDoc.Renyx.DHCMRDiagnosLocal Extends %RegisteredObject
 {
 /// 汇总取诊断接口  
 /// input : 就诊ID ，诊断类型描述（初步诊断，入院诊断...多个使用^连接），诊断类型（Y:ICD表Rowid,其余描述），获取诊断数量(全部用ALL)，是否按照主诊断获取，诊断状态（确诊，待诊。。。）
-/// w ##class(web.Sxddhc).GetPatDiagnsInfo("901","初步诊断","","ALL")
 ClassMethod GetPatDiagnsInfo(AdmId As %String, DiagnosTypeDesc As %String = "", DiagnosFlag As %String = "", DiagNum As %String = "", MianFalg As %String = "", DiagStat As %String = "",PDlime As %String = ";")
 {
 	s MradmRowid=$P($g(^PAADM(AdmId)),"^",61)
