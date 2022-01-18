@@ -129,3 +129,137 @@
     ; SJBIZMOREINSUREPAY	PAY_MX	Number(10,2)	√	本次商业补充医疗保内支付
     ; SJBIZMOREOUTPAY	PAY_MX	Number(10,2)	√	本次商业补充医疗保外支付
     ; CPFLAG	PAY_MX	VARCHAR2(1)	√	商业保险公司标志（‘1’人保健康，‘2’平安保险）响应业务参数：
+; PAY	REQ	子集	√	医保支付集合（医保当前结算模式专用，明细结算模式时为空）
+	// 添加解析子集
+	for OnePayInd=1:1:$l(InputXml,"</PAY>"){
+		s OnePayXML=$p(InputXml,"</PAY>",OnePayInd)
+		continue:OnePayXML'["<PAY>"
+		s OnePayXML="<PAY>"_$p(OnePayXML,"<PAY>",2)_"</PAY>"
+		s OnePayObj=##class(DHCDoc.Util.XMLParse).XMLToObj(OnePayXML,"PAY")
+		continue:'$IsObject(OnePayObj)
+		; HOSPITALNO	PAY	VARCHAR2(6)	√	医院代码
+        ; SUBHOSPITALNO	PAY	VARCHAR2(1)	√	子门诊标识:取值a,b,c....表示子门诊，总院以空格补位
+        ; EMPNO	PAY	VARCHAR2(10)	√	个人编号
+        ; ICNO	PAY	VARCHAR2(10)	√	IC卡号
+        ; ICSEQ	PAY	NUMBER(4,0)	√	治疗序号
+        ; ORIGINAL_ICSEQ	PAY	NUMBER(4,0)	√	冲账序号
+        ; PAYDATE	PAY	DATE	√	结算时间:精确到秒，数据返回后格式为yyyymmddhhmiss后面以空格补位
+        ; INHOSNO	PAY	VARCHAR2(10)	√	住院病志号，门诊为门诊号
+        ; EXAM_FEE	PAY	NUMBER(9,2)	√	诊察费
+        ; CNMED_FEE	PAY	NUMBER(9,2)	√	草药费
+        ; OFFI_FEE	PAY	NUMBER(9,2)	√	成药费
+        ; WEST_FEE	PAY	NUMBER(9,2)	√	西药费
+        ; TEST_FEE	PAY	NUMBER(9,2)	√	检查费
+        ; TREAT_FEE	PAY	NUMBER(9,2)	√	治疗费
+        ; BLOOD_FEE	PAY	NUMBER(9,2)	√	血费
+        ; BLOOD_INDFEE	PAY	NUMBER(9,2)	√	血费自费
+        ; LTEST_FEE	PAY	NUMBER(9,2)	√	大检费
+        ; LTEST_INDFEE	PAY	NUMBER(9,2)	√	大检自费
+        ; STREAT_FEE	PAY	NUMBER(9,2)	√	特殊治疗费
+        ; STREAT_INDFEE	PAY	NUMBER(9,2)	√	特殊治疗自费
+        ; INSURE_INDFEE	PAY	NUMBER(9,2)	√	保险内自费费用
+        ; UNINSURE_INDFEE	PAY	NUMBER(9,2)	√	非医疗保险费用
+        ; EMPACC	PAY	NUMBER(9,2)	√	结算后个人账户余额
+        ; EMPSOCIAL	PAY	NUMBER(9,2)	√	结算后统筹支付累计
+        ; EMPCHRONIC	PAY	NUMBER(9,2)	√	结算后门诊慢病统筹支付累计：门诊统筹结算时,表示结算后门诊统筹累计;门诊慢病结算时,表示结算后慢病统筹累计
+        ; EMPHOSINSUBSUM	PAY	NUMBER(9,2)	√	结算后个人负担较重自付累计
+        ; EMPSALVA	PAY	NUMBER(9,2)	√	结算后医疗救助累计
+        ; EMPREMARK	PAY	NUMBER(9,2)	√	结算后门诊特药支付累计
+        ; EMPBASEACC_BEFORE	PAY	NUMBER(9,2)	√	结算前基本账户余额
+        ; EMPSUBACC_BEFORE	PAY	NUMBER(9,2)	√	结算前补充账户余额
+        ; EMPSOCIAL_BEFORE	PAY	NUMBER(9,2)	√	结算前统筹支付累计
+        ; EMPCHRONIC_BEFORE	PAY	NUMBER(9,2)	√	结算前门诊慢病统筹支付累计：门诊统筹结算时,表示结算前门诊统筹累计;门诊慢病结算时,表示结算前慢病统筹累计
+        ; EMPHOSINSUM_BEFORE	PAY	NUMBER(9,2)	√	结算前个人负担较重自付累计
+        ; EMPSALVA_BEFORE	PAY	NUMBER(9,2)	√	结算前医疗救助累计
+        ; EMPREMARK_BEFORE	PAY	NUMBER(9,2)	√	结算前门诊特药支付累计
+        ; EMPHOSINSUBBASE	PAY	NUMBER(9,2)	√	结算前个人负担较重补助支付累计
+        ; EMPBASEACC_PAY	PAY	NUMBER(9,2)	√	本次基本个人账户支付
+        ; EMPSUBACC_PAY	PAY	NUMBER(9,2)	√	本次补助个人账户支付
+        ; EMPSOCIAL_PAY	PAY	NUMBER(9,2)	√	本次基本统筹支付
+        ; EMPSOCIAL_CASH	PAY	NUMBER(9,2)	√	本次基本统筹自付
+        ; EMPPATCH_PAY	PAY	NUMBER(9,2)	√	本次补充统筹支付
+        ; EMPPATCH_CASH	PAY	NUMBER(9,2)	√	本次补充统筹自付
+        ; EMPCHRONIC_PAY	PAY	NUMBER(9,2)	√	本次门诊慢病统筹支付
+        ; EMPCHRONIC_CASH	PAY	NUMBER(9,2)	√	本次门诊慢病统筹自付
+        ; EMPHOSINSUBPAY	PAY	NUMBER(9,2)	√	本次个人负担较重补助支付或居民大病保险支付
+        ; GWY_SILLSTAND_PAY	PAY	NUMBER(9,2)	√	本次公务员起付标准补助支付
+        ; GWY_SUBBASE_PAY	PAY	NUMBER(9,2)	√	本次公务员基本补助保险支付
+        ; GWY_UNSUBBASE_PAY	PAY	NUMBER(9,2)	√	本次公务员非基本补助保险支付
+        ; GWY_STREATPAY	PAY	NUMBER(9,2)	√	本次公务员特殊治疗补助支付
+        ; SUBCOMMERCE_PAY	PAY	NUMBER(9,2)	√	本次商业保险补助支付
+        ; ININSURE_INDCASH	PAY	NUMBER(9,2)	√	本次保险内自付
+        ; OUTINSURE_INDCASH	PAY	NUMBER(9,2)	√	本次保险外自付
+        ; EMPSALVAPAY	PAY	NUMBER(9,2)	√	本次医疗救助支付
+        ; EMPREMARKPAY	PAY	NUMBER(9,2)	√	商业补充医疗保险支付
+        ; EMPHOSINSUM	PAY	NUMBER(9,2)	√	本次个人负担较重补助起付部分
+        ; SILL_STAND	PAY	NUMBER(9,2)	√	起付标准
+        ; TRANSSHEETNO	PAY	VARCHAR2(6)		转诊单号
+        ; KIND	PAY	VARCHAR2(1)	√	就诊分类
+        ; EMPKIND2	PAY	VARCHAR2(1)	√	参保类别2
+        ; EMPKIND3	PAY	VARCHAR2(1)	√	参保类别3
+        ; EMPSOCIAL_AREA	PAY	VARCHAR2(1)	√	统筹区域
+        ; EMPCLASSNO	PAY	VARCHAR2(1)	√	职工就医类别
+        ; DIAGNOSENO	PAY	VARCHAR2(16)	√	诊断编码
+        ; SICKNO	PAY	VARCHAR2(10)		科室编码
+        ; DOCTORNO	PAY	VARCHAR2(8)		医师编码
+        ; INDIDOCT	PAY	VARCHAR2(8)		主治医师编码
+        ; MASTEDOCT	PAY	VARCHAR2(8)		主任医师编码
+        ; OPID	PAY	VARCHAR2(8)		操作员代码
+        ; DIAGNOSENAME	PAY	VARCHAR2(42)	√	诊断名称
+        ; TREATFLAG	PAY	VARCHAR2(1)		治愈情况标识
+        ; OUTHOSDATE	PAY	DATE	√	出院日期，门诊默认为结算日期
+        ; TRANSDATE	PAY	DATE	√	传输时间
+        ; ERRORCODE	PAY	VARCHAR2(10)	√	错误代码
+	}
+	; PAY_MX	REQ	子集	√	医保支付集合（医保明细结算模式专用，当前结算模式时为空）
+	// 添加解析子集
+	for OnePayMXInd=1:1:$l(InputXml,"</PAY_MX>"){
+		s OnePayMXXML=$p(InputXml,"</PAY_MX>",OnePayMXInd)
+		continue:OnePayMXXML'["<PAY_MX>"
+		s OnePayMXXML="<PAY_MX>"_$p(OnePayMXXML,"<PAY_MX>",2)_"</PAY>"
+		s OnePayMXObj=##class(DHCDoc.Util.XMLParse).XMLToObj(OnePayMXXML,"PAY_MX")
+		continue:'$IsObject(OnePayMXObj)
+		; TRANSDATE	PAY_MX	VARCHAR2(14)	√	中心结算时间
+        ; BALTYPE	PAY_MX	VARCHAR2(1)		人员类别
+        ; TYPE1	PAY_MX	VARCHAR2(1)		参保类别1
+        ; TYPE2	PAY_MX	VARCHAR2(1)		参保类别2
+        ; TYPE3	PAY_MX	VARCHAR2(1)		参保类别3
+        ; INSURECASH	PAY_MX	Number(10,2)		自理费用
+        ; SOCIALCASH	PAY_MX	Number(10,2)		统筹基金支付范围内费用
+        ; OUTCASH	PAY_MX	Number(10,2)		自费费用
+        ; OUTLIMITPRICE	PAY_MX	Number(10,2)		超限价自费金额
+        ; SPECIALCASH	PAY_MX	Number(10,2)		特殊治疗费
+        ; SPECIALINSURECASH	PAY_MX	Number(10,2)		特殊治疗自费
+        ; BASEACC	PAY_MX	Number(10,2)	√	结算后基本账户余额
+        ; SUBACC	PAY_MX	Number(10,2)	√	结算后补助账户余额
+        ; SOCIAL	PAY_MX	Number(10,2)	√	结算后统筹累计
+        ; CHRONICSOCIAL	PAY_MX	Number(10,2)	√	结算后慢病统筹累计
+        ; BURDENCASHTOTAL	PAY_MX	Number(10,2)	√	结算后负担较重自付累计
+        ; BURDENTOTAL	PAY_MX	Number(10,2)	√	结算后负担较重支付累计
+        ; SALTOTAL	PAY_MX	Number(10,2)	√	结算后救助累计
+        ; SERISOCIAL	PAY_MX	Number(10,2)	√	结算后大病统筹累计
+        ; SJBIZMOREINSUREPAYTOTAL	PAY_MX	Number(10,2)	√	结算后商业补充医疗保内支付累计
+        ; SJBIZMOREOUTPAYTOTAL	PAY_MX	Number(10,2)	√	结算后商业补充医疗保外支付累计
+        ; BASEACCPAY	PAY_MX	Number(10,2)	√	基本账户支付
+        ; SUBACCPAY	PAY_MX	Number(10,2)	√	补助账户支付
+        ; SOCIALPAY	PAY_MX	Number(10,2)	√	基本统筹支付
+        ; SOCIALOWNCASH	PAY_MX	Number(10,2)	√	基本统筹自付
+        ; SUBSOCIALPAY	PAY_MX	Number(10,2)	√	补充统筹支付
+        ; SUBSOCIALCASH	PAY_MX	Number(10,2)	√	补充统筹自付
+        ; CHRONICSOCIALPAY	PAY_MX	Number(10,2)	√	慢病统筹支付
+        ; CHRONIXSOCIALCASH	PAY_MX	Number(10,2)	√	慢病统筹自付
+        ; BURDENPAY	PAY_MX	Number(10,2)	√	住院补助支付
+        ; DENISERIPAY	PAY_MX	Number(10,2)	√	居民大病保险支付
+        ; SERVTHRESHOLDPAY	PAY_MX	Number(10,2)	√	公务员起付标准补助支付
+        ; SERVBASEPAY	PAY_MX	Number(10,2)	√	公务员基本补助支付
+        ; SERVSUBPAY	PAY_MX	Number(10,2)	√	公务员非基本补助支付
+        ; SERVSPECIALPAY	PAY_MX	Number(10,2)	√	公务员特殊治疗补助支付
+        ; SALPAY	PAY_MX	Number(10,2)	√	医疗救助支付
+        ; CADREGOVPAY	PAY_MX	Number(10,2)	√	离休单位支付
+        ; CADRESOCIALPAY	PAY_MX	Number(10,2)	√	离休统筹支付
+        ; CASHPAY	PAY_MX	Number(10,2)	√	个人现金支付
+        ; THRESHOLD	PAY_MX	Number(10,2)	√	起付标准
+        ; SJBIZMOREINSUREPAY	PAY_MX	Number(10,2)	√	本次商业补充医疗保内支付
+        ; SJBIZMOREOUTPAY	PAY_MX	Number(10,2)	√	本次商业补充医疗保外支付
+        ; CPFLAG	PAY_MX	VARCHAR2(1)	√	商业保险公司标志（‘1’人保健康，‘2’平安保险）
+	}

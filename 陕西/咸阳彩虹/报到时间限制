@@ -1,0 +1,29 @@
+/// w ##class(web.DHCAlloc).CheckArriveDateTime(523791)
+ClassMethod CheckArriveDateTime(EpisodeID As %String)
+{
+	s RetStr=""
+	s CheckData=+$h
+	s CheckTime=$p($h,",",2)
+	s RegFeeDr=$o(^User.DHCRegistrationFeeI("ADM"," "_EpisodeID,0))
+	q:RegFeeDr="" "没有找到该患者的挂号信息"
+	s AsRowId=$list(^User.DHCRegistrationFeeD(RegFeeDr),18)
+	q:AsRowId="" RetStr
+	s ResRowId=$P(AsRowId,"||",1)
+	s ASChild=$P(AsRowId,"||",2)
+	s AsDate=$P($G(^RBAS(ResRowId,ASChild)),"^",1)
+	s ASStartTime=$P($G(^RBAS(ResRowId,ASChild)),"^",4)
+	s ASEndTime=$P($G(^RBAS(ResRowId,ASChild)),"^",5)
+	s RegfeeNo=$list(^User.DHCRegistrationFeeD(RegFeeDr),8)
+	s TimeRange=##class(web.DHCOPAdmReg).GetAdmTimeRange(AsRowId,RegfeeNo)
+	s RangeEndTime=""
+	s:(TimeRange'="") RangeEndTime=$zth($p(TimeRange,"-",2))
+    q:(AsDate=CheckData)&&(RangeEndTime<CheckTime) "已经过了所预约号段的出诊时间不能进行报到！"
+	if ((CheckData<(AsDate-1))||((CheckData=(AsDate-1))&&(ASStartTime>=1800))||((CheckData=(AsDate-1))&&(((86340-CheckTime)+ASStartTime)>=1800))){
+		q "未到开始报到时间,请在就诊开始30分钟内进行报到！！"
+	}elseif((CheckData=AsDate)&&((ASStartTime-CheckTime)>=1800)) {
+		q "未到开始报到时间,请在就诊开始30分钟内进行报到！！"
+	}elseif(((CheckData=AsDate)&&(ASEndTime<CheckTime))||(CheckData>AsDate)) {
+		q "已过出诊时间不能进行报到，请退号挂对应的时间号别！！"
+	}
+	q RetStr
+}

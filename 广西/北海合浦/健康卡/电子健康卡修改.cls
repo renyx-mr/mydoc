@@ -7,6 +7,9 @@ Parameter InstitutionID = "12450521498818941H";
 /// 注册终端编号，由接入平台分配 
 Parameter TerminalID = "HPXHSZHYYZD";
 
+/// 验证终端编号，由接入平台分配 
+Parameter YZTerminalID = "HPXHSZHYYSD";
+
 /// 终端密码，由平台在接入注册终端时，通过给予 Dll 动态库 EhcInterface.dll（参考动态库说明文档），由dll自动获取硬件信息，获取反馈字符串（密码）并以此参数进行传输
 Parameter TerminalSecret = "APP01";
 
@@ -15,7 +18,7 @@ Parameter APPID = "9m96Kh9X";
 /// 卡类型 CardType
 Parameter CardType = 1;
 
-/// 2.1	电子健康卡注册(优先完成)
+/// 2.1	电子健康卡注册(优先完成) w ##class(DHCDoc.Interface.HealthCard.Interface).RegisterHealthCard("206391")
 ClassMethod RegisterHealthCard(PatientId As %String)
 {
    q:'$d(^PAPER(PatientId)) ""
@@ -45,8 +48,9 @@ ClassMethod RegisterHealthCard(PatientId As %String)
      d InPutObj.SetAt($p($g(^PAPER(PatientId,"ALL")),"^",1),"Name")
    //"TerminalSecret" 	"123abc" 	终端密码，由平台在接入注册终端时，通过给予 Dll 动态库 EhcInterface.dll（参考动态库说明文档），由dll自动获取硬件信息，获取反馈字符串（密码）并以此参数进行传输 	 	 
  	;d InPutObj.%Set("TerminalSecret",##class(web.DHCENS.BLL.Empi.Method.TerminalSecret).TerminalSecret())
-     d InPutObj.SetAt(##class(web.DHCENS.BLL.Empi.Method.TerminalSecret).TerminalSecret(),"TerminalSecret")
-      	b ;test#TerminalSecret
+ 	s TerminalSecret=$e(##class(web.DHCENS.BLL.Empi.Method.TerminalSecret).TerminalSecret(),2,*-1)
+     d InPutObj.SetAt(TerminalSecret,"TerminalSecret")
+      	;test#TerminalSecret
    //"residentInfo" 	 	用户居民信息    
    s ResidentObj=##class(%ArrayOfDataTypes).%New()
  	//{ 	 	 
@@ -64,7 +68,7 @@ ClassMethod RegisterHealthCard(PatientId As %String)
    d ResidentObj.SetAt(Nation,"Nation")
  	//"BirthDate" 		"1982.06.20" 	出生日期，格式yyyyMMdd 
    s StrDate=""
-   s StrDate=##class(websys.Conversions).DateLogicalToHtml($p($g(^PAPER(PatientId,"ALL")),"^",6))
+   s StrDate=$zd($p($g(^PAPER(PatientId,"ALL")),"^",6),3) ;##class(websys.Conversions).DateLogicalToHtml($p($g(^PAPER(PatientId,"ALL")),"^",6))
    
    s BirthDate=$REPLACE(StrDate,"-","")
    ;d ResidentObj.%Set("BirthDate",BirthDate)
@@ -83,38 +87,42 @@ ClassMethod RegisterHealthCard(PatientId As %String)
  	//"aPIVerify" 		 	API验证（对象） 
    s aPIVerifyJson=##class(web.DHCENS.STBLL.JKK.Method.JKKService).CreateSign()
    ;s aPIVerifyObj=##class(%DynamicObject).%FromJSON(aPIVerifyJson)
-   s aPIVerifyObj=##class(ext.util.JsonObject).FromJSON(aPIVerifyJson)
+   s aPIVerifyObj=##class(web.INSUCacheJSON).Decode(aPIVerifyJson)
    ;d InPutObj.%Set("aPIVerify",aPIVerifyObj)
+  // b ;aPIVerifyJson
    d InPutObj.SetAt(aPIVerifyObj,"aPIVerify")		
  	//"MAC" 		"123"  	完整性校验信息，可空 
    ;d InPutObj.%Set("MAC","")
    d InPutObj.SetAt("","MAC")	
   ;s InPutJson=##class(DHCDoc.Util.FromJSON).GetJOSONByObj(InPutObj)
-  s InPutJson=##class(ext.util.JsonObject).FromJSON(InPutObj)
-  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0002",InPutJson)
+  s InPutJson=##class(web.INSUCacheJSON).Encode(InPutObj)
+  s InPutJson=$replace(InPutJson,"\","")
+  ;1
+  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0002",InPutJson).Read()
 }
 
 /// 电子健康卡注册(优先完成)  出参接口 
 ClassMethod RegisterHealthCardOut(OutPutStr As %String)
 {
    //s OutPutObj=##class(%DynamicObject).%FromJSON(OutPutStr)
-   s OutPutObj=##class(ext.util.JsonObject).FromJSON(OutPutStr)
+   s OutPutObj=##class(web.INSUCacheJSON).Decode(OutPutStr)
    ; "result" 	"0" 	详见错误返回列表 
    //s Result=OutPutObj.%Get("result")
-   s Result=OutPutObj.GetValue("result")
+   s Result=OutPutObj.Data("result")
    ;"data" 	"注册成功!" 	返回数据的内容 
    //s Date=OutPutObj.%Get("data")
-   s Date=OutPutObj.GetValue("data")
+   s Date=OutPutObj.Data("data")
    ;"message" 	"注册成功" 	申请结果描述 
    ;s Message=OutPutObj.%Get("message")
-    s Message=OutPutObj.GetValue("message")
+    s Message=OutPutObj.Data("message")
    ;"mac" 	"123" 	完整性校验信息，可空 
    ;s Mac=OutPutObj.%Get("mac")
-   s Mac=OutPutObj.GetValue("mac")
+   s Mac=OutPutObj.Data("mac")
    q Result_"^"_Message
 }
 
 /// 静态二维码申请(优先完成)（新增）  apply
+/// w ##class(DHCDoc.Interface.HealthCard.Interface).ApplyQRcode("266341")
 ClassMethod ApplyQRcode(PatientId As %String)
 {
    s InPutObj=##class(%ArrayOfDataTypes).%New()
@@ -138,52 +146,58 @@ ClassMethod ApplyQRcode(PatientId As %String)
    d InPutObj.SetAt($p($g(^PAPER(PatientId,"PAT",3)),"^",6),"CertID")
  	//"TerminalSecret" 	"123abc" 	终端密码，由平台在接入注册终端时，通过给予Dll动态库 EhcInterface.dll（参考动态库说明文档），由dll自动获取硬件信息，获取反馈字符串（密码）并以此参数进行传输 
    ;d InPutObj.%Set("TerminalSecret",##class(web.DHCENS.BLL.Empi.Method.TerminalSecret).TerminalSecret())
-   d InPutObj.SetAt(##class(web.DHCENS.BLL.Empi.Method.TerminalSecret).TerminalSecret(),"TerminalSecret")
+   ;d InPutObj.SetAt(##class(web.DHCENS.BLL.Empi.Method.TerminalSecret).TerminalSecret(),"TerminalSecret")
+   s TerminalSecret=$e(##class(web.DHCENS.BLL.Empi.Method.TerminalSecret).TerminalSecret(),2,*-1)
+     d InPutObj.SetAt(TerminalSecret,"TerminalSecret")
  	//"FamilyName" 	"张三" 	家庭信息名称，如果为空则返回主二维码加家庭二维码，如果不为空则返回对应的单个二维码，家庭二维码集合为空 
    ;d InPutObj.%Set("FamilyName","")
    d InPutObj.SetAt("","FamilyName")
  	//"aPIVerify" 	 	API验证(对象) 
    s aPIVerifyJson=##class(web.DHCENS.STBLL.JKK.Method.JKKService).CreateSign()
    ;s aPIVerifyObj=##class(%DynamicObject).%FromJSON(aPIVerifyJson)
-   s aPIVerifyObj=##class(ext.util.JsonObject).FromJSON(aPIVerifyJson)
+   ;s aPIVerifyObj=##class(ext.util.JsonObject).FromJSON(aPIVerifyJson)
    ;d InPutObj.%Set("aPIVerify",aPIVerifyObj)
+   s aPIVerifyObj=##class(web.INSUCacheJSON).Decode(aPIVerifyJson)
    d InPutObj.SetAt(aPIVerifyObj,"aPIVerify")
  	//"MAC" 	"123" 	完整性校验信息，可空 
    ; InPutObj.%Set("MAC","")
    d InPutObj.SetAt("","MAC")
   ;s InPutJson=##class(DHCDoc.Util.FromJSON).GetJOSONByObj(InPutObj)
-  s InPutJson=##class(ext.util.JsonObject).FromJSON(InPutObj)
-  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0003",InPutJson)
+  s InPutJson=##class(web.INSUCacheJSON).Encode(InPutObj)
+  s InPutJson=$replace(InPutJson,"\","")
+  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0003",InPutJson).Read()
 }
 
 ClassMethod ApplyQRcodeOut(PatId As %String, OutPutStr As %String)
 {
    //s OutPutObj=##class(%DynamicObject).%FromJSON(OutPutStr)
-   s OutPutObj=##class(ext.util.JsonObject).FromJSON(OutPutStr)
+   s OutPutObj=##class(web.INSUCacheJSON).Decode(OutPutStr)
    //"result" 	"0" 	详见错误返回列表 
    //s Result=OutPutObj.%Get("result")
-   s Result=OutPutObj.GetValue("result")
+   s Result=OutPutObj.Data("result")
    //"message" 	"申请成功" 	申请结果描述 
    ;s Message=OutPutObj.%Get("message")
-   s Message=OutPutObj.GetValue("message")
+   s Message=OutPutObj.Data("message")
    if (Result'="0") q Result_"^"_Message
    //"data" 	 	返回参数对象 
    //"staticQrcode" 	"静态二维码值" 	电子健康卡静态二维码值 
-   s StaticQrcode=OutPutObj.data.GetValue("staticQrcode")
+   ;;cs1
+   s StaticQrcode=OutPutObj.Data("data").Data("staticQrCode")
    //"name" 	"郑金凤" 	家庭监护人名称 
-   s Name=OutPutObj.data.GetValue("name")
+   s Name=OutPutObj.Data("data").Data("name")
    //"family" 	 	家庭成员（数量不能超过6个） 
-   s Family=OutPutObj.data.GetValue("family")
+   s Family=OutPutObj.Data("data").Data("family")
    //[{ 	 	 
    //"qrCode" 	"二维码值" 	电子健康卡静态二维码值 
    //"name" 	"陈向阳" 	家庭组成员名称 
    //}...]} 	 
    //"mac" 	"123" 	完整性校验信息，可空 
-   s Mac=OutPutObj.data.GetValue("mac")
+   s Mac=OutPutObj.Data("mac")
    q Result_"^"_Message_"^"_StaticQrcode
 }
 
 /// 静态二维码验证(优先完成)（新增）
+/// w ##class(DHCDoc.Interface.HealthCard.Interface).VerificationQrCode("3C70A9ACBEDA504022FD4DC2C3972C3347929EC49C075516E5109269E727A48B:1::4500A0028APPA0003")
 ClassMethod VerificationQrCode(QrCode As %String, ChannelCode As %String = "", MedStepCode As %String = "")
 {
    s InPutObj=##class(%ArrayOfDataTypes).%New()
@@ -192,7 +206,7 @@ ClassMethod VerificationQrCode(QrCode As %String, ChannelCode As %String = "", M
    d InPutObj.SetAt(..#InstitutionID,"InstitutionID")
  	//"TerminalID" 	"234" 	注册终端编号 
    //d InPutObj.%Set("TerminalID",..#InstitutionID)
-   d InPutObj.SetAt(..#TerminalID,"TerminalID")
+   d InPutObj.SetAt(..#YZTerminalID,"TerminalID")
  	//"Time" 	"20190329165022	识 读 时 间 ， 格 式" 	yyyyMMddhhmmss 通过获取卫计委当前时间2.2接口获取 
  	//d InPutObj.%Set("Time",..GetDateTimeStr())
     d InPutObj.SetAt(..GetDateTimeStr(),"Time")
@@ -210,68 +224,70 @@ ClassMethod VerificationQrCode(QrCode As %String, ChannelCode As %String = "", M
    //"aPIVerify" 	 	API验证（对象）
    s aPIVerifyJson=##class(web.DHCENS.STBLL.JKK.Method.JKKService).CreateSign()
    ;s aPIVerifyObj=##class(%DynamicObject).%FromJSON(aPIVerifyJson)
-   s aPIVerifyObj=##class(ext.util.JsonObject).FromJSON(aPIVerifyJson)
+   ;s aPIVerifyObj=##class(ext.util.JsonObject).FromJSON(aPIVerifyJson)
    ;d InPutObj.%Set("aPIVerify",aPIVerifyObj)
+   s aPIVerifyObj=##class(web.INSUCacheJSON).Decode(aPIVerifyJson)
    d InPutObj.SetAt(aPIVerifyObj,"aPIVerify")
  	// "MAC" 	"123" 	完整性校验信息，可空 新增参数(1.87版本添加) 	"OfficeCode " 	"A01" 	科室代码，详细见字典表  	 	 
    ;d InPutObj.%Set("MAC","")
    d InPutObj.SetAt("","MAC")
   ;s InPutJson=##class(DHCDoc.Util.FromJSON).GetJOSONByObj(InPutObj)
-  s InPutJson=##class(ext.util.JsonObject).FromJSON(InPutObj)
-  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0004",InPutJson)
+  s InPutJson=##class(web.INSUCacheJSON).Encode(InPutObj)
+  s InPutJson=$replace(InPutJson,"\","")
+  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0004",InPutJson).Read()
 }
 
 ClassMethod VerificationQrCodeOut(OutPutStr As %String)
 {
    //s OutPutObj=##class(%DynamicObject).%FromJSON(OutPutStr)
-   s OutPutObj=##class(ext.util.JsonObject).FromJSON(OutPutStr)
+   s OutPutObj=##class(web.INSUCacheJSON).Decode(OutPutStr)
    ;"result" 	"0" 	详见错误返回列表 
    //s Result=OutPutObj.%Get("result")
-   s Result=OutPutObj.GetValue("result")
+   s Result=OutPutObj.Data("result")
    ;"message" 	"验证成功" 	验证结果描述 
-   s Message=OutPutObj.GetValue("message")
+   s Message=OutPutObj.Data("message")
    if (Result'="0") q Result_"^"_Message
    ;"MAC":              	"" 	完整性校验信息，可空 
-   s MAC=OutPutObj.GetValue("MAC")
+   s MAC=OutPutObj.Data("mac")
    ; "data" 	 	返回参数对象 
    ; { 	 	 
    ; "cardState" 	"启用" 	电子健康卡状态 
-   s CardState=OutPutObj.data.GetValue("cardState")
+   s CardState=OutPutObj.Data("data").Data("cardState")
    ; "healthCardNo" 	"A8EB86D6289BAE955387C26411B85372A0D1B4CFFBC191EB16744771CFD56D93" 	电子健康卡ID值 
-   s HealthCardNo=OutPutObj.data.GetValue("healthCardNo")
+   s HealthCardNo=OutPutObj.Data("data").Data("healthCardNo")
    ; "poorModel" 	 	贫困对象 
    ; { 	 	 
    ; poorState 	"1" 	脱贫标志 
-   s PoorState=OutPutObj.poorModel.GetValue("poorState")
+   s PoorState=OutPutObj.Data("data").Data("poorModel").Data("poorState")
    ; ispoor 	True 	True为贫困人口，false为非贫困人口 
-   s IsPoor=OutPutObj.poorModel.GetValue("ispoor")
+   s IsPoor=OutPutObj.Data("data").Data("poorModel").Data("isPoor")
    ; } 	 	 
    ; "entityCardModel" 	 	证件对象 
    ; { 	 	 
    ; "cardType" 	"01" 	卡类型（详细见字典） 
-   s CardType=OutPutObj.entityCardModel.GetValue("cardType")
+   s CardType=OutPutObj.Data("data").Data("entityCardModel").Data("cardType")
    s CardTypeDr=$o(^PAC("CARD",0,"Code",$$ALPHAUP^SSUTIL4(CardType),0))
    s:CardTypeDr="" CardTypeDr="27"
    ; "cardNumber" 	"XXXXXX" 	卡号码 
-   s CardNumber=OutPutObj.entityCardModel.GetValue("cardNumber")
+   s CardNumber=OutPutObj.Data("data").Data("entityCardModel").Data("cardNumber")
    ; } 	 	 
    ; "residentInfoModel" 	 	居民信息（对象） 
    ; { 	 	 
    ; "name" 	"郑金凤" 	名称 
-   s Name=OutPutObj.residentInfoModel.GetValue("name")
+   s Name=OutPutObj.Data("data").Data("residentInfoModel").Data("name")
    ; "gender" 	"女" 	性别（详见字典） 
-   s Gender=OutPutObj.residentInfoModel.GetValue("gender")
+   s Gender=OutPutObj.Data("data").Data("residentInfoModel").Data("gender")
    s GenderDr=$case(Gender,"男":"1","女":"2",:"3")
    ; "nation" 	 "汉族" 	更多请参考数据字典(名族名称) 
-   s Nation=OutPutObj.residentInfoModel.GetValue("nation")
+   s Nation=OutPutObj.Data("data").Data("residentInfoModel").Data("nation")
    s NationDr=$o(	^CT("NAT",0,"Desc",$$ALPHAUP^SSUTIL4(Nation),0))
    ; "birthDate" 	"1982/2/3 ; 0:00:00" 	出生日期 
-   s BirthDate=OutPutObj.residentInfoModel.GetValue("birthDate")
-   s BirthDate=##class(websys.Conversions).DateLogicalToHtml(##class(websys.Conversions).DateHtmlToLogical(BirthDate))
+   s BirthDate=OutPutObj.Data("data").Data("residentInfoModel").Data("birthDate")
+   s BirthDate=$zd($zdh(BirthDate,5),3) //##class(websys.Conversions).DateLogicalToHtml(##class(websys.Conversions).DateHtmlToLogical(BirthDate))
    ; "address" 	"南昌" 	地址 
-   s Address=OutPutObj.residentInfoModel.GetValue("address")
+   s Address=OutPutObj.Data("data").Data("residentInfoModel").Data("address")
    ; "phone" 	"12345678910" 	电话号码 
-   s Phone=OutPutObj.residentInfoModel.GetValue("phone")
+   s Phone=OutPutObj.Data("data").Data("residentInfoModel").Data("phone")
    ; } 	 	 
    ; "custoryInfoModel" 	 	监护人对象 
    ; [{ 	 	 
@@ -309,63 +325,65 @@ ClassMethod VerifyQrCode(QrCode As %String)
  	//"APIVerify" 	 	API验证（对象）
    s aPIVerifyJson=##class(web.DHCENS.STBLL.JKK.Method.JKKService).CreateSign()
    ;s aPIVerifyObj=##class(%DynamicObject).%FromJSON(aPIVerifyJson)
-   s aPIVerifyObj=##class(ext.util.JsonObject).FromJSON(aPIVerifyJson)
+   ;s aPIVerifyObj=##class(ext.util.JsonObject).FromJSON(aPIVerifyJson)
    ;d InPutObj.%Set("aPIVerify",aPIVerifyObj)
+   s aPIVerifyObj=##class(web.INSUCacheJSON).Decode(aPIVerifyJson)
    d InPutObj.SetAt(aPIVerifyObj,"aPIVerify")
  	//"MAC" 	 "123abc" 	完整性校验信息，可空 	
    ;d InPutObj.%Set("MAC","")
    d InPutObj.SetAt("","MAC")
   ;s InPutJson=##class(DHCDoc.Util.FromJSON).GetJOSONByObj(InPutObj)
-  s InPutJson=##class(ext.util.JsonObject).FromJSON(InPutObj)
-  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0004",InPutJson)
+  s InPutJson=##class(web.INSUCacheJSON).Encode(InPutObj)
+  s InPutJson=$replace(InPutJson,"\","")
+  q ##class(web.DHCENS.STBLL.JKK.Method.JKKService).JKKRegister("MES0004",InPutJson).Read()
 }
 
 ClassMethod VerifyQrCodeOut(OutPutStr As %String)
 {
    //s OutPutObj=##class(%DynamicObject).%FromJSON(OutPutStr)
-   s OutPutObj=##class(ext.util.JsonObject).FromJSON(OutPutStr)
+   s OutPutObj=##class(web.INSUCacheJSON).Decode(OutPutStr)
    ;"result" 	"0" 	详见错误返回列表 
    //s Result=OutPutObj.%Get("result")
-   s Result=OutPutObj.GetValue("result")
+   s Result=OutPutObj.Data("result")
    ;"message" 	"验证成功" 	验证结果描述 
-   s Message=OutPutObj.GetValue("message")
+   s Message=OutPutObj.Data("message")
    if (Result'="0") q Result_"^"_Message
    ;"mac" 	"123abc" 	完整性校验信息，可空
-   s Mac=OutPutObj.GetValue("mac")
+   s Mac=OutPutObj.Data("mac")
    ;"data" 	 	返回参数对象 
    ;{ 	 	 
    ;"healthCardNo" 	"7509D26B27514DDD0A308553D049AFA6481C68E4"  	电子健康卡ID值 
-   s HealthCardNo=OutPutObj.data.GetValue("healthCardNo")
+   s HealthCardNo=OutPutObj.Data("data").Data("healthCardNo")
    ;"poorModel" 	 	贫困对象
    ;{ 
  	;poorState "1" 脱贫标志
-   s PoorState=OutPutObj.poorModel.GetValue("poorState")
+   s PoorState=OutPutObj.Data("data").Data("poorModel").Data("poorState")
    ;ispoor True True 为贫困人口，false		为非贫困人口 
-   s Ispoor=OutPutObj.poorModel.GetValue("ispoor")
+   s Ispoor=OutPutObj.Data("data").Data("poorModel").Data("ispoor")
    ;} 
  	 
    ;"entityCardModel" 	 	实体卡对象 
    ;{ 	 	 
    ;"cardType" 	"01" 	卡类型（详见字典） 
-   s CardType=OutPutObj.entityCardModel.GetValue("cardType")
+   s CardType=OutPutObj.Data("data").Data("entityCardModel").Data("cardType")
    ;"cardNumber" 	"360104199203041915" 	卡号码 
-   s CardNumber=OutPutObj.entityCardModel.GetValue("cardNumber")
+   s CardNumber=OutPutObj.Data("data").Data("entityCardModel").Data("cardNumber")
    ;} 	 	 
    ;"residentInfoModel" 	 	居民信息（对象） 
    ;{ 	 	 
    ;"name" 	"高远" 	姓名 
-   s Name=OutPutObj.residentInfoModel.GetValue("name")
+   s Name=OutPutObj.Data("data").Data("residentInfoModel").Data("name")
    ;"gender" 	"男性" 	性别（见字典） 
-   s Gender=OutPutObj.residentInfoModel.GetValue("gender")
+   s Gender=OutPutObj.Data("data").Data("residentInfoModel").Data("gender")
    ; "nation" 	"汉族" 	更多请参考数据字典(名族名称) 
-   s Nation=OutPutObj.residentInfoModel.%Get("nation")
+   s Nation=OutPutObj.Data("data").Data("residentInfoModel").Data("nation")
    ; "birthDate"   	"2018/02/03" 	出生日期 
-   s BirthDate=OutPutObj.residentInfoModel.GetValue("birthDate")
+   s BirthDate=OutPutObj.Data("data").Data("residentInfoModel").Data("birthDate")
    ; "address" 	"南昌" 	地址 
-   s Address=OutPutObj.residentInfoModel.GetValue("address")
+   s Address=OutPutObj.Data("data").Data("residentInfoModel").Data("address")
    ;} 	 	 
    ;"custoryInfoModel" 	 	监护人对象 
-   s CustoryInfoModel=OutPutObj.GetValue("custoryInfoModel")
+   s CustoryInfoModel=OutPutObj.Data("custoryInfoModel")
    ;[{
    ;"custodyName" 	"王二" 	监护人姓名 
    ;"cardNo" 	"3601041992030419
@@ -484,7 +502,7 @@ ClassMethod UpdatePatInfo(PatDr As %String, healthCardNo As %String, healthCardI
 		s CardRefObj=##class(User.DHCCardRef).%OpenId(CardDr)
 	
 		if $ISOBJECT(CardRefObj){
-			s CardRefObj.CFElecCardNo=healthCardNo
+			s:healthCardNo'="" CardRefObj.CFElecCardNo=healthCardNo
 			s CardRefObj.CFElecPId=healthCardId
 			s CardRefObj.CFElecStaticQrcodePhoto=qrCodeText
 		}else{

@@ -1,5 +1,81 @@
 Class DHCDoc.Renyx.DHCMRDiagnosLocal Extends %RegisteredObject
 {
+
+ClassMethod AgentInfoClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = AgentInfoExecute ]
+{
+	Set repid=$LIST(qHandle,2)
+ Kill ^CacheTemp(repid)
+ Quit $$$OK
+}
+
+Query AgentInfo(StartDate As %String,EndDate As %String) As %Query(ROWSPEC = "DateStr,PatName,DVAnumber,PhoneNo,DiagnosStr,AgentName,AgentIDcard,AgentTelephone,AgentRelation,AgentReasonDesc")
+{
+}
+
+/// Creattime:2020-08-11
+/// Creator:songsong
+ClassMethod AgentInfoExecute(ByRef qHandle As %Binary, StartDate As %String,EndDate As %String) As %Status
+{
+	;d ##class(%ResultSet).RunQuery("web.DHCMRDiagnos","AdmRegFee","450")
+	Set repid=$I(^CacheTemp)
+	If $g(ind)="" Set ind=1
+	Set qHandle=$lb(0,repid,0)
+	s:StartDate'="" StartDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
+	s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
+	s:StartDate="" StartDate=+$h
+	s:EndDate="" EndDate=+$h
+	for AdmDate=StartDate:1:EndDate {
+		s DateStr=##class(websys.Conversions).DateLogicalToHtml(AdmDate)
+		s AdmId=""
+		for {
+			s AdmId=$o(^PAADMi("PAADM_AdmDate",AdmDate,AdmId))
+			q:AdmId=""
+			; 代开者姓名
+			s AgentName=$p($g(^PAADM(AdmId,"ADM2")),"^",55)
+			; 代开者身份证号
+			s AgentIDcard=$p($g(^PAADM(AdmId,"ADM2")),"^",56)
+			; 代开者手机号
+			s AgentTelephone=$p($g(^PAADM(AdmId,"ADM2")),"^",57)
+			s AgentRelationDr=$p($g(^PAADM(AdmId,"ADM2")),"^",59)
+			s AgentRelation=""
+			s:AgentRelationDr'="" AgentRelation=$p($g(^CT("RLT",AgentRelationDr)),"^",2)
+			s AgentReasonDesc=$p($g(^PAADM(AdmId,"ADM2")),"^",60)
+			continue:(AgentName="")&&(AgentIDcard="")&&(AgentTelephone="")
+			s PatId=$$p($g(^PAADM(AdmId)),"^",1)
+			s PatName=$p($g(^PAPER(PatId,"ALL")),"^",1)
+			s DVAnumber=$p($g(^PAPER(PatId,"PAT",3)),"^",6)
+			s PhoneNo=$p($g(^PAPER(PatId,"PER",1)),"^",11)
+			s DiagnosStr=..GetPatDiagnsInfo(AdmId,"ALL","","ALL","","",";")
+			d OutputrowAgentInfo
+		}
+	}
+    Q $$$OK
+OutputrowAgentInfo
+     set Data=$lb(DateStr,PatName,DVAnumber,PhoneNo,DiagnosStr,AgentName,AgentIDcard,AgentTelephone,AgentRelation,AgentReasonDesc)
+	 Set ^CacheTemp(repid,ind)=Data
+	 Set ind=ind+1
+	 quit
+}
+
+ClassMethod AgentInfoFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = AgentInfoExecute ]
+{
+ Set AtEnd=$LIST(qHandle,1)
+ Set repid=$LIST(qHandle,2)
+ Set ind=$LIST(qHandle,3)
+	//
+ Set ind=$o(^CacheTemp(repid,ind))
+ If ind="" {				// if there are no more rows, finish fetching
+ Set AtEnd=1
+ Set Row=""
+ }
+ Else      {				// fetch row
+ Set Row=^CacheTemp(repid,ind)
+ }
+ // Save QHandle
+ s qHandle=$lb(AtEnd,repid,ind)
+	Quit $$$OK
+}
+
 /// 汇总取诊断接口  
 /// input : 就诊ID ，诊断类型描述（初步诊断，入院诊断...多个使用^连接），诊断类型（Y:ICD表Rowid,其余描述），获取诊断数量(全部用ALL)，是否按照主诊断获取，诊断状态（确诊，待诊。。。）
 ClassMethod GetPatDiagnsInfo(AdmId As %String, DiagnosTypeDesc As %String = "", DiagnosFlag As %String = "", DiagNum As %String = "", MianFalg As %String = "", DiagStat As %String = "",PDlime As %String = ";")
@@ -26,7 +102,7 @@ ClassMethod GetPatDiagnsInfo(AdmId As %String, DiagnosTypeDesc As %String = "", 
 			s SubRowid=$G(^MR($P(Rowid,"||",1),"DIA",$P(Rowid,"||",2),"TYP",0))
 			if SubRowid'="" s MRDiagnosTypeDr=$G(^MR($P(Rowid,"||",1),"DIA",$P(Rowid,"||",2),"TYP",SubRowid))
 			i MRDiagnosTypeDr'="" Set MRDiagnosTypeDesc=$P($G(^MRC("DTYP",MRDiagnosTypeDr)),"^",2)
-			continue:("^"_DiagnosTypeDesc_"^")'[("^"_MRDiagnosTypeDesc_"^") //'=DiagnosTypeDesc
+			continue:(DiagnosTypeDesc'="ALL")&&(("^"_DiagnosTypeDesc_"^")'[("^"_MRDiagnosTypeDesc_"^")) //'=DiagnosTypeDesc
 			s OneRet=Desc
 			if (DiagnosFlag="Y") s OneRet=CodeRowid
 			if RetStr="" s RetStr=OneRet

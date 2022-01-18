@@ -1,0 +1,35 @@
+case "SetCoverMainIns":
+					(function(callBackFunExec){
+						new Promise(function(resolve,rejected){
+							// dhcdoc.confirm.csp
+							/*$.messager.confirm('确认对话框', FunCodeParams, function(r){
+								if (!r) {
+									ReturnObj.OrderCoverMainIns=false;
+								}else{
+									ReturnObj.OrderCoverMainIns=true;
+								}
+								callBackFunExec();
+							});*/
+							//alert(FunCodeParams)
+							FunCodeParams=FunCodeParams.replace(/%/g, "|");
+							var url =  "../csp/dhcdoc.confirm.csp?InsuMsg="+FunCodeParams;//"websys.default.csp?WEBSYS.TCOMPONENT=DHCDocIndicationsChoose";
+				            //原来是将InsuConType放到OrderHiddenPara中第4位?A其实应该赋值到OrderInsurCatRowId隐藏列中
+							websys_showModal({
+								url:url,
+								title:'确认对话框',
+								width:800,height:600,
+								InsurAlertStr:FunCodeParams,
+								CallBackFunc:function(CoverMainIns){
+									websys_showModal("close");
+									if (typeof CoverMainIns=="undefined"){
+										OrderInsurCatRowId=false;
+									}
+									ReturnObj.OrderCoverMainIns=CoverMainIns;
+									resolve();
+								}
+							})
+						}).then(function(){
+							callBackFunExec();
+						})
+					})(resolve); //此处的resolve指的是CallBackFun(ReturnObj);
+					break;

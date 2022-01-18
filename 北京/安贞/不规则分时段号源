@@ -54,6 +54,7 @@ ClassMethod GetRegNumTimeRangeInfo(StartDate, TimeLength, RegNum, StartNum, Step
 		}else{
 			s OneNum=OneNum+OneStepNum
 		}
+		s:OneNum>RegNum OneNum=RegNum
 		s time=StartDate+((i-1)*TimeLength)
 		s time2=StartDate+((i)*TimeLength)
 		i RegNumInfo="" d

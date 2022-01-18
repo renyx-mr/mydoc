@@ -97,7 +97,7 @@ ClassMethod GetPatient(JsonInput, ExtUserID)
 		set PatYBCode=$p($g(^PAPER(myPatientID,"ALL")),"^",19)
 		set Sex=""
 		set SexCode=$p(^PAPER(myPatientID,"ALL"),"^",7)
-		i SexCode'="" set Sex=$p(^CT("SEX",SexCode),"^",2)
+		i SexCode'="" set Sex=$p($g(^CT("SEX",SexCode)),"^",2)
 		set DOB=$p(^PAPER(myPatientID,"ALL"),"^",6)
 		set DocumentID=$p(^PAPER(myPatientID,"PAT",1),"^",22)
 		set AddressId=$o(^PAPER(myPatientID,"PER","ADD",""),-1)

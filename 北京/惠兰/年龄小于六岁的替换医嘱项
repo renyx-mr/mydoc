@@ -1,0 +1,14 @@
+/// w ##class(web.DHCOPAdmRegLocal).CheckPatAge($g(EpisodeID))
+ClassMethod CheckPatAge(EpisodeID As %String)
+{
+	s RetFlag=0
+	q:'$d(^PAADM(EpisodeID)) RetFlag
+	s PatientId=$p($g(^PAADM(EpisodeID)),"^")
+	q:PatientId="" RetFlag
+	s PatDob=$p($g(^PAPER(PatientId,"ALL")),"^",6)
+	q:PatDob="" RetFlag
+	s PatDobYear=$p($zd(PatDob,3),"-")
+	s HourYear=$p($zd(+$h,3),"-")
+	s:(PatDobYear-HourYear)<=5 RetFlag=1
+	q RetFlag
+}

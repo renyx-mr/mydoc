@@ -2,7 +2,7 @@
 	s RegisterInsertArcItem=##class(DHCDoc.DHCDocConfig.LocalConfig).GetLocalConfigValue("OPAdm","RegisterInsert")
 	if (RegisterInsertArcItem'=""){
 		for ArcItemInd=1:1:$l(RegisterInsertArcItem,","){
-			s OneArcItemInfo=$p(RegisterInsertArcItem,",")
+			s OneArcItemInfo=$p(RegisterInsertArcItem,",",ArcItemInd)
 			continue:OneArcItemInfo=""
 			continue:$p(OneArcItemInfo,"!",2)=""
 			continue:AdmDoc'=$p(OneArcItemInfo,"!",1)

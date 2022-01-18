@@ -1,0 +1,34 @@
+/// w ##class(web.UDHCPrescript).GetMarginQty("20587||1","713","2","735",1,1,1)
+ClassMethod GetMarginQty(ARCIMRowid As %String, DoseUOMRowid As %String, DoseQty As %String, PackUomId As %String, PackQty As %String, DurFac As %String, FreqFac As %String)
+{
+	s DrgformRowid=##class(web.DHCDocOrderEntry).GetDrgForm(ARCIMRowid)
+	s INCIRowid=##class(web.DHCDocOrderEntry).GetINCI(+ARCIMRowid)
+	// 基础单位到
+	s ConFac=##class(web.DHCDocOrderEntry).GetConFac(ARCIMRowid,INCIRowid)
+	s DoseConFac="",BSDoseUOM=""
+	d GetCalDose
+	s:BSDoseUOM="" BSDoseUOM=DoseUOMRowid
+	s PackUOMFac=##class(web.DHCSTCOMMONSRV).UOMFac(PackUomId,BSDoseUOM) //,PackUomId)
+	s:DoseConFac="" DoseConFac=1
+	b 
+	q (PackQty*PackUOMFac*DoseConFac)-(DoseQty*DurFac*FreqFac)
+	// ##class(web.DHCDocOrderEntry).CalDose(271,"501||1",1)
+GetCalDose
+	s Drgform1=+DrgformRowid,Drgform2=$p(DrgformRowid,"||",2)
+	q:(Drgform1="")!(Drgform2="") ""
+	s BSDoseUOM=$p($g(^PHCD(Drgform1,"DF",Drgform2,2)),"^",4)
+	s eqUom="",eqqty=""
+	if (BSDoseUOM'=DoseUOMRowid){
+		s leq=0 
+		f {
+			s leq=$o(^PHCD(Drgform1,"DF",Drgform2,"EQ",leq)) 
+			q:leq=""
+			s eqrec=$g(^PHCD(Drgform1,"DF",Drgform2,"EQ",leq))
+			s eqUom=$p(eqrec,"^"),eqqty=$p(eqrec,"^",2)
+		}
+		i (+eqUom'=0)&(+DoseUOMRowid'=0)&(eqUom=DoseUOMRowid){
+			s DoseConFac=eqqty
+		}
+	}
+	q
+}
