@@ -1,0 +1,56 @@
+/// 判是否有开抗菌药物类型的权限 
+/// w ##class(web.DHCOEOrdItem).CheckAntKSSFalg("KSSYYQX","4628","8917",5)
+ClassMethod CheckAntKSSFalg(Code1 As %String, AARowid As %String, UserDr As %String, OrderPriorDr As %String)
+{
+	s RetStr="0"
+	q:'$d(^DHCDAA("ANT",AARowid,1)) RetStr
+	s ConsultDR=$p(^DHCDAA("ANT",AARowid,1),"^",22)
+	s AgreeFlag=$p(^DHCEMCON(ConsultDR),"^",35)    /// 是否同意用药
+	q:AgreeFlag'="Y" RetStr
+	s ConsultDoc1=$p($g(^DHCDAA("ANT",AARowid,1)),"^",5)
+	s CareProvDR = $p(^SSU("SSUSR",UserDr),"^",14)
+	q:CareProvDR="" RetStr
+    s CarPrvTpDR=$p($g(^CTPCP(+$g(CareProvDR),1)),"^",4)
+    q:CarPrvTpDR="" RetStr
+	s MainDesc="本地化配置"
+	s MainID=$$GetDefMain(MainDesc)
+	Q:MainID="" RetStr
+	s rowid=$$GetSubCode()
+	Q:rowid="" RetStr
+	s subrowid=0
+	f  s subrowid=$O(^DHCDocCT("DefineData",rowid,"D",subrowid)) Q:subrowid=""  d
+	.s code=$P(^DHCDocCT("DefineData",rowid,"D",subrowid),"^",1)
+	.q:CarPrvTpDR'=code
+	.s desc=$P(^DHCDocCT("DefineData",rowid,"D",subrowid),"^",2)
+	.s stdate=$P(^DHCDocCT("DefineData",rowid,"D",subrowid),"^",3)
+	.s Enddate=$P(^DHCDocCT("DefineData",rowid,"D",subrowid),"^",4)
+	.Q:((stdate'="")&&(stdate>+$H))
+	.Q:((Enddate'="")&&(Enddate<+$H))
+	.q:(","_desc_",")'[(","_OrderPriorDr_",")
+	.q:CarPrvTpDR'=code
+	.s RetStr="1"
+	q RetStr
+
+GetSubCode()
+	s findrowid=""
+	s rowid=0
+	f  s rowid=$O(^DHCDocCT("Define",rowid)) Q:rowid=""  d
+	.s code=$P(^DHCDocCT("Define",rowid),"^",1)
+	.s submain=$P(^DHCDocCT("Define",rowid),"^",3)
+	.Q:submain'=MainID
+	.Q:code'=Code1
+	.s findrowid=rowid
+	
+	q findrowid
+	
+GetDefMain(MainDesc)
+	s FindRowID=""
+	s rowid=0
+	f  s rowid=$O(^DHCDocCT("Module",rowid)) Q:rowid=""  d
+	.s desc=$P($G(^DHCDocCT("Module",rowid)),"^",1)
+	.Q:desc'=MainDesc
+	.s FindRowID=rowid
+	q FindRowID
+}
+
+}
