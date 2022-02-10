@@ -1,4 +1,5 @@
 ;renyx 添加核算检测号自动插入医嘱
+	;配置串：号别id！医嘱项id！数量！科室id！开医嘱用户id！用法id
 	s RegisterInsertArcItem=##class(DHCDoc.DHCDocConfig.LocalConfig).GetLocalConfigValue("OPAdm","RegisterInsert")
 	if (RegisterInsertArcItem'=""){
 		for ArcItemInd=1:1:$l(RegisterInsertArcItem,","){
@@ -9,7 +10,7 @@
 			continue:AdmDep'=$p(OneArcItemInfo,"!",4)
 			s OnePackQty=$p(OneArcItemInfo,"!",3)
 			s:OnePackQty="" OnePackQty="1"
-			d ##class(web.DHCOPAdmRegLocal).InsertCovi19Order(EpisodeID,AdmDep,user,$p(OneArcItemInfo,"!",2),"",$p(OneArcItemInfo,"!",3),OnePackQty)
+			d ##class(web.DHCOPAdmRegLocal).InsertCovi19Order(EpisodeID,AdmDep,$p(OneArcItemInfo,"!",5),$p(OneArcItemInfo,"!",2),"",$p(OneArcItemInfo,"!",6),OnePackQty)
 		}
 	}
 ;修改退号
@@ -17,6 +18,15 @@
  .s OtherFlags=$p($g(^OEORD(OrderRowId,"I",OrderChild,"DHC")),"^",23)
 	.s OrdBilled=$p($g(^OEORD(OrderRowId,"I",OrderChild,3)),"^",5)
 	.q:(OtherFlags="Reg")&&(OrdBilled'="P")
+///核酸诊断
+ClassMethod InsertCovi19MRDiagnos(EpisodeID, UserID, ICDRowID){
+		s AdmDep=$P(^PAADM(EpisodeID),"^",4)
+		s mrrowid=$p($G(^PAADM(EpisodeID)),"^",61)
+		s MRDIAID=##class(web.DHCMRDiagnos).InsertMRDiagnos(AdmDep,mrrowid,ICDRowID,UserID,"","门诊诊断","","","","","","","","")
+		if (+MRDIAID'=0){
+			s Rtn=##class(web.DHCMRDiagnos).UpdateOnsetDate(MRDIAID,$ZD(+$H,3))
+		}
+}
     /// 插入核酸医嘱
 ClassMethod InsertCovi19Order(EpisodeID As %String, LocID As %String, UserID As %String, ARCIMRowID As %String, OrderLabSpecRowid As %String = "", OrderInstrRowid As %String = "", OrderPackQty As %String = "")
 {
