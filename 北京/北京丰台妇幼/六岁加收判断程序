@@ -1,0 +1,43 @@
+/// renyx 判断患者是否在黑名单列表里面
+/// w ##class(web.DHCOPAdmReg).CheckforBlackList(1)
+ClassMethod CheckforBlackList(EpisodeID As %String,ARCIMRowId As %String)
+{
+	s RetStr=ARCIMRowId
+	s CheckPatAgeFlag=..CheckPatAge(EpisodeID)
+	q:CheckPatAgeFlag=0 RetStr
+	s CTDefineDr=$O(^DHCDocCTi(0,"Define","Code",$$ALPHAUP^SSUTIL4("REPLACEARCITEM"),0))
+	q:CTDefineDr="" RetStr
+	s SubRowId=0
+	for {
+		s SubRowId=$O(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId))
+		q:(SubRowId="")||(RetStr'=ARCIMRowId)
+		s StartDate=$P(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId),"^",3)
+		s EndDate=$P(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId),"^",4)
+		continue:((StartDate'="")&&(StartDate>+$H))
+		continue:((EndDate'="")&&(EndDate<+$H))
+		s DefineDArcItemStr=$P(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId),"^",1)
+        if (DefineDArcItemStr[">"]){
+            s OneArcItemId=$p(DefineDArcItemStr,">",1)
+            s TwoArcItemId=$p(DefineDArcItemStr,">",2)
+            if (OneArcItemId=ARCIMRowId){
+                s RetStr=TwoArcItemId
+            }
+        }
+	}
+	q RetStr
+}
+
+/// w ##class(web.DHCOPAdmRegLocal).CheckPatAge($g(EpisodeID))
+ClassMethod CheckPatAge(EpisodeID As %String)
+{
+	s RetFlag=0
+	q:'$d(^PAADM(EpisodeID)) RetFlag
+	s PatientId=$p($g(^PAADM(EpisodeID)),"^")
+	q:PatientId="" RetFlag
+	s PatDob=$p($g(^PAPER(PatientId,"ALL")),"^",6)
+	q:PatDob="" RetFlag
+	s PatDobYear=$p($zd(PatDob,3),"-")
+	s HourYear=$p($zd(+$h,3),"-")
+	s:(PatDobYear-HourYear)<=5 RetFlag=1
+	q RetFlag
+}

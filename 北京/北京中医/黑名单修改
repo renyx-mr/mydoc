@@ -1,0 +1,22 @@
+/// renyx 判断患者是否在黑名单列表里面
+/// w ##class(web.DHCOPAdmReg).CheckforBlackList(1)
+ClassMethod CheckforBlackList(PatientId As %String)
+{
+	s RetFlag="0"
+	s PatientNo=$p($g(^PAPER(PatientId,"PAT",1)),"^",1)
+	q:PatientNo="" RetFlag
+	s CTDefineDr=$O(^DHCDocCTi(0,"Define","Code",$$ALPHAUP^SSUTIL4("BLACKLIST"),0))
+	q:CTDefineDr="" RetFlag
+	s SubRowId=0
+	for {
+		s SubRowId=$O(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId))
+		q:(SubRowId="")||(RetFlag=1)
+		s StartDate=$P(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId),"^",3)
+		s EndDate=$P(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId),"^",4)
+		continue:((StartDate'="")&&(StartDate>+$H))
+		continue:((EndDate'="")&&(EndDate<+$H))
+		s DefineDCode=$P(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId),"^",1)
+		s:DefineDCode=PatientNo RetFlag="1"
+	}
+	q RetFlag
+}
