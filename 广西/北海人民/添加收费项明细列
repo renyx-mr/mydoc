@@ -1,0 +1,83 @@
+/// renyx 添加收费明细 OrderPriceDetail
+ClassMethod OrderPriceDetail(SessionStr As %String, ByRef ColCFAry As %String, ExpStr As %String = "") As %String
+{
+	s Str="{name:'"_$g(ColCFAry("name"))_"',index:'"_$g(ColCFAry("name"))_"', width:"_$g(ColCFAry("wid"))_",hidden:"_$g(ColCFAry("isHidden"))_","
+	s Str=Str_"editable:false,formatter:OrderPriceDetailClick"
+	s Str=Str_"}"
+	q Str
+}
+
+function OrderPriceDetailClick(value,rowData,rowIndex){
+	return '<span onclick = \'OrderPriceDetailShow('+rowIndex.id+')\'>收费明细</span>'
+}
+function OrderPriceDetailShow(rowIndex){
+	var OrderARCIMRowid = GetCellData(rowIndex, "OrderARCIMRowid");
+	if (OrderARCIMRowid==""){
+		return;
+	}
+	var $code='<div style="border:1px solid #ccc;margin:10px;border-radius:4px;"><table id="OrderPriceGrid"></table></div>'
+	createModalDialogPrice("Grid","收费明细", 1005, 520,"icon-w-list","",$code,"LoadOrderPriceGrid('"+OrderARCIMRowid+"')");
+}
+function LoadOrderPriceGrid(ARCIMRowId){
+	var Columns=[[    
+		{field:'olttariffdr', hidden:true},
+        {title:'收费项目代码',field:'tarcode',width:130},
+        {title:'收费项目名称',field:'tardesc',width:180},
+        {title:'数量',field:'tarnum', width:40},
+        {title:'单位',field:'taruom', width:100},
+        {title:'开始日期',field:'tarDate',width:100},
+        {title:'结束日期',field:'tarDateTo', width:100},
+        {title:'基价模式',field:'OLTBascPriceFlag',width:100},
+        {title:'多部位计价一次',field:'OLTBillOnceFlag', width:120},
+        {title:'价格',field:'tarprice',width:80,align:'right'}
+    ]];
+	$.q({
+	    ClassName:"web.UDHCJFOrdPriceSearch1",
+	    QueryName:"QueryArcimLinkTar",
+	    arcimrowid:ARCIMRowId
+	},function(GridData){
+		$HUI.datagrid('#OrderPriceGrid',{
+		    data:GridData,
+		    idField:'olttariffdr',
+		    fit : false,
+		    width:970,
+		    height:460,
+		    border: false,
+		    columns:Columns,
+		    rowStyler: function(index,row){
+			    if (row.tarnum==""){
+					return 'background-color:#6293BB;color:#fff;';
+				}
+		    }
+		});
+	});  
+}
+function createModalDialogPrice(id, _title, _width, _height, _icon,_btntext,_content,_event){
+    $("body").append("<div id='"+id+"' class='hisui-dialog'></div>");
+    if (_width == null)
+        _width = 800;
+    if (_height == null)
+        _height = 500;
+    $("#"+id).dialog({
+        title: _title,
+        width: _width,
+        height: _height,
+        cache: false,
+        iconCls: _icon,
+        collapsible: false,
+        minimizable:false,
+        maximizable: false,
+        resizable: false,
+        modal: true,
+        closed: false,
+        closable: true,
+        content:_content,
+        onClose:function(){
+	        destroyDialog(id);
+	    },
+	    onBeforeOpen:function(){
+		    if (_event!="") eval(_event);
+		    return true;
+		}
+    });
+}

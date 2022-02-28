@@ -1,5 +1,4 @@
-/// renyx 判断患者是否在黑名单列表里面
-/// w ##class(web.DHCOPAdmReg).CheckforBlackList(1)
+/// renyx 根据就诊号，医嘱项获取六岁替换的医嘱项
 ClassMethod CheckforBlackList(EpisodeID As %String,ARCIMRowId As %String)
 {
 	s RetStr=ARCIMRowId
@@ -16,18 +15,25 @@ ClassMethod CheckforBlackList(EpisodeID As %String,ARCIMRowId As %String)
 		continue:((StartDate'="")&&(StartDate>+$H))
 		continue:((EndDate'="")&&(EndDate<+$H))
 		s DefineDArcItemStr=$P(^DHCDocCT("DefineData",CTDefineDr,"D",SubRowId),"^",1)
-        if (DefineDArcItemStr[">"]){
+        if (DefineDArcItemStr[">"){
             s OneArcItemId=$p(DefineDArcItemStr,">",1)
             s TwoArcItemId=$p(DefineDArcItemStr,">",2)
             if (OneArcItemId=ARCIMRowId){
                 s RetStr=TwoArcItemId
             }
         }
+        if (DefineDArcItemStr["<"){
+            s OneArcItemId=$p(DefineDArcItemStr,"<",1)
+            s TwoArcItemId=$p(DefineDArcItemStr,"<",2)
+            if (TwoArcItemId=ARCIMRowId){
+                s RetStr=OneArcItemId
+            }
+        }
 	}
 	q RetStr
 }
 
-/// w ##class(web.DHCOPAdmRegLocal).CheckPatAge($g(EpisodeID))
+/// 获取患者年龄
 ClassMethod CheckPatAge(EpisodeID As %String)
 {
 	s RetFlag=0

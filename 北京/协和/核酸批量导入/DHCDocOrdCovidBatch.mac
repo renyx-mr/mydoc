@@ -1,0 +1,194 @@
+DHCDocOrdCovidBatch
+
+ ;批量插入患者就诊记录/诊断/医嘱
+ ;w $$importCovid2019Test^DHCDocOrdCovidBatch()
+importCovid2019Test()
+	Set file=##class(%File).%New("/tmp/Covid2019Test.txt")
+	set ExistsFlag=##class(%File).Exists("/tmp/Covid2019Test.txt")
+	if ExistsFlag'=1 d file.Open("N")
+	d file.Close()
+	
+	Set stream=##class(%FileCharacterStream).%New()
+	Set stream.Filename="/tmp/Covid2019Test.txt"
+	
+	;w !,"导入中..."
+	
+	s Count=0,ErrCount=0
+	set myrtn=0
+	While 'stream.AtEnd {
+		Set line=stream.ReadLine()
+		continue:line=""
+		s patNo=$p(line,"	",1)
+		
+		s ret=$$Covid2019Test(patNo)
+		s retCode=$p(ret,"^",1)
+		s retDesc=$p(ret,"^",2)
+		
+		i retCode=0 {
+			s Count=Count+1
+			s admRowId=$p(ret,"^",3)
+			s ^tmpCovid2019Test("Secc",admRowId)=""
+		}else{
+			s ErrCount=ErrCount+1
+			;w "line:"_line_",错误描述:"_retDesc,!
+			s logIndex=$i(^tmpCovid2019Test("Log",+$h))
+ 			s ^tmpCovid2019Test("Log",+$h,logIndex)=$zd(+$h,3)_"^"_$zt($p($h,",",2),1)_"^"_retCode_"^"_retDesc_"^"_line
+		}
+		
+	}
+	;w !,"导入完成...",!
+	kill stream
+	
+	q Count_","_ErrCount
+	
+ ;新冠状病毒核酸检测，插入特定资源就诊记录,插入诊断(),插入特定医嘱()
+ ;w $$Covid2019Test^DHCDocOrdCovid("45203965","24579","58717||1","29673")
+Covid2019Test(PatientNo,DiagnoCode="",ArcimCode="",resCode="",docUserID="",regUserID="")
+	s $zt="Covid2019TestERR"
+	if resCode="" s resCode=44434
+	if DiagnoCode="" s DiagnoCode=24586  //24586  新冠筛查（8可能接触新冠的人员） 24907 新冠筛查(0愿检尽检-自愿检测）
+ 	if ArcimCode="" s ArcimCode="53545||1"  //"52593||1"  新型冠状病毒核酸检测(普筛)  "53545||1" 混采
+ 	
+ 	;需固定的属性
+ 	i regUserID="" s regUserID="5087"			;固定的挂号用户ID(SS_User)  "5089" 李丽
+ 	s SFGroup=$p(^SSU("SSUSR",regUserID),"^",5)	;固定的收费安全组ID(SS_Group)
+ 	i docUserID="" s docUserID="8745"			;固定的医生用户ID(SS_User)
+ 
+ 	s retCode=0,retDesc=""
+ 	s PatientNo=$tr(PatientNo,$c(13),"")
+ 	s PatientID=##class(web.DHCDocOrderEntry).GetPapmiRowidByNo(PatientNo)
+	if PatientID="" {
+		Q "-100^传入登记号未在系统中找到。PatientNo:"_PatientNo
+	}
+	/*
+	s IfRegFlag=$$GetIfRegFlag(PatientID)
+		if IfRegFlag="0" {
+		Q "-101^7日内未找到符合条件科室就诊,不允许挂此号别"
+	}
+	*/
+	TS
+ 	;1.插入急诊科:急诊东无(0),对应资源表Rowid(RB_Resource:17656)
+ 	s AdmLoc=$p(^RB("RES",resCode),"^",1)	;
+	s user=regUserID	;挂号员RowId
+	s MarkType=""
+	s SecheduleDate=+$h
+	s TimeRangeId=##class(web.DHCOPAdmReg).GetTimeRangeByTime($p($h,",",2))
+	s DocId=$p(^RB("RES",resCode),"^",2)
+	;s ASRowId=##class(web.DHCOPAdmReg).GetRapidASRowId(AdmLoc,user,MarkType,SecheduleDate,TimeRangeId,DocId)
+	s ASRowId=##class(web.DHCOPAdmReg).GetTodayASRowIdByRes(AdmLoc,DocId,"",SecheduleDate,TimeRangeId)
+	if ASRowId="" {
+		TRO
+		Q $$Covid2019TestQuit("-101","未找到号别当前时间的出诊记录.")
+	}
+	
+	s FeeStr="0||0||0||0||0"
+	s group=SFGroup	;门诊收费安全组
+	s RegfeeRowId="",InsuBillStr=""
+	s InsuJoinStr=""
+	
+	s UnBillFlag="Y"
+	;强制自费
+	s AdmReasonId=$o(^PAC("ADMREA",0,"Desc","自费",0))
+	;判断是否已经插入过当日就诊记录
+	;s EpisodeID=##class(web.DHCOPAdmReg).GetSameAdm(PatientID,$p(^RB("RES",resCode),"^",1),DocId,SecheduleDate)
+	;不判断是否有过就诊记录
+	s EpisodeID=""
+	if EpisodeID="" {
+ 		;s ret=##class(web.DHCOPAdmReg).OPDocRapidRegist(PatientID,ASRowId,AdmReasonId,FeeStr,user,group,.EpisodeID)		；InsuJoinStr As %String = "", ByRef DiscountFactor As %String = "", SaveType As %String = "Reg", EmployeeNo As %String = "", InsuranceStr As %String = "", SourceType As %String = "His"
+ 		;s ret=##class(web.DHCOPAdmReg).OPRegist(PatientID_"^^^"_UnBillFlag,ASRowId,"","","0||0||0||0||0||0","","",user,group,"","","","",.RegfeeRowId,InsuJoinStr,"","","",InsuBillStr,"")
+ 		s ret=##class(web.DHCOPAdmReg).OPDocRapidRegist(PatientID,ASRowId,AdmReasonId,"0||0||0||0||0||0",user,group,.EpisodeID,"","^CovidBatch")
+ 		if ret'="0" {
+	 		TRO
+			Q $$Covid2019TestQuit("-102","插入就诊记录失败.错误代码:"_ret)
+ 		}
+	}else{
+		;存在就诊,且当前日期已经存在对应医嘱的,则不再插入
+		s OrderRowid=##class(web.DHCDocOrderEntry).GetPAADMOrderRowid(EpisodeID)
+		i OrderRowid'="" {
+			s chl=$O(^OEORDi(0,"ARCIM",OrderRowid,ArcimCode,SecheduleDate,""))
+			if chl'="" {
+				s ItemStatDR=$p($g(^OEORD(OrderRowid,"I",chl,1)),"^",13)
+				s ItemStatCode=$p(^OEC("OSTAT",ItemStatDR),"^",1)
+				i " V U E "[(" "_ItemStatCode_" ") {
+					TRO
+					Q $$Covid2019TestQuit("-10201","存在相同的就诊记录,且当前日期已经存在对应医嘱,不能重复。")
+				}
+			}
+		}
+	}
+ 	;2.	插入诊断
+ 	;LogDepRowid_"^"_MRAdmRowid_"^"_ICDCodeRowid_"^"_UserRowid_"^"_MRDIADesc
+ 	s UserRowid=docUserID	;医生SSUser RowId
+ 	s MRAdmRowId=$p(^PAADM(EpisodeID),"^",61)
+ 	s ret=##class(web.DHCMRDiagnos).InsertMRDiagnos(AdmLoc,MRAdmRowId,DiagnoCode,UserRowid,"","门诊诊断")
+ 	if ret=0 {
+	 	TRO
+	 	Q $$Covid2019TestQuit("-103","插入诊断记录失败.EpisodeID:"_EpisodeID)
+ 	}
+ 	;2.	插入特定医嘱(新冠状病毒核酸检测)
+ 	s AdmReasonId=$p(^PAADM(EpisodeID,1),"^",7)
+	;OrdItemStr:项目ID^数量^接收科室^医嘱价格^标本^费别
+	;接收科室
+	s ArcimRecLoc=##class(web.DHCDocOrderEntry).GetDefaultRecloc(EpisodeID,ArcimCode)
+	s OrdItemStr=ArcimCode_"^1"_"^"_ArcimRecLoc_"^^^"_AdmReasonId
+	s DocUserId=$p(^SSU("SSUSR",UserRowid),"^",14)
+	s OSRID=""	;ARC_OrdSets
+	s ret=##class(web.DHCOPCashier).CashierInsertOrdItem(EpisodeID,OrdItemStr,UserRowid,AdmLoc,DocUserId,OSRID)
+	s retCode=$p(ret,"^",1)
+	s OEORI=$p(ret,"^",2)
+	if retCode'="0" {
+		TRO
+		Q $$Covid2019TestQuit("-104","插入医嘱记录失败.错误代码:"_ret)
+	}
+	;调用结算接口
+	;d ##class(web.DHCOPBillTest).BatchNaCharge(EpisodeID)
+	
+ 	TC
+ 	
+ 	s CurSpace=$znspace
+	zn "DHC-DATA"
+ 	;调用产生处方号和检验号的函数
+ 	s adm=EpisodeID
+ 	d presno3^aOET1(adm,UserRowid,AdmLoc)
+ 	zn CurSpace
+ 	 
+ 	q retCode_"^"_retDesc_"^"_EpisodeID
+ 	
+Covid2019TestQuit(retCode,retDesc)
+ 	q retCode_"^"_retDesc
+ 	
+ 	
+Covid2019TestERR
+	S $ZT=""
+	TRO
+	Q "-222^程序错误,错误:"_$zerror
+	
+GetIfRegFlag(PAPMI)
+	s RegFlag=0  ;0当天无该科室就诊   1有 
+	q:PAPMI="" 0
+	q:'$d(^DHCLISFlag("XGHS",PAPMI)) 0 
+	s Tdate=""
+	f  s Tdate=$o(^DHCLISFlag("XGHS",PAPMI,Tdate))  q:Tdate=""  d
+	.q:Tdate<(+$h-7)
+	.s RegFlag="1"
+	
+	q RegFlag
+GetPatInfo(EpisodeID,ArcimCode)
+    s PatInfo="" 
+    s PatientID=$p(^PAADM(EpisodeID),"^",1)
+	s PatName=$p(^PAPER(PatientID,"ALL"),"^",1)
+    s PatNo=$p(^PAPER(PatientID,"PAT",1),"^",1)
+    s PatSex=""
+    s PatSexDr=$p(^PAPER(PatientID,"ALL"),"^",7)
+    i PatSexDr'="" s PatSex=$p(^CT("SEX",PatSexDr),"^",2)
+    s PAPMIAge=""
+    s DobDate=$P($g(^PAPER(PatientID,"ALL")),"^",6)
+   
+    s ARCIMDesc=$p($G(^ARCIM(+ArcimCode,$P(ArcimCode,"||",2),1)),"^",2)
+    s AdmReason=$p(^PAADM(EpisodeID,1),"^",7)
+
+    s price=$p(##Class(web.UDHCJFPRICE).GetOrderPrice("",AdmReason,ArcimCode,+$h,"","","",""),"^",4)
+    i DobDate'="" s PAPMIAge=$P(##class(web.DHCLCNUREXCUTE).CalAge(DobDate,+$H),"Y",1)_"岁"
+    
+    s PatInfo=PatName_"$"_PatNo_"$"_PatSex_"$"_PAPMIAge_"$"_ARCIMDesc_"$"_price
+    q PatInfo
