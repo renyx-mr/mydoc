@@ -1,0 +1,87 @@
+GetDecoctBehalf(Adm,OrdItemStr,MasterSeqNo)
+	s AdmType=$P($g(^PAADM(Adm)),"^",2)
+	s AppendItemStr=""
+	s OrdItem=CacheTemp("DHCCDocInsertItem",$J,ord,MasterSeqNo)
+	Q:OrdItem="" 0
+	s OrderDecoctingMachine=$p(OrdItem,"^",83)
+	;没有勾选代煎则退出
+	q:OrderDecoctingMachine'="Y" 0
+	s AppendItemStr=##class(DHCDoc.DHCDocConfig.LocalConfig).GetLocalConfigValue("OPDoc","DecoctBehalfItem",CurLogonHosp)
+	q:AppendItemStr="" 0
+	Set SubSeqNo=$O(CacheTemp("DHCCDocInsertItem",$J,ord,MasterSeqNo,"sub",""),-1)
+	for AppendItemInd=1:1:$L(AppendItemStr,",") {
+		Set SubSeqNo=SubSeqNo+1
+		Set ARCIMRowid=$P(AppendItemStr,",",AppendItemInd)
+		Set ItemCatDR=$p(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1),"^",10)
+		Set OrderType=$P(^ARC("IC",ItemCatDR),"^",7)
+		Set PriorRowid=$p(OrdItem,"^",3)
+		if OrderType'="R" {
+			if PriorRowid=+$O(^OECPR(0,"Code","OM",0)) s PriorRowid=$O(^OECPR(0,"Code","NORM",0))
+			if PriorRowid=+$O(^OECPR(0,"Code","OMST",0)) s PriorRowid=$O(^OECPR(0,"Code","S",0)) 
+			if PriorRowid=+$O(^OECPR(0,"Code","ONE",0)) s PriorRowid=$O(^OECPR(0,"Code","NORM",0)) 
+		}
+		if PriorRowid=+$O(^OECPR(0,"Code","OMCQZT",0)) s PriorRowid=$O(^OECPR(0,"Code","S",0)) 
+		if PriorRowid=+$O(^OECPR(0,"Code","OMLSZT",0)) s PriorRowid=$O(^OECPR(0,"Code","NORM",0))
+		Set startdate=$p(OrdItem,"^",4)
+		Set starttime=$p(OrdItem,"^",5)
+		Set DecoctQty=$p(OrdItem,"^",84)
+		Set oeprice=""
+		if OrderOpenForAllHosp=1 Set RecDepRowid=$$GetLocRecLoc(Loc,ARCIMRowid)
+		else  Set RecDepRowid=$$GetRecloc(Adm,ARCIMRowid)
+		;没有维护接受科室默认为患者所在科室
+		s admloc=$P($G(^PAADM(Adm)),"^",4)
+		s:RecDepRowid="" RecDepRowid=admloc
+		Set AdmReason=$p(OrdItem,"^",9)
+		Set DrugFormRowid=""
+		Set DepProcNotes=""
+		Set DoseQty=""
+		Set DoseUOMRowid=""
+		Set FreqRowid=$p(OrdItem,"^",15)
+		Set DurRowid=$p(OrdItem,"^",16)
+		Set InstrRowid=""
+		Set PHPrescType=""
+		Set SkinTest=""
+		Set PhSpecInstr=""
+		Set OrderCoverMainIns=$p(OrdItem,"^",23)
+		Set ActionRowid=""
+		Set ARCOSRowid=""
+		Set EndDate=$p(OrdItem,"^",26)
+		Set EndTime=$p(OrdItem,"^",27)
+		if EndDate'="" s EndDate=$$zdhFormat(EndDate)
+	    if EndTime'="" s EndTime=$zth(EndTime)
+		Set ExecuteDateStr=""
+		Set NotifyClinician=""
+		Set DIACatRowId=""
+		Set InsurCatRowId=""	
+		Set PackQty=DecoctQty
+		Set DoseQtySum=DecoctQty
+		Set FirstDayTimes=$p(OrdItem,"^",33)	////$$GetAppendOrdFirstDayTimes(PriorRowid,ARCIMRowid,FreqRowid,startdate,starttime)
+		Set OrderStageCode=$p(OrdItem,"^",35)
+		Set OrderFreqWeekStr=$p(OrdItem,"^",67)
+		Set AnaesthesiaID=$p(OrdItem,"^",37)
+		Set OperationCode=""
+		Set AntCVID=$p(OrdItem,"^",73)
+		Set AppendOrdItem=ARCIMRowid_"^"_OrderType_"^"_PriorRowid_"^"_startdate_"^"_starttime_"^"_PackQty_"^"_oeprice
+		Set AppendOrdItem=AppendOrdItem_"^"_RecDepRowid_"^"_AdmReason_"^"_DrugFormRowid_"^"_DepProcNotes
+		Set AppendOrdItem=AppendOrdItem_"^"_DoseQty_"^"_DoseUOMRowid_"^"_DoseQtySum_"^"_FreqRowid_"^"_DurRowid_"^"_InstrRowid
+		Set AppendOrdItem=AppendOrdItem_"^"_PHPrescType_"^"_MasterSeqNo_"^"_SubSeqNo_"^"_SkinTest_"^"_PhSpecInstr_"^"_OrderCoverMainIns
+		Set AppendOrdItem=AppendOrdItem_"^"_ActionRowid_"^"_ARCOSRowid
+		Set $p(AppendOrdItem,"^",26)=EndDate
+  		Set $p(AppendOrdItem,"^",27)=EndTime
+		Set $p(AppendOrdItem,"^",33)=$p(OrdItem,"^",33)
+		Set $p(AppendOrdItem,"^",35)=OrderStageCode
+		Set $p(AppendOrdItem,"^",37)=AnaesthesiaID
+		Set $P(AppendOrdItem,"^",46)=$p(OrdItem,"^",46)	;OrderDate
+		Set $P(AppendOrdItem,"^",47)=$p(OrdItem,"^",47)	;OrderTime
+  		Set $p(AppendOrdItem,"^",56)=""
+  		Set $P(AppendOrdItem,"^",58)=""
+  		Set $p(AppendOrdItem,"^",61)=OperationCode
+  		Set $P(AppendOrdItem,"^",67)=OrderFreqWeekStr
+  		Set $P(AppendOrdItem,"^",68)=$case(OrderOpenForAllHosp,1:"Y",:"N")
+  		Set $P(AppendOrdItem,"^",73)=AntCVID
+  		Set $p(AppendOrdItem,"^",78)=$p(OrdItem,"^",78)
+  		Set $p(AppendOrdItem,"^",79)=$p(OrdItem,"^",79)	///虚拟长期标识
+  		Set $p(AppendOrdItem,"^",81)=$p(OrdItem,"^",81)
+		Set CacheTemp("DHCCDocInsertItem",$J,ord,MasterSeqNo,"sub",SubSeqNo)=AppendOrdItem
+	}
+	q 0

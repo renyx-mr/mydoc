@@ -1,7 +1,7 @@
 Class DHCDoc.Interface.SQSH.PublicMeth Extends %RegisteredObject
 {
 /// 患者+就诊编码+医生唯一编码
-ClassMethod GetOrderMesageJD(PAADMDr, IP, UserID, CTLocID) As DHCDoc.Interface.SQSH.DataPackage
+ClassMethod GetOrderMesageJD(PAADMDr, IP, UserID, CTLocID,OEOrdItemIDs As %String) As DHCDoc.Interface.SQSH.DataPackage
 {
 	s needSend="N"
 	Q:PAADMDr="" "-1"
@@ -10,10 +10,8 @@ ClassMethod GetOrderMesageJD(PAADMDr, IP, UserID, CTLocID) As DHCDoc.Interface.S
 	s PatNo=$p(^PAPER(PAPMIID,"PAT",1),"^",2) ;登记号
 	s MainPriseNO=PatNo_"||"_PAADMDr_"||"_UserID ;处方审核的唯一标志
 	s PAADMType=$P($G(^PAADM(PAADMDr)),"^",2) ;处方类型
+	q:PriseType'="O" ""
 	s PriseType="门诊"
-	s:PAADMType="E" PriseType="急诊"
-	s:PAADMType="I" PriseType="住院"
-	
 	s OutObj=##class(DHCDoc.Interface.SQSH.DataPackage).%New()
 	s OutObj.ResultCode=0
 	s OutObj.ResultContent="成功"
@@ -37,287 +35,112 @@ ClassMethod GetOrderMesageJD(PAADMDr, IP, UserID, CTLocID) As DHCDoc.Interface.S
 	s PresInfoObj.TotalPrice="" //单张处方总价
 	s OutObj.PresInfo=PresInfoObj
 	
-	d ..GetSavedOrderJD(PAADMDr,.OutObj)
-	s needSend="Y"
+	d ..GetSavedOrderJD(PAADMDr,.OutObj,OEOrdItemIDs)
+	j ##class(web.DHCENS.BLL.HLWYY.Method.AdvancePrescriptionAudit).SendPrescriptionData(##class(DHCDoc.Util.XMLParse).ObjToXML(OutObj,"Request").Read())
 	q OutObj
 }
 /// 获取已经审核的医嘱项目
 /// w ##class(DHCDoc.Interface.SQSH.PublicMeth).GetSavedOrder(7911343,"")
-ClassMethod GetSavedOrderJD(PAADMDr, OutObj As %ObjectHandle) As %String
+ClassMethod GetSavedOrderJD(PAADMDr, OutObj As %ObjectHandle,OEOrdItemIDs As %String) As %String
 {
-	s PAADMType=$P($G(^PAADM(PAADMDr)),"^",2) ;处方类型
-	if (PAADMType'="I"){
-		//门急诊不上传历史  方案没有确定
-		q:..#OPNewversion=0
-		
-		//提取门诊处方信息
-		d ..GetOPSavedOrderJD(PAADMDr,.OutObj)
-		
-		//提取对应的--相同就诊日期的其他就诊信息的医嘱信息
-		s AdmDate=$P($G(^PAADM(PAADMDr)),"^",6)
-		s PersonDr=$P($G(^PAADM(PAADMDr)),"^",1)
-		if PersonDr'=""  d
-		.s AdmType=0
-		.f  s AdmType=$O(^PAPERdr(PersonDr,"ADM",AdmType)) Q:AdmType=""  d
-		..Q:AdmType="I"
-		..s AdmRowID=0
-		..f  s AdmRowID=$O(^PAPERdr(PersonDr,"ADM",AdmType,AdmRowID)) Q:AdmRowID=""  d
-		...Q:AdmRowID=PAADMDr
-		...s VisitStatus=$P($G(^PAADM(AdmRowID)),"^",20)
-		...Q:VisitStatus'="A"
-		...s AdmDateN=$P($G(^PAADM(AdmRowID)),"^",6)
-		...Q:AdmDateN'=AdmDate ;同一天就诊信息的才去上传
-		...d ..GetOPSavedOrderJD(AdmRowID,.OutObj)
-
-	}else{
-		//提取住院处方信息
-		d ..GetIPSavedOrderJD(PAADMDr,.OutObj)
+	q:OEOrdItemIDs=""
+	s OrderLen=$L(OEOrdItemIDs,"^")
+	s PAADMType=$P($G(^PAADM(PAADMDr)),"^",2) ;患者类型
+	k OrdPrescNoList($j)
+	f OEOrdItemInd=1:1:OrderLen 
+	{
+		S OneOrderStr=$P(OEOrdItemIDs,"^",OEOrdItemInd)
+		s OrderIDGet=$P(OneOrderStr,"*",2)
+		continue:OrderIDGet=""
+		s ArcimRowId=$p($p(OrderStr,"^",OEOrdItemInd),"*",1)
+		continue:ArcimRowId=""
+		s OrdPrescNo=$p($g(^OEORD(+OrderIDGet,"I",$p(OrderIDGet,"||",2),1)),"^",14)
+		continue:OrdPrescNo=""
+		s InciDr=##class(web.DHCOutPhCommon).GetInciByOrditm(OrderIDGet)
+		continue:InciDr=""
+		s INFOSeparateBuyFlag=##class(PHA.COM.Drug).INFOSeparateBuyFlagByInci(InciDr)
+		continue:INFOSeparateBuyFlag'="Y"
+		s statcode="V"
+		s statdr=$P($G(^OEORD(+OrderIDGet,"I",$p(OrderIDGet,"||",2),1)),"^",13)
+		i statdr'="" d
+		.s statcode=$p($g(^OEC("OSTAT",statdr)),"^",1)
+		continue:statcode'="V"
+		s UserAdd=$p($g(^OEORD(+OrderIDGet,"I",$p(OrderIDGet,"||",2),7)),"^",1) //医嘱录入人
+		continue:UserAdd=""
+		s UserDepartId=$p($g(^OEORD(+OrderIDGet,"I",$p(OrderIDGet,"||",2),7)),"^",2) //下医嘱科室
+		continue:UserDepartId=""
+		if ($g(OrdPrescNoList($j,OrdPrescNo))=""){
+			s OrdPrescNoList($j,OrdPrescNo)=OrderIDGet
+		}else{
+			s OrdPrescNoList($j,OrdPrescNo)=$g(OrdPrescNoList($j,OrdPrescNo))_"^"_OrderIDGet
+		}
 	}
-}
-/// 按照住院就诊记录获取处方信息
-ClassMethod GetIPSavedOrder(PAADMDr, OutObj As %ObjectHandle) As %String
-{
-	//住院不按照处方走一个药品一个处方
-	s PAADMType=$P(^PAADM(PAADMDr),"^",2)
-	s orderdr=+$O(^OEORD(0,"Adm",PAADMDr,0))
-	Q:orderdr=0
-
-	s AdmReason="" ;费别
-	s AdmReasonId=$p(^PAADM(PAADMDr,1),"^",7)
-	i AdmReasonId'="" s AdmReason=$p(^PAC("ADMREA",AdmReasonId),"^",2)
-	
-	//按照不同HIS版本进行数据提取
-	if (..#version=1){
-		d OEOrderVersionJD()
-	}elseif (..#version=2){
-		d OEExecVersionjD()
+	s Presno=0
+	for {
+		s Presno=$o(OrdPrescNoList($j,Presno))
+		q:Presno=""
+		s QueRowId=$o(^PAQUE1(0,"PrescNo",Presno,0))
+		continue:QueRowId=""
+		s PresLoc=$P($G(^PAQUE1(QueRowId)),"^",4) //开单科室
+		s PresCtpcpdr=$P($G(^PAQUE1(QueRowId)),"^",5) //开单医生
+		s transDate=$P($G(^PAQUE1(QueRowId)),"^",7) //开单日期
+		s transTime=$P($G(^PAQUE1(QueRowId)),"^",8) //开单时间
+		s UserID=$O(^SSU("SSUSR",0,"CTPCP",PresCtpcpdr,0)) //开单人对应的用户
+		s FeeItemsObj=##class(DHCDoc.Interface.SQSH.List.FeeItems).%New()
+		s OrdItemDrStr=$g(OrdPrescNoList($j,Presno))
+		s FindAcitveOrd="N"
+		for OrdItemInd=1:1:$l(OrdItemDrStr,"^"){
+			s OneOrdItemDr=$p(OrdItemDrStr,"^",OrdItemInd)
+			continue:OneOrdItemDr=""
+			s statcode="V"
+			s statdr=$P($G(^OEORD(+OneOrdItemDr,"I",$p(OneOrdItemDr,"||",2),1)),"^",13)
+			i statdr'="" d
+			.s statcode=$p($g(^OEC("OSTAT",statdr)),"^",1)
+			Q:statcode'="V"
+			s oneOneDugs=..getOneDugsJD(OneOrdItemDr,PAADMType)
+			d FeeItemsObj.Drugs.Insert(oneOneDugs)
+			s UserAdd=$p($g(^OEORD(+OneOrdItemDr,"I",$p(OneOrdItemDr,"||",2),7)),"^",1) //医嘱录入人
+			s:((UserID="")||(UserAdd'="")) UserID=UserAdd
+			s UserDepartId=$p($g(^OEORD(+OneOrdItemDr,"I",$p(OneOrdItemDr,"||",2),7)),"^",2) //下医嘱科室
+			s:((PresLoc="")&&(UserDepartId'="")) PresLoc=UserDepartId
+			s FindAcitveOrd="Y"
+			
+		}
+		continue:FindAcitveOrd'="Y"
+		continue:UserID="" //没有医嘱录入人的项目不上传
+		continue:PresLoc="" //没有录入科室不上传
+		s OrdCtpcpDr=$p($g(^SSU("SSUSR",UserID)),"^",14)
+		if ((OrdCtpcpDr'="")&&(OrdCtpcpDr'=PresCtpcpdr))  d
+		.s PresCtpcpdr=OrdCtpcpDr
+		s CTLocDesc=$P($G(^CTLOC(PresLoc)),"^",2) //科室描述
+		s CTLocCode=$P($G(^CTLOC(PresLoc)),"^",1) //科室Code
+		s CtpcpDr=$p($g(^SSU("SSUSR",UserID)),"^",14) //医护人员
+		s SSUSRInitials=$p($g(^SSU("SSUSR",UserID)),"^",1)
+		s CtpcpName=""
+		s:PresCtpcpdr'="" CtpcpName=$p($g(^CTPCP(PresCtpcpdr,1)),"^",2) //医生姓名
+		s:CtpcpName="" CtpcpName=$p($g(^SSU("SSUSR",UserID)),"^",2)
+		s CtpcpTypeDesc=""
+		if PresCtpcpdr'=""  d
+		.s CtpcpType=$P(^CTPCP(PresCtpcpdr,1),"^",4)
+		.s CtpcpTypeDesc=""
+		.s:CtpcpType'="" CtpcpTypeDesc=$P($G(^CT("CPT",CtpcpType)),"^",2)
+		s FeeItemsObj.PrescriptionId=Presno //处方唯一标识（非空）
+		s FeeItemsObj.DoctorDepartmentId=CTLocCode //开方科室Id
+		s FeeItemsObj.DoctorDepartmentName=CTLocDesc //开方科室名称
+		s FeeItemsObj.DoctorLevel=CtpcpTypeDesc //开方医师级别
+		s FeeItemsObj.DoctorId=SSUSRInitials //开方医师编号
+		s FeeItemsObj.DoctorName=CtpcpName //开方医师姓名
+		s FeeItemsObj.PrescriptionDate=$ZD(transDate,3)_" "_$ZT(transTime,1) //开方时间（格式）
+		s FeeItemsObj.DispenseDepartmentId="" //发药科室Id
+		s FeeItemsObj.DispenseDepartmentName="" //发药科室名称
+		s FeeItemsObj.DispenseDoctorId="" //发药医生ID
+		s FeeItemsObj.DispenseDoctorName="" //发药医生名称
+		s FeeItemsObj.DispenseDate="" //发药日期(2013-03-29)（格式）
+		s FeeItemsObj.Insurance=AdmReason //医保属性
+		s FeeItemsObj.Remark="" //处方备注
+		d OutObj.FindOrders.Insert(FeeItemsObj)
 	}
 	q 
-OEOrderVersionJD()
-	;滚医嘱版本
-	k ^TempOrdFindSave($J,orderdr)
-	s ordersubdr=0
-	f  s ordersubdr=$O(^OEORDi(0,"ItemDate",+$H,orderdr,ordersubdr)) Q:ordersubdr=""  d
-	.s stdate=$p($g(^OEORD(orderdr,"I",ordersubdr,1)),"^",9) ;开始日期不是当日的
-	.Q:stdate>+$H
-	.s statcode="V"
-	.s statdr=$P($G(^OEORD(orderdr,"I",ordersubdr,1)),"^",13)
-	.i statdr'="" d
-	..s statcode=$p($g(^OEC("OSTAT",statdr)),"^",1)
-	.Q:statcode'="V"
-	.s ARCIMRowid=$P($G(^OEORD(orderdr,"I",ordersubdr,1)),"^",2)
-	.s ArcimCode=$p(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1),"^",1)
-	.s ItemCatDR=$p(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1),"^",10)
-	.s OrdType=$P(^ARC("IC",ItemCatDR),"^",7)
-	.s OECOrdDr=$P(^ARC("IC",ItemCatDR),"^",8)
-	.Q:OrdType'="R"
-	.q:OECOrdDr="3"
-	.Q:$D(^TempOrdFindSave($J,orderdr,ordersubdr))
-	.s ^TempOrdFindSave($J,orderdr,ordersubdr)=""
-	.d SetOneListJD()
-	
-	;按照开始日期补漏掉的医嘱项目 可能修改了界面上的医嘱日期
-	s ordersubdr=0
-	f  s ordersubdr=$O(^OEORDi(0,"StDt",+$H,orderdr,ordersubdr)) Q:ordersubdr=""  d
-	.Q:$D(^TempOrdFindSave($J,orderdr,ordersubdr))
-	.s statcode="V"
-	.s statdr=$P($G(^OEORD(orderdr,"I",ordersubdr,1)),"^",13)
-	.i statdr'="" d
-	..s statcode=$p($g(^OEC("OSTAT",statdr)),"^",1)
-	.Q:statcode'="V"
-	.s ARCIMRowid=$P($G(^OEORD(orderdr,"I",ordersubdr,1)),"^",2)
-	.s ArcimCode=$p(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1),"^",1)
-	.s ItemCatDR=$p(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1),"^",10)
-	.s OrdType=$P(^ARC("IC",ItemCatDR),"^",7)
-	.s OECOrdDr=$P(^ARC("IC",ItemCatDR),"^",8)
-	.Q:OrdType'="R"
-	.q:OECOrdDr="3"
-	.d SetOneListJD()
-	.s ^TempOrdFindSave($J,orderdr,ordersubdr)=""
-	k ^TempOrdFindSave($J)
-	q
-OEExecVersionJD()	
-	;滚执行记录版本
-	k ^TempOrdFindSave($J,orderdr)
-	s extime=0
-	f  s extime=$O(^OEORDi(0,"Date",orderdr,+$H,extime)) Q:extime=""  d
-	.s ordersubdr=0
-	.f  s ordersubdr=$O(^OEORDi(0,"Date",orderdr,+$H,extime,ordersubdr)) Q:ordersubdr=""  d
-	..s statcode="V"
-	..s statdr=$P($G(^OEORD(orderdr,"I",ordersubdr,1)),"^",13)
-	..i statdr'="" d
-	...s statcode=$p($g(^OEC("OSTAT",statdr)),"^",1)
-	..Q:statcode'="V"
-	..s ARCIMRowid=$P($G(^OEORD(orderdr,"I",ordersubdr,1)),"^",2)
-	..s ArcimCode=$p(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1),"^",1)
-	..s ItemCatDR=$p(^ARCIM(+ARCIMRowid,$p(ARCIMRowid,"||",2),1),"^",10)
-	..s OrdType=$P(^ARC("IC",ItemCatDR),"^",7)
-	..s OECOrdDr=$P(^ARC("IC",ItemCatDR),"^",8)
-	..Q:OrdType'="R"
-	..q:OECOrdDr="3"
-	..
-	..s FindExeOrd="N"
-	..s oeordexcdr=0
-	..f oeordexcdr=$O(^OEORDi(0,"Date",orderdr,+$H,extime,ordersubdr,oeordexcdr)) Q:oeordexcdr=""  d
-	...s statucode=""
-	...s execstatudr=$P(^OEORD(+orderdr,"I",ordersubdr,"X",oeordexcdr),"^",16)
-	...if execstatudr'="" s statucode=$p($g(^OEC("STAT",execstatudr)),"^",1)
-	...Q:((statucode="D")||(statucode="C")||(statucode="R"))
-	...s FindExeOrd="Y"
-	..Q:$D(^TempOrdFindSave($J,orderdr,ordersubdr))
-	..s ^TempOrdFindSave($J,orderdr,ordersubdr)=""
-	..Q:FindExeOrd'="Y"
-	..d SetOneListJD()
-	k ^TempOrdFindSave($J)
-	q
-SetOneListJD()
-	if (+orderdr'=0)&&(+ordersubdr'=0)  d
-	.s UserID=$p($g(^OEORD(orderdr,"I",ordersubdr,7)),"^",1) //医嘱录入人
-	.s PresLoc=$p($g(^OEORD(orderdr,"I",ordersubdr,7)),"^",2) //下医嘱科室
-	.s PresCtpcpdr=$p($g(^SSU("SSUSR",UserID)),"^",14)
-	.s CTLocDesc=$P($G(^CTLOC(PresLoc)),"^",2) //科室描述
-	.s CTLocCode=$P($G(^CTLOC(PresLoc)),"^",1) //科室Code
-	.s CtpcpDr=$p($g(^SSU("SSUSR",UserID)),"^",14) //医护人员
-	.s SSUSRInitials=$p($g(^SSU("SSUSR",UserID)),"^",1)
-	.s CtpcpName=""
-	.s:PresCtpcpdr'="" CtpcpName=$p($g(^CTPCP(PresCtpcpdr,1)),"^",2) //医生姓名
-	.s:CtpcpName="" CtpcpName=$p($g(^SSU("SSUSR",UserID)),"^",2)
-	.s CtpcpTypeDesc=""
-	.if PresCtpcpdr'=""  d
-	..s CtpcpType=$P(^CTPCP(PresCtpcpdr,1),"^",4)
-	..s CtpcpTypeDesc=""
-	..s:CtpcpType'="" CtpcpTypeDesc=$P($G(^CT("CPT",CtpcpType)),"^",2)
-	.
-	.s OrderStarDate=$p($g(^OEORD(orderdr,"I",ordersubdr,1)),"^",9) ;医嘱开始日期
-	.s OrderStarTime=$p($g(^OEORD(orderdr,"I",ordersubdr,1)),"^",10) ;医嘱开始时间
-	.
-	.;没有开始日期按照下医嘱日期进行输出
-	.if OrderStarDate=""  d
-	..s OrderStarDate=$p($g(^OEORD(orderdr,"I",ordersubdr,3)),"^",7)	;下医嘱日期
-	..s OrderStarTime=$p($g(^OEORD(orderdr,"I",ordersubdr,1)),"^",17)	;下医嘱时间
-	.s OrderOnlyID=$P($G(^OEORD(orderdr,"I",ordersubdr,"LOCAL")),"^",..#DataLocation)
-	.s:OrderOnlyID="" OrderOnlyID=orderdr_"||"_ordersubdr
-	.
-	.;---滚医嘱的版本处理数据
-	.if ..#version=1  d
-	..s findstr=..getFillerNoOnlyID(orderdr_"||"_ordersubdr)
-	..s OrderOnlyID=$P(findstr,"^",2)
-	..s orditemdif=$P(findstr,"^",1)
-	..;按照主医嘱来算
-	..s OrderStarDate=$p($g(^OEORD(+orditemdif,"I",$P(orditemdif,"||",2),1)),"^",9)
-	..s OrderStarTime=$p($g(^OEORD(+orditemdif,"I",$P(orditemdif,"||",2),1)),"^",10)
-	..if OrderStarDate=""  d
-	...s OrderStarDate=$p($g(^OEORD(+orditemdif,"I",$P(orditemdif,"||",2),3)),"^",7)
-	...s OrderStarTime=$p($g(^OEORD(+orditemdif,"I",$P(orditemdif,"||",2),1)),"^",17)
-	.
-	.s FeeItemsObj=##class(DHCDoc.Interface.SQSH.List.FeeItems).%New()
-	.s FeeItemsObj.PrescriptionId=OrderOnlyID //处方唯一标识
-	.s FeeItemsObj.DoctorDepartmentId=CTLocCode //开方科室Id
-	.s FeeItemsObj.DoctorDepartmentName=CTLocDesc //开方科室名称
-	.s FeeItemsObj.DoctorLevel=CtpcpTypeDesc //开方医师级别
-	.s FeeItemsObj.DoctorId=SSUSRInitials //开方医师编号
-	.s FeeItemsObj.DoctorName=CtpcpName //开方医师姓名
-	.s FeeItemsObj.PrescriptionDate=$ZD(OrderStarDate,3)_" "_$ZT(OrderStarTime,1) //开方时间（格式）
-	.s FeeItemsObj.DispenseDepartmentId="" //发药科室Id
-	.s FeeItemsObj.DispenseDepartmentName="" //发药科室名称
-	.s FeeItemsObj.DispenseDoctorId="" //发药医生ID
-	.s FeeItemsObj.DispenseDoctorName="" //发药医生名称
-	.s FeeItemsObj.DispenseDate="" //发药日期(2013-03-29)（格式）
-	.s FeeItemsObj.Insurance=AdmReason //医保属性
-	.s FeeItemsObj.Remark="" //处方备注
-	.s PriorCode=""
-	.s OrderPriorRowid=$P($G(^OEORD(orderdr,"I",ordersubdr,1)),"^",8) ; OEORI_Priority_dr
-	.s:OrderPriorRowid'="" PriorCode=$P($G(^OECPR(OrderPriorRowid)),"^",2)
-
-	.;s FeeItemsObj.DoctorAdviceType=PriorCode
-	.s oneOneDugs=..getOneDugsJD(orderdr_"||"_ordersubdr,PAADMType)
-	.d FeeItemsObj.Drugs.Insert(oneOneDugs)
-	.d OutObj.FindOrders.Insert(FeeItemsObj) //将一个处方信息插入到对应的已保存医嘱信息中
-	q
-}
-
-/// 按照门诊就诊记录获取处方信息
-ClassMethod GetOPSavedOrderJD(PAADMDr, OutObj As %ObjectHandle) As %String
-{
-	
-	s orderdr=$o(^OEORD(0,"Adm",PAADMDr,0))
-	q:+orderdr=0
-	s PAADMType=$P($G(^PAADM(PAADMDr)),"^",2) ;患者类型
-	s PAPMIID=$P($G(^PAADM(PAADMDr)),"^",1)
-	s PatNo=$p(^PAPER(PAPMIID,"PAT",1),"^",2) ;登记号	
-	s AdmReason="" ;费别
-	s AdmReasonId=$p(^PAADM(PAADMDr,1),"^",7)
-	i AdmReasonId'="" s AdmReason=$p(^PAC("ADMREA",AdmReasonId),"^",2)
-	
-	//按照处方表查询信息
-	S querowid=0
-	f  s querowid=$O(^PAQUE1(0,"QUE1_PAADM_DR",PAADMDr,querowid)) Q:querowid=""  d
-	.s presno=$P($G(^PAQUE1(querowid)),"^",14) //处方号
-	.Q:presno=""
-	.s PresLoc=$P($G(^PAQUE1(querowid)),"^",4) //开单科室
-	.s PresCtpcpdr=$P($G(^PAQUE1(querowid)),"^",5) //开单医生
-	.s transDate=$P($G(^PAQUE1(querowid)),"^",7) //开单日期
-	.s transTime=$P($G(^PAQUE1(querowid)),"^",8) //开单时间
-	.s UserID=$O(^SSU("SSUSR",0,"CTPCP",PresCtpcpdr,0)) //开单人对应的用户
-	.
-	.s FeeItemsObj=##class(DHCDoc.Interface.SQSH.List.FeeItems).%New()
-	.
-	.;-------------------查询对应的处方药品
-	.s FindAcitveOrd=""
-	.s ordersubdr=0
-	.f  s ordersubdr=$O(^OEORD(0,"PrescNo",presno,orderdr,ordersubdr)) Q:ordersubdr=""  d
-	..s statcode="V"
-	..s statdr=$P($G(^OEORD(orderdr,"I",ordersubdr,1)),"^",13)
-	..i statdr'="" d
-	...s statcode=$p($g(^OEC("OSTAT",statdr)),"^",1)
-	..Q:statcode'="V"
-	..s oneOneDugs=..getOneDugsJD(orderdr_"||"_ordersubdr,PAADMType)
-	..d FeeItemsObj.Drugs.Insert(oneOneDugs)
-	..s UserAdd=$p($g(^OEORD(orderdr,"I",ordersubdr,7)),"^",1) //医嘱录入人
-	..s:((UserID="")||(UserAdd'="")) UserID=UserAdd
-	..s UserDepartId=$p($g(^OEORD(orderdr,"I",ordersubdr,7)),"^",2) //下医嘱科室
-	..s:((PresLoc="")&&(UserDepartId'="")) PresLoc=UserDepartId
-	..s FindAcitveOrd="Y"
-	.Q:FindAcitveOrd'="Y"
-	.;------------------补全头信息
-	.
-	.Q:UserID="" //没有医嘱录入人的项目不上传
-	.Q:PresLoc="" //没有录入科室不上传
-	.s OrdCtpcpDr=$p($g(^SSU("SSUSR",UserID)),"^",14)
-	.if ((OrdCtpcpDr'="")&&(OrdCtpcpDr'=PresCtpcpdr))  d
-	..s PresCtpcpdr=OrdCtpcpDr
-	.s CTLocDesc=$P($G(^CTLOC(PresLoc)),"^",2) //科室描述
-	.s CTLocCode=$P($G(^CTLOC(PresLoc)),"^",1) //科室Code
-	.s CtpcpDr=$p($g(^SSU("SSUSR",UserID)),"^",14) //医护人员
-	.s SSUSRInitials=$p($g(^SSU("SSUSR",UserID)),"^",1)
-	.s CtpcpName=""
-	.s:PresCtpcpdr'="" CtpcpName=$p($g(^CTPCP(PresCtpcpdr,1)),"^",2) //医生姓名
-	.s:CtpcpName="" CtpcpName=$p($g(^SSU("SSUSR",UserID)),"^",2)
-	.s CtpcpTypeDesc=""
-	.if PresCtpcpdr'=""  d
-	..s CtpcpType=$P(^CTPCP(PresCtpcpdr,1),"^",4)
-	..s CtpcpTypeDesc=""
-	..s:CtpcpType'="" CtpcpTypeDesc=$P($G(^CT("CPT",CtpcpType)),"^",2)
-	.
-	.
-	.s FeeItemsObj.PrescriptionId=presno //处方唯一标识（非空）
-	.s FeeItemsObj.DoctorDepartmentId=CTLocCode //开方科室Id
-	.s FeeItemsObj.DoctorDepartmentName=CTLocDesc //开方科室名称
-	.s FeeItemsObj.DoctorLevel=CtpcpTypeDesc //开方医师级别
-	.s FeeItemsObj.DoctorId=SSUSRInitials //开方医师编号
-	.s FeeItemsObj.DoctorName=CtpcpName //开方医师姓名
-	.s FeeItemsObj.PrescriptionDate=$ZD(transDate,3)_" "_$ZT(transTime,1) //开方时间（格式）
-	.s FeeItemsObj.DispenseDepartmentId="" //发药科室Id
-	.s FeeItemsObj.DispenseDepartmentName="" //发药科室名称
-	.s FeeItemsObj.DispenseDoctorId="" //发药医生ID
-	.s FeeItemsObj.DispenseDoctorName="" //发药医生名称
-	.s FeeItemsObj.DispenseDate="" //发药日期(2013-03-29)（格式）
-	.s FeeItemsObj.Insurance=AdmReason //医保属性
-	.s FeeItemsObj.Remark="" //处方备注
-	.
-	.d OutObj.FindOrders.Insert(FeeItemsObj) //将一个处方信息插入到对应的已保存医嘱信息中
-	
-	q
 }
 
 /// 返回一个处方药品的信息
@@ -437,4 +260,50 @@ ClassMethod getOneDugsJD(OrderItemRowID, AdmType) As %ObjectHandle
 	
 	q OneDur
 }
+
+ClassMethod GetPrescriptionBase64(PrescNo As %String)
+{
+	s PrescriptionObj=##class(%DynamicObject).%New()
+	; platformTenantId	京东租户id	String	Y	京东健康提供
+	d PrescriptionObj.%Set("platformTenantId","")
+	; platformHospitalCode	京东医院编码	String	Y	京东健康提供
+	d PrescriptionObj.%Set("platformHospitalCode","")
+	; hospitalName	医院名称	String	Y	
+	d PrescriptionObj.%Set("hospitalName","")
+	; platformProviderCode	京东接入商编码	String	Y	京东健康提供
+	d PrescriptionObj.%Set("platformProviderCode","")
+	; thirdPrescriptionNo	三方处方号	String	Y	
+	d PrescriptionObj.%Set("thirdPrescriptionNo",PrescNo)
+	; jdRxid	京东处方id	Long	N	京东处方单号
+	d PrescriptionObj.%Set("jdRxid","")
+	; qrCodeReturnType	二维码返回类型	Integer	N	1下载链接（默认）2BASE64字节数组
+	d PrescriptionObj.%Set("qrCodeReturnType","2")
+	s InputXml=#class(DHCDoc.Util.XMLParse).ObjToXML(OutObj,"Request").Read()
+	s OutputStr=##class(web.DHCENS.BLL.HLWYY.Method.PrescriptionMedicationGuidance).SendMedicationGuidance(InputXml)
+	s QrCodeData=""
+	s:OutputStr["</qrCodeData>" QrCodeData=$p($p(OutputStr,"</qrCodeData>"),"<qrCodeData>",2)
+	q QrCodeData
+}
+ClassMethod SendStopPrescToJD(PrescNo As %String)
+{
+	s PrescriptionObj=##class(%DynamicObject).%New()
+	; platformTenantId	京东租户id	String	Y	京东健康提供
+	d PrescriptionObj.%Set("platformTenantId","")
+	; platformHospitalCode	京东医院编码	String	Y	京东健康提供
+	d PrescriptionObj.%Set("platformHospitalCode","")
+	; hospitalName	医院名称	String	Y	
+	d PrescriptionObj.%Set("hospitalName","")
+	; platformProviderCode	京东接入商编码	String	Y	京东健康提供
+	d PrescriptionObj.%Set("platformProviderCode","")
+	; thirdPrescriptionNo	三方处方号	String	Y	
+	d PrescriptionObj.%Set("thirdPrescriptionNo",PrescNo)
+	; jdRxid	京东处方id	Long	N	京东处方单号
+	d PrescriptionObj.%Set("jdRxid","")
+	; qrCodeReturnType	二维码返回类型	Integer	N	1下载链接（默认）2BASE64字节数组
+	d PrescriptionObj.%Set("qrCodeReturnType","2")
+	s InputXml=#class(DHCDoc.Util.XMLParse).ObjToXML(OutObj,"Request").Read()
+	d ##class(web.DHCENS.BLL.HLWYY.Method.PrescriptionMedicationGuidance).SendMedicationGuidance(InputXml)
+	q 0
+}
+
 }
