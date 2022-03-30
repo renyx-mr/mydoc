@@ -1,8 +1,152 @@
 Class DHCDoc.Interface.TumorReporting.PageInterface Extends %RegisteredObject
 {
+
+/// OperateType 操作类型*（Insert:保存诊断,Delete:删除诊断)
+/// w ##class(DHCDoc.Interface.TumorReporting.PageInterface).GetDiagInfoCom("Insert","143","214","12175","53","214||2")
+ClassMethod PushDiagInfoCom(OperateType As %String, PatientId As %String, EpisodeID As %String, UserId As %String, LocId As %String, DiagItemRowStr As %String)
+{
+	s ^TempRen("PushDiagInfoCom")=$lb(OperateType,PatientId,EpisodeID,UserId,LocId,DiagItemRowStr)
+	s $ZTRAP="PushDiagInfoComErr"
+	s strRes = "1"
+    s request = ##class(%Net.HttpRequest).%New()
+	s request.Timeout = 10
+	s request.Server = "16.22.26.77"
+	s request.Port = "80"
+	//s request.ContentType="text/html; charset=UTF-8"
+	s request.ContentType="application/json"
+	do request.SetHeader("appKey","GI8ZfmHKtreFpSmG")
+	do request.SetHeader("apiCode","A0000001")
+	//编码格式
+	s request.ContentCharset = "UTF-8" 
+	s url="http://16.22.26.77/dss/rest/data/recv"
+    s strData=..GetDiagInfoCom(OperateType,PatientId,EpisodeID,UserId,LocId,DiagItemRowStr)
+    d request.EntityBody.Write(strData)
+    s flg=request.Post(url)
+	if $system.Status.IsError(flg) {
+		s Error = $system.Status.GetErrorText(flg)
+		if (Error["#6059")
+		{
+			 s Error = "网络异常。"_Error
+		}
+		s strRes = "0"
+		q strRes
+	}
+    q strRes
+PushDiagInfoComErr
+	s $ZTRAP=""
+	q "0"
+}
+
+ClassMethod GetDiagInfoCom(OperateType As %String, PatientId As %String, EpisodeID As %String, UserId As %String, LocId As %String, DiagItemRowStr As %String)
+{
+	s OutputInfoObj=##class(%DynamicObject).%New()
+	s OneAdmObj=##class(DHCDoc.Interface.TumorReporting.ComInterface).GetPatientInfoObj(EpisodeID)
+	d OutputInfoObj.%Set("patientId",OneAdmObj.PatientId)
+	d OutputInfoObj.%Set("visitSn",OneAdmObj.VisitSn)
+	d OutputInfoObj.%Set("doctorId",$p($g(^SSU("SSUSR",UserId)),"^",1))
+	d OutputInfoObj.%Set("deptId",$p($g(^CTLOC(LocId)),"^",22))
+	s PatientInfo=##class(%DynamicObject).%New()
+	d PatientInfo.%Set("gender",OneAdmObj.Gender)
+	d PatientInfo.%Set("birthDate",OneAdmObj.DateOfBirth)
+	d PatientInfo.%Set("maritalStatus",OneAdmObj.AdmissionDiseaseName)
+	d PatientInfo.%Set("pregnancyStatus","")
+	d OutputInfoObj.%Set("patientInfo",PatientInfo)
+	s DataPacket=[]
+	s OneDataPacket=##class(%DynamicObject).%New()
+	d OneDataPacket.%Set("tableCode","b02_3")
+	s Data=[]
+	for DiagItemRowInd=1:1:$l(DiagItemRowStr,"^"){
+		s OneMRDiagnosRow=$p(DiagItemRowStr,"^",DiagItemRowInd)
+		continue:OneMRDiagnosRow=""
+		s OneData=##class(%DynamicObject).%New()
+		; patient_id	患者ID(与b02_1一定有值)	00931222	患者在本院的唯一标识	文本	varchar(100)	是
+		d OneData.%Set("patient_id",##Class(web.PAPatMas).GetRegistration(PatientId))
+		; visit_sn	单次就诊唯一标识号(与b02_1强关联)	00931222|4623477|1门诊	标识一次就诊行为的唯一编号，如果原系统中需多个字段标识，则通过"|"进行拼接。例如，患者ID|住院号|住院次数|就诊类型、患者ID|门诊号|就诊次数|就诊类型。	文本	varchar(100)	是
+		d OneData.%Set("visit_sn",EpisodeID)
+		; visit_type	就诊类型	门诊	就诊类型：住院、门诊	文本	varchar(50)	是
+		d OneData.%Set("visit_type",OneAdmObj.VisitType)
+		; visit_card_no	就诊卡号	153898	患者在本医院就诊时使用的就诊卡号	文本	varchar(100)	是
+		d OneData.%Set("visit_card_no",OneAdmObj.VisitCardNo)
+		; medical_record_no	病案号	869881	患者在本院就诊时使用的病案号	文本	varchar(100)
+		d OneData.%Set("medical_record_no",OneAdmObj.MedicalRecordNo)	
+		; outpatient_no	门诊号	4623477	患者门诊就诊时对应的门诊号或者病历号	文本	varchar(100)	是（就诊类型为门诊）
+		d OneData.%Set("outpatient_no",OneAdmObj.OutpatientNo)
+		; visit_times	就诊次数	1	本院门诊次数	文本	varchar(50)	是（就诊类型为门诊）
+		d OneData.%Set("visit_times",OneAdmObj.VisitTimes)
+		; inpatient_no	住院号	4623477	患者住院号	文本	varchar(100)	是（就诊类型为住院）
+		d OneData.%Set("inpatient_no",OneAdmObj.InpatientNo)
+		; hospitalization_times	住院次数	1	住院次数	文本	varchar(50)	是（就诊类型为住院）
+		d OneData.%Set("hospitalization_times",OneAdmObj.HospitalizationTimes)
+		; name	患者姓名	张三	患者姓名	文本	varchar(100)	是
+		d OneData.%Set("name",OneAdmObj.Name)
+		; diag_id	诊断ID号	10431	诊断表唯一ID	文本	varchar(100)	是
+		d OneData.%Set("diag_id",OneMRDiagnosRow)
+		; diag_serial_number	诊断序号	1	诊断顺序号	文本	varchar(100)	是
+		d OneData.%Set("hospitalization_times",$p(OneMRDiagnosRow,"^",2))
+		; diag_type	诊断类型	出院诊断	门诊诊断、入院诊断、出院诊断、其他诊断	文本	varchar(100)	是
+		s DiaTypeDr="",DiaType=""
+		s SubRowid=$G(^MR(+OneMRDiagnosRow,"DIA",$P(OneMRDiagnosRow,"||",2),"TYP",0))
+		if SubRowid'="" s DiaTypeDr=$G(^MR(+OneMRDiagnosRow,"DIA",$P(OneMRDiagnosRow,"||",2),"TYP",SubRowid))
+		i DiaTypeDr'="" Set DiaType=$P($G(^MRC("DTYP",DiaTypeDr)),"^",2)
+		d OneData.%Set("diag_id",DiaType)
+		; diag_status	诊断状态	初步诊断	初步诊断、疑似诊断、修正诊断、确诊诊断	文本	varchar(100)
+		d OneData.%Set("diag_status","")	
+		; diag_code	诊断编码	C34.901		文本	varchar(100)
+		s CodeRowid=$p(^MR(+OneMRDiagnosRow,"DIA",$P(OneMRDiagnosRow,"||",2)),"^",1)
+		d OneData.%Set("diag_code",$p($g(^MRC("ID",+CodeRowid)),"^",9))	
+		; diag_name	诊断名称	右肺下叶小细胞癌		文本	text	是
+		d OneData.%Set("diag_name",$p($g(^MRC("ID",+CodeRowid)),"^",2))	
+		; diag_explanation	诊断说明	右肺下叶小细胞癌，未见癌转移	诊断情况详细说明	文本	text
+		d OneData.%Set("diag_explanation",$g(^MR(+OneMRDiagnosRow,"DIA",$P(OneMRDiagnosRow,"||",2),"DES",1)))	
+		; diag_datetime	诊断时间	2018-01-12 11:32:11	需符合【yyyy-MM-dd HH:mm:ss】格式	日期	datetime	
+		; confirmed_diag_mark	是否明确诊断	是	是否是确诊诊断，请填写是或否	文本	varchar(50)	
+		d OneData.%Set("confirmed_diag_mark","")
+		; maindiag_mark	是否主要诊断	否	是否是主要诊断，请填写是或否	文本	varchar(50)	
+		s MaindiagMark="否"
+		s MainDiagFlag=$p($g(^MR(+OneMRDiagnosRow,"DIA",$P(OneMRDiagnosRow,"||",2),1)),"^",20)
+		s:MainDiagFlag="Y" MaindiagMark="是"
+		d OneData.%Set("maindiag_mark",MaindiagMark)
+		; diag_doctor_no	诊断医生代码	1021		文本	varchar(100)	是
+		s AddUserDr=$p($g(^MR(+OneMRDiagnosRow,"DIA",$P(OneMRDiagnosRow,"||",2),1)),"^",18)
+		s DiagDoctorNo=""
+		s:AddUserDr'="" DiagDoctorNo=$p($g(^SSU("SSUSR",+AddUserDr)),"^",1)
+		d OneData.%Set("diag_doctor_no",DiagDoctorNo)
+		; diag_doctor_name	诊断医生名称			文本	varchar(100)
+		s DiagDoctorDesc=""
+		s:AddUserDr'="" DiagDoctorDesc=$p($g(^SSU("SSUSR",+AddUserDr)),"^",2)
+		d OneData.%Set("diag_doctor_name",DiagDoctorDesc)	
+		; extend_data1	扩展字段1		用于填写补充信息	文本	text
+		d OneData.%Set("extend_data1","")	
+		; extend_data2	扩展字段2		用于填写补充信息	文本	text	
+		d OneData.%Set("extend_data2","")
+		; record_status	记录状态	1	1正常 0作废	数值	int	是
+		// Insert:保存诊断,Delete:删除诊断
+		d OneData.%Set("record_status",$case(OperateType,"Insert":"1","Delete":"0",:""))
+		; record_datetime	记录创建时间		需符合【yyyy-MM-dd HH:mm:ss】格式	日期	datetime
+		s MRDiagnosDate=$p($g(^MR(+OneMRDiagnosRow,"DIA",$P(OneMRDiagnosRow,"||",2))),"^",7)
+		s MRdiagnosTime=$p($g(^MR(+OneMRDiagnosRow,"DIA",$P(OneMRDiagnosRow,"||",2))),"^",8)	
+		d OneData.%Set("record_datetime",##class(websys.Conversions).DateLogicalToHtml(MRDiagnosDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(MRdiagnosTime))
+		; record_update_datetime	记录更新时间		需符合【yyyy-MM-dd HH:mm:ss】格式	日期	datetime	
+		d OneData.%Set("record_update_datetime","")
+		d Data.%Push(OneData)
+	}
+	d OneDataPacket.%Set("data",Data)
+	d DataPacket.%Push(OneDataPacket)
+	d OutputInfoObj.%Set("dataPacket",DataPacket)
+	d OutputInfoObj.%Set("extend1","")
+	d OutputInfoObj.%Set("extend2","")
+	d OutputInfoObj.%Set("extend3","")
+	d OutputInfoObj.%Set("extend4","")
+	d OutputInfoObj.%Set("extend5","")
+	d OutputInfoObj.%Set("extend6","")
+	d OutputInfoObj.%Set("extend7","")
+	d OutputInfoObj.%Set("extend8","")
+	q OutputInfoObj.%ToJSON()
+}
+
 /// 推送数据总接口
 /// OperateType 操作类型*（ Check ：医嘱保存前的筛查， Save ：保存后的医嘱串， Update ：修改删除的医嘱id传），  后续参数同各功能接口，原有的入参不变
-ClassMethod PushDataComInfo(OperateType As %String,PatientId As %String, EpisodeID As %String, UserId As %String, LocId As %String, OrderInfo As %String, RecordStatus As %String)
+ClassMethod PushDataComInfo(OperateType As %String, PatientId As %String, EpisodeID As %String, UserId As %String, LocId As %String, OrderInfo As %String, RecordStatus As %String)
 {
     s $ZTRAP="PushDataComInfoErr"
     s strRes = "1"
@@ -42,6 +186,7 @@ PushDataComInfoErr
     s $ZTRAP=""
     q "0"
 }
+
 ///  csp初始化需要调用的内容
 ClassMethod LoginInit(UserId As %String, LocId As %String, EpisodeID As %String = "")
 {
