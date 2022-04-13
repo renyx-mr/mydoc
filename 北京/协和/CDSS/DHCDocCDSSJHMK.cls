@@ -1,10 +1,31 @@
 Class web.DHCDocHLYYJHMK Extends %RegisteredObject
 {
 
+ClassMethod GetOrdItemLinkSub(SelOrdItemDrStr As %String)
+{
+	s LinkOrdItemDrStr=""
+	 for i=1:1:$l(SelOrdItemDrStr,"^"){
+        s OneOrdItemDr=$p(SelOrdItemDrStr,"^",i)
+        continue:OneOrdItemDr=""
+        s LinkSub=0
+        for{
+        	s LinkSub=$o(^OEORDi(0,"OEORI",+OneOrdItemDr,OneOrdItemDr,LinkSub))
+        	q:LinkSub=""
+        	s OeoriStatusDR=$p($g(^OEORD(+OneOrdItemDr,"I",LinkSub,1)),"^",13)
+        	s OeoriStatusCode=$p($g(^OEC("OSTAT",OeoriStatusDR)),"^",1)
+        	continue:(OeoriStatusCode="D")||(OeoriStatusCode="S")||(OeoriStatusCode="SC")||(OeoriStatusCode="U")
+	        s LinkOrdItemDrStr=LinkOrdItemDrStr_"^"_+OneOrdItemDr_"||"_LinkSub
+        }
+	 }
+	 s:LinkOrdItemDrStr'="" SelOrdItemDrStr=SelOrdItemDrStr_LinkOrdItemDrStr
+	 q SelOrdItemDrStr
+}
+
 /// 获取已经审核的医嘱信息
-/// w ##Class(web.DHCDocHLYYJHMK).GetVerifiedOrdersInfo("27005783||2","")
+/// w ##Class(web.DHCDocHLYYJHMK).GetVerifiedOrdersInfo("37990257||408","")
 ClassMethod GetVerifiedOrdersInfo(SelOrdItemDrStr As %String, Status As %String = "")
 {
+	s ^tempren("SelOrdItemDrStr")=$lb(SelOrdItemDrStr,Status)
     s VerifiedOrdersInfo=""
     for i=1:1:$l(SelOrdItemDrStr,"^"){
         s OneOrdItemDr=$p(SelOrdItemDrStr,"^",i)
@@ -21,9 +42,13 @@ ClassMethod GetVerifiedOrdersInfo(SelOrdItemDrStr As %String, Status As %String 
 		s ArcItemDesc=$p($g(^ARCIM(+ARCIMRowId,$p(ARCIMRowId,"||",2),1)),"^",2)
         ;药品类型编码
         Set ItemCatDR=$p(^ARCIM(+ARCIMRowId,$p(ARCIMRowId,"||",2),1),"^",10)
-        s ArcItemTypeCode=$P($g(^ARC("IC",ItemCatDR)),"^",1)
+         s OECOrderCategory=$P($g(^ARC("IC",ItemCatDR)),"^",8)
+        s ArcItemTypeCode=$P($g(^OEC("ORCAT",OECOrderCategory)),"^",1)
         ;药品类型描述
-        s ArcItemTypeDesc=$P($g(^ARC("IC",ItemCatDR)),"^",2)
+        s ArcItemTypeDesc=$P($g(^OEC("ORCAT",OECOrderCategory)),"^",2)
+        ;s ArcItemTypeCode=$P($g(^ARC("IC",ItemCatDR)),"^",1)
+        ;药品类型描述
+        ;s ArcItemTypeDesc=$P($g(^ARC("IC",ItemCatDR)),"^",2)
         ;医嘱号
         s OrderNo=OrderRowid_"_"_ChildSub
         ;规格
@@ -37,8 +62,10 @@ ClassMethod GetVerifiedOrdersInfo(SelOrdItemDrStr As %String, Status As %String 
         s:StartTime'="" StartTime=$zt(StartTime,1)
         s OrderStartDateStr=StartDate_" "_StartTime
         ;医嘱结束时间
-        s EndDate=$p($g(^OEORD(OrderRowid,"I",ChildSub,3)),"^",34)
-        s EndTime=$p($g(^OEORD(OrderRowid,"I",ChildSub,2)),"^",15)
+        s EndDate=$p($g(^OEORD(OrderRowid,"I",ChildSub,9)),"^",9)
+        s EndTime=$p($g(^OEORD(OrderRowid,"I",ChildSub,9)),"^",10)
+        s:EndDate="" EndDate=$p($g(^OEORD(OrderRowid,"I",ChildSub,3)),"^",34)
+        s:EndTime="" EndTime=$p($g(^OEORD(OrderRowid,"I",ChildSub,2)),"^",15)
         s:EndDate'="" EndDate=$zd(EndDate,3)
         s:EndTime'="" EndTime=$zt(EndTime,1)
         s OrderEndDateStr=EndDate_" "_EndTime
@@ -66,12 +93,12 @@ ClassMethod GetVerifiedOrdersInfo(SelOrdItemDrStr As %String, Status As %String 
         s DoseUOMDesc=""
         s:DoseUOMRowid'="" DoseUOMDesc=$p($g(^CT("UOM",DoseUOMRowid)),"^",2)
         ;总剂量
-        s PackQty=$p($g(^OEORD(OrderRowid,"I",ChildSub,1)),"^",18)	;发药数量
-        if (PackQty="") s PackQty="1"
+        s PackQty="" ;$p($g(^OEORD(OrderRowid,"I",ChildSub,1)),"^",18)	;发药数量
+        //if (PackQty="") s PackQty="1"
         ;总剂量单位
         s OrderPackUOMRowid=$p($g(^OEORD(OrderRowid,"I",ChildSub,9)),"^",4)	;发药数量单位
         s PackUnit=""
-	    if (OrderPackUOMRowid'="") s PackUnit=$p($g(^CT("UOM",OrderPackUOMRowid)),"^",2)
+	    //if (OrderPackUOMRowid'="") s PackUnit=$p($g(^CT("UOM",OrderPackUOMRowid)),"^",2)
         ;执行频次名称
         s DrugFreqDesc=""
 		s FreqRowid=$p($g(^OEORD(OrderRowid,"I",ChildSub,2)),"^",4)
@@ -137,7 +164,7 @@ ClassMethod GetPatAdmInfo(EpisodeID As %String)
     s PatientDOB=$p($g(^PAPER(PatientID,"ALL")),"^",6)
     s PatientBirthday=$ZD($G(PatientDOB),3)
     ;就诊时间
-    s AdmDateStr=""
+    s AdmDateStr=$zd($p($g(^PAADM(EpisodeID)),"^",6),3)_" "_$zt($p($g(^PAADM(EpisodeID)),"^",7),1)
     s AdmLocID=$p($g(^PAADM(EpisodeID)),"^",4)
     ;就诊科室编码
     s AdmLocCode=$p($g(^CTLOC(AdmLocID)),"^",1)
@@ -170,9 +197,10 @@ ClassMethod GetOrdersInfo(OrderItemStr As %String)
 		s ArcItemDesc=$p($g(^ARCIM(+ARCIMRowId,$p(ARCIMRowId,"||",2),1)),"^",2)
         ;药品类型编码
         Set ItemCatDR=$p(^ARCIM(+ARCIMRowId,$p(ARCIMRowId,"||",2),1),"^",10)
-        s ArcItemTypeCode=$P($g(^ARC("IC",ItemCatDR)),"^",1)
+        s OECOrderCategory=$P($g(^ARC("IC",ItemCatDR)),"^",8)
+        s ArcItemTypeCode=$P($g(^OEC("ORCAT",OECOrderCategory)),"^",1)
         ;药品类型描述
-        s ArcItemTypeDesc=$P($g(^ARC("IC",ItemCatDR)),"^",2)
+        s ArcItemTypeDesc=$P($g(^OEC("ORCAT",OECOrderCategory)),"^",2)
         ;医嘱号
         s OrderNo=""
         ;规格
@@ -223,7 +251,7 @@ ClassMethod GetOrdersInfo(OrderItemStr As %String)
         ;医嘱状态
         s OrderStatus="审核"
         ;医嘱下达时间
-        s OrderDateStr=$p(OrderItemOne,"^",46)_" "_$p(OrderItemOne,"^",47)
+        s OrderDateStr=$zd(+$h,3)_" "_$zt($p($h,",",2))
         ;给药途径和方法
         s DrugPreMet=""
 		s InstrRowid=$p(OrderItemOne,"^",17)
@@ -270,6 +298,52 @@ ClassMethod GetDiagnosInfo(DiagItemStr)
 			s ICDDesc=MRDIADesc
 		}
 		s:Date="" Date=$zd(+$h,3)_" "_$zt($p($h,",",2),1)
+		s DiagSub="",DiagType=""
+		s DiagnosStr=MRDIADesc_"^"_ICDCode_"^"_ICDDesc_"^"_num_"^"_Date
+		s DiagnosStr=DiagnosStr_"^"_DiagFlagDesc_"^"_DiagSub_"^"_DiagType
+		i DiagnosInfo="" s DiagnosInfo=DiagnosStr
+		e  s DiagnosInfo=DiagnosInfo_$C(1)_DiagnosStr
+	}
+	q DiagnosInfo
+}
+
+ClassMethod DelDiagnosInfo(MRDiagnosRowid As %String)
+{
+	s DiagnosInfo=""
+	q:MRDiagnosRowid="" DiagnosInfo
+	Set obj=##class(%ResultSet).%New("web.MRDiagnos:Find")
+	d obj.Execute(+MRDiagnosRowid)
+	//s i=0
+	For {
+		Quit:'obj.Next()
+		s ICDDesc=obj.Data("MRDIAICDCodeDRDesc")
+		s Rowid=obj.Data("ID")
+		s ICDCodeRowid=obj.Data("MRDIAICDCodeDR")
+		s MRDIADesc=obj.Data("MRDIADesc")
+		s:MRDIADesc'="" MRDIADesc=$LIST(MRDIADesc,1)
+		continue:Rowid'=MRDiagnosRowid
+		;诊断编码 和 诊断描述
+		w ICDCodeRowid
+		s ICDCode="",ICDDesc="",DiagFlagDesc=""
+		if (ICDCodeRowid'=""){
+			s ICDCode=$p($g(^MRC("ID",ICDCodeRowid)),"^",4)
+			s ICDDesc=$p($g(^MRC("ID",ICDCodeRowid)),"^",2)
+			//s BillFlag1=$P($G(^MRC("ID",ICDCodeRowid)),"^",13)
+			
+			s BillFlag3=$P($g(^MRC("ID",ICDCodeRowid)),"^",15)
+			i BillFlag3'="Y"  s DiagFlagDesc="西医诊断"
+			else  s DiagFlagDesc="中医诊断"
+		}
+		//s i=i+1
+		s num=Rowid
+		//s Date=$p(OneAddDiagItem,"^",7)
+		if ((MRDIADesc'="")&&(ICDCodeRowid="")){
+			s DescType=$P(MRDIADesc,"#",2)
+			s MRDIADesc=$P(MRDIADesc,"#",1)
+			s DiagFlagDesc=$case(DescType,"1":"西医诊断",:"中医诊断")
+			s ICDDesc=MRDIADesc
+		}
+		s Date=$zd(obj.Data("MRDIADate"),3)_" "_$zt(obj.Data("MRDIATime"),1)
 		s DiagSub="",DiagType=""
 		s DiagnosStr=MRDIADesc_"^"_ICDCode_"^"_ICDDesc_"^"_num_"^"_Date
 		s DiagnosStr=DiagnosStr_"^"_DiagFlagDesc_"^"_DiagSub_"^"_DiagType

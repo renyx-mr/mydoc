@@ -13,16 +13,16 @@ ClassMethod Init(AdmDepRowid As %String, Layout = "OEOrd")
 	 	set ExecLoadCompanyFileMothod="set ret=..Load"_CurrCompanyCode_"()"
 	 	x ExecLoadCompanyFileMothod
 		;引用不同厂家或同厂家不同版本的js
-		w "<script type='text/javascript' src='../scripts/DHCDocHLYY"_CurrCompanyCode_".js'></script>",!
+		w "<script type='text/javascript' src='../scripts/DHCDocCDSS"_CurrCompanyCode_".js'></script>",!
 	}
 	q CDSSInterface_"^"_Layout
 }
 
-/// 加载嘉和美康的合理用药  
+/// 加载嘉和美康的cdss
 ClassMethod LoadJHMK()
 {
-	w "<script type='text/javascript' src='http://10.160.60.74:8099/es5-shim.js' charset='utf-8'></script>",!
-	w "<script type='text/javascript' src='http://10.160.60.74:8099/sockjs.js' charset='utf-8'></script>",!
+	//w "<script type='text/javascript' src='http://10.160.60.74:8099/es5-shim.js' charset='utf-8'></script>",!
+	//w "<script type='text/javascript' src='http://10.160.60.74:8099/sockjs.js' charset='utf-8'></script>",!
 	w "<script type='text/javascript' src='http://10.160.60.74:8099/savedata.js' charset='utf-8'></script>",!
     Q 1
 }
