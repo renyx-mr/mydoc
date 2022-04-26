@@ -75,7 +75,7 @@ ClassMethod GetHosInfo(InputXml As %String)
         // WEBSITE	RES	String(128)		医院网站
         d HsopObj.%Set("WEBSITE","")
         // LEVEL	RES	String(2)	√	医院等级，详见 “医院等级”
-        d HsopObj.%Set("LEVEL","02")
+        d HsopObj.%Set("LEVEL","13")
         // DESC	RES	String(2000)		医院介绍
         d HsopObj.%Set("DESC","")
         // SPECIAL	RES	String(256)		医院专长
@@ -375,7 +375,7 @@ ClassMethod GetDeptInfo(InputXml As %String)
 
 /// 2.1.2.3 医生查询接口(GetDoctorInfo)
 /// w ##class(DHCDoc.Interface.RegInterface.SelfRegMethods).GetDoctorInfo("<REQ><HOS_ID><![CDATA[7002]]></HOS_ID><DEPT_ID><![CDATA[-1]]></DEPT_ID><DOCTOR_ID><![CDATA[-1]]></DOCTOR_ID></REQ>").Read()
-/// w ##class(DHCDoc.Interface.RegInterface.SelfRegMethods).GetDoctorInfo("<REQ><HOS_ID><![CDATA[7002]]></HOS_ID><DEPT_ID><![CDATA[26]]></DEPT_ID><DOCTOR_ID><![CDATA[-1]]></DOCTOR_ID></REQ>").Read()
+/// w ##class(DHCDoc.Interface.RegInterface.SelfRegMethods).GetDoctorInfo(""<REQ>"_$c(10)_"    <HOS_ID>7002</HOS_ID>"_$c(10)_"    <SUBHOSPITALNO>0</SUBHOSPITALNO>"_$c(10)_"    <DEPT_ID>244</DEPT_ID>"_$c(10)_"    <DOCTOR_ID>-1</DOCTOR_ID>"_$c(10)_"</REQ>"").Read()
 /// w ##class(DHCDoc.Interface.RegInterface.SelfRegMethods).GetDoctorInfo("<REQ>"_$c(10)_"    <HOS_ID>7002</HOS_ID>"_$c(10)_"    <SUBHOSPITALNO>0</SUBHOSPITALNO>"_$c(10)_"    <DEPT_ID>24</DEPT_ID>"_$c(10)_"    <DOCTOR_ID>-1</DOCTOR_ID>"_$c(10)_"</REQ>").Read()
 ClassMethod GetDoctorInfo(InputXml As %String)
 {
@@ -408,8 +408,11 @@ ClassMethod GetDoctorInfo(InputXml As %String)
 		If 'Status Quit
 		While rs1.Next() {
 			set DocDesc=rs1.GetData(1)
+			continue:(DocDesc["普通")!(DocDesc["专家")
 			set DocCode=rs1.GetData(2)
 			set DocID=rs1.GetData(3)
+			s UserId=$o(^SSU("SSUSR",0,"CTPCP",DocID,""))
+			continue:UserId=""
 			set ResRowid=rs1.GetData(4)
 			set DeptId=rs1.GetData(5)
 			set DeptDesc=rs1.GetData(6)
@@ -523,7 +526,11 @@ ClassMethod GetRegInfo(InputXml As %String)
         s ResID=$O(^RB("RES",0,"CTLOC",DeptId,ResID)) q:ResID=""
         s ResCTPCPDR=$p($g(^RB("RES",ResID)),"^",2)
         Continue:ResCTPCPDR=""
+        s UserId=$o(^SSU("SSUSR",0,"CTPCP",ResCTPCPDR,""))
+		continue:UserId=""
         Continue:(DoctorId'="-1")&(DoctorId'=ResCTPCPDR)
+        s DocProveDesc=$p(^CTPCP(ResCTPCPDR,1),"^",4)
+        continue:(DocProveDesc["普通")!(DocProveDesc["专家")
         s DocProveTypeDesc=""
         s DocProveTypeID=$p(^CTPCP(ResCTPCPDR,1),"^",4)
         s:DocProveTypeID'="" DocProveTypeDesc=$p(^CT("CPT",DocProveTypeID),"^",2)
@@ -1123,7 +1130,7 @@ ClassMethod Refund(InputXml As %String)
 	s CTLSRowID=$o(^CTLS(0,"HISTradNo",OrderId,""),-1)
 	s RefundBillNo=""
 	// renyx 根据项目要求先不允许退号
-	 q $$RefundErr("201101","挂号记录不存在")
+	 q $$RefundErr("201107","医院不允许退款")
 	if (CTLSRowID'=""){
 		s Activity=$p(^CTLS(CTLSRowID),"^",7)
 		set ADMDr=$p(^CTLS(CTLSRowID),"^",9)
@@ -1188,7 +1195,7 @@ RefundErr(ErrCode,ErrText)
     if (ErrCode="201107") s ErrText="医院不允许退款"
     s OutPutObj=##class(%DynamicObject).%New()
     //d OutPutObj.%Set("COUNT",DepCount)
-    d OutPutObj.%Set("CODE",ErrCode)
+    d OutPutObj.%Set("REFUND_FLAG","0")
     d OutPutObj.%Set("REMARK",ErrText)
     q ##class(DHCDoc.Util.XMLParse).ObjToXML(OutPutObj,"RES","")
 }
@@ -1277,10 +1284,11 @@ ClassMethod OPRegister(InputXml As %String)
 	s:PayTime'="" PayTime=$e(PayTime,1,2)_":"_$e(PayTime,3,4)_":"_$e(PayTime,5,6)
 	; PAY_CHANNEL_ID	REQ	String(2)		支付渠道ID，1-微信支付，2-支付宝支付，3-银联支付，4-农行支付，99-其他支付，有第三方交易必填
 	s PayChannelId=InputObj.%Get("PAY_CHANNEL_ID")
+	s PayAdmReason=""
     if (PayChannelId'=""){
         s PayModeCode=$case(PayChannelId,"1":"APPWECHATPAY","2":"APPALIPAY")
     }else{
-        s PayModeCode="APPYB"
+        s PayModeCode="APPYB",PayAdmReason="63"
     }
 	; PAY_RES_CODE	REQ	String(32)		交易响应代码(银行、第三方支付等返回的结果码) ，有第三方交易必填
 	s PayResCode=InputObj.%Get("PAY_RES_CODE")
@@ -1326,6 +1334,7 @@ ClassMethod OPRegister(InputXml As %String)
     ;因为用户是平台写死传入的WX,在此作处理根据预约的科室来判断，如果是密地则传入WXMD
     //if (ExtUserID="WX")&&(hopitalID=3) s InputObj.ExtUserID="WXMD"
     s OPRegisterObj.HospitalId=hopitalID
+    s OPRegisterObj.PayAdmReason=PayAdmReason
     s PayDetailsObj=##class(DHCBILL.SelfPay.Entity.CompleteCharge.Req.PayDetails).%New()
     s PayDetailsObj.PayModeCode=PayModeCode
     s PayDetailsObj.TradeChannel="INSUAPP"
@@ -1381,7 +1390,8 @@ ClassMethod PushInfo(AdmId As %String, OrderStr As %String)
         ; ID_NO	DATA_INFO	String(18)	√	身份证号
         d OrderInfoObj.%Set("ID_NO",$p($g(^PAPER(PatDr,"PAT",3)),"^",6))
         ; EMP_NO	DATA_INFO	String(8)	√	医保号(个人编号)
-        d OrderInfoObj.%Set("EMP_NO",$p(##class(web.DHCINSUPort).GetInsuAdmInfoByAdmDr(AdmId),"^",2))
+        s EmpNo=$p(##class(web.DHCINSUPort).GetInsuAdmInfoByAdmDr(AdmId),"^",2)
+        d OrderInfoObj.%Set("EMP_NO",EmpNo)
         ; HOSP_MEDICAL_NUM	DATA_INFO	String(32)	√	门诊号
         d OrderInfoObj.%Set("HOSP_MEDICAL_NUM",AdmId)
         ; PUSH_TYPE	DATA_INFO	Int	√	推送类型：1-待缴费提醒，2-取药检查引导信息
@@ -1389,12 +1399,12 @@ ClassMethod PushInfo(AdmId As %String, OrderStr As %String)
         ; PUSH_ID	DATA_INFO	String(32)		推送信息的ID（即待缴费信息的缴费单号）
         d OrderInfoObj.%Set("PUSH_ID",OrderIDGet)
         ; PUSH_CONTENT	DATA_INFO	String(100)	√	推送内容
-        d OrderInfoObj.%Set("PUSH_CONTENT","ccs")
+        d OrderInfoObj.%Set("PUSH_CONTENT","您有一笔新的待缴费提醒,请核对并支付")
         d InputObj.Write(##class(DHCDoc.Util.XMLParse).ObjToXML(OrderInfoObj,"DATA_INFO","").Read())
     }
     d InputObj.Write("</REQ>")
     //添加平台接口的调用
-    j ##class(web.DHCENS.EnsHISService).HisToNetMedical(InputObj.Read(),"6001^3")
+    j ##class(web.DHCENS.EnsHISService).DHCHisInterface("S00000063",InputObj.Read(),"6001^3")
 }
 
 /// 2.2.2.1 停诊通知接口(StopReg)（需要群发短信配合）
@@ -1426,7 +1436,7 @@ ClassMethod StopReg(AsRowId As %String)
     d RBASInputObj.%Set("STOP_REMARK","")
     s InputXML=##class(DHCDoc.Util.XMLParse).ObjToXML(RBASInputObj,"REQ","")
     //添加平台接口的调用
-    j ##class(web.DHCENS.EnsHISService).HisToNetMedical(InputXML.Read(),"6006^3")
+    j ##class(web.DHCENS.EnsHISService).DHCHisInterface("S00000063",InputXML.Read(),"6006^3")
 }
 
 ClassMethod GetUserIdByUserCode(UserCode As %String)

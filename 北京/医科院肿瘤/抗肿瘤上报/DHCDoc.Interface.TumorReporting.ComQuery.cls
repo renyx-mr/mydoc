@@ -1,9 +1,13 @@
 Class DHCDoc.Interface.TumorReporting.ComQuery Extends %RegisteredObject
 {
 
-/// 3.患者基本信息
+/// B02-1.患者就诊基本信息表
 /// patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,visit_datetime,medical_record_no,inpatient_no,hospitalization_times,admission_datetime,discharge_datetime,visit_doctor_no,name,gender,patient_gender,date_of_birth,occupation_code,occupation_name,nationality,ethnicity,education,marital_status,newbron_mark,certificate_type,certificate_no,health_card_type,health_card_no,insurance_type,insurance_no,residence_province,residence_city,residence_county,current_address,phone_no,phone_no2,email,weixin,contact_person1,contact_phone_no1,contact_person2,contact_phone_no2,abo_blood_type,rh_blood_type,hospital_id,hospital_name,hospital_level,is_discharge,patien_identity,blood_type_s,blood_type_e,height,weight,newborn_date,newborn_weight,newborn_current_weight,is_drug_allergy,allergy_drug_code,allergy_drug_name,patient_pregnant,patient_lactating,in_bed_no,out_bed_no,imdept_code,imdept_name,transferDept_code,transferDept_name,dept_code,dept_name,doctor_group_code,doctor_group_name,doctor_code,doctor_name,hospital_time,leave_hospital_type,is_upload_date,admission_disease_id,admission_disease_name,discharge_disease_id,discharge_disease_name,discharge_reason,tsblbs,diagnose_position1,diagnose_position2,is_pathological_examination,pathology_code,is_hospital_infected,hospital_infected_code,disease_type,special_disease_code,discharge_outcome,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME
-Query DIPatientInfo(StartDate As %Date, EndDate As %Date) As %Query(ROWSPEC = "patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,visit_datetime,medical_record_no,inpatient_no,hospitalization_times,admission_datetime,discharge_datetime,visit_doctor_no,name,gender,patient_gender,date_of_birth,occupation_code,occupation_name,nationality,ethnicity,education,marital_status,newbron_mark,certificate_type,certificate_no,health_card_type,health_card_no,insurance_type,insurance_no,residence_province,residence_city,residence_county,current_address,phone_no,phone_no2,email,weixin,contact_person1,contact_phone_no1,contact_person2,contact_phone_no2,abo_blood_type,rh_blood_type,hospital_id,hospital_name,hospital_level,is_discharge,patien_identity,blood_type_s,blood_type_e,height,weight,newborn_date,newborn_weight,newborn_current_weight,is_drug_allergy,allergy_drug_code,allergy_drug_name,patient_pregnant,patient_lactating,in_bed_no,out_bed_no,imdept_code,imdept_name,transferDept_code,transferDept_name,dept_code,dept_name,doctor_group_code,doctor_group_name,doctor_code,doctor_name,hospital_time,leave_hospital_type,is_upload_date,admission_disease_id,admission_disease_name,discharge_disease_id,discharge_disease_name,discharge_reason,tsblbs,diagnose_position1,diagnose_position2,is_pathological_examination,pathology_code,is_hospital_infected,hospital_infected_code,disease_type,special_disease_code,discharge_outcome,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME") [ SqlProc, SqlViewName = DIPatientInfo ]
+/// d ##class(%ResultSet).RunQuery("DHCDoc.Interface.TumorReporting.ComQuery","DIPatientInfo","2021-11-04","2021-11-04")
+/// CALL web_DHCENS_BLL_ZLSB_TransInfo_Method.UploadZLData_DIPatientInfo("2021-11-04","2021-11-04")
+/// OEORI_ItmMast_DRd ##class(%ResultSet).RunQuery("web.DHCFOrdGet","GetSubsort","48","")
+/// Query DIPatientInfo(StartDate As %Date, EndDate As %Date) As %Query(ROWSPEC = "patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,visit_datetime,medical_record_no,inpatient_no,hospitalization_times,admission_datetime,discharge_datetime,visit_doctor_no,name,gender,patient_gender,date_of_birth,occupation_code,occupation_name,nationality,ethnicity,education,marital_status,newbron_mark,certificate_type,certificate_no,health_card_type,health_card_no,insurance_type,insurance_no,residence_province,residence_city,residence_county,current_address,phone_no,phone_no2,email,weixin,contact_person1,contact_phone_no1,contact_person2,contact_phone_no2,abo_blood_type,rh_blood_type,hospital_id,hospital_name,hospital_level,is_discharge,patien_identity,blood_type_s,blood_type_e,height,weight,newborn_date,newborn_weight,newborn_current_weight,is_drug_allergy,allergy_drug_code,allergy_drug_name,patient_pregnant,patient_lactating,in_bed_no,out_bed_no,imdept_code,imdept_name,transferDept_code,transferDept_name,dept_code,dept_name,doctor_group_code,doctor_group_name,doctor_code,doctor_name,hospital_time,leave_hospital_type,is_upload_date,admission_disease_id,admission_disease_name,discharge_disease_id,discharge_disease_name,discharge_reason,tsblbs,diagnose_position1,diagnose_position2,is_pathological_examination,pathology_code,is_hospital_infected,hospital_infected_code,disease_type,special_disease_code,discharge_outcome,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME") [ SqlProc, SqlViewName = DIPatientInfo ]
+Query DIPatientInfo(StartDate As %Date, EndDate As %Date) As %Query(ROWSPEC = "patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,visit_datetime,medical_record_no,inpatient_no,hospitalization_times,admission_datetime,discharge_datetime,visit_doctor_no,name,gender,date_of_birth,occupation_code,occupation_name,nationality,ethnicity,education,marital_status,newbron_mark,certificate_type,certificate_no,health_card_type,health_card_no,insurance_type,insurance_no,residence_province,residence_city,residence_county,current_address,phone_no,phone_no2,email,weixin,contact_person1,contact_phone_no1,contact_person2,contact_phone_no2,abo_blood_type,rh_blood_type,hospital_id,hospital_name,hospital_level,is_discharge,patien_identity,blood_type_s,blood_type_e,height,weight,newborn_date,newborn_weight,newborn_current_weight,is_drug_allergy,allergy_drug_code,allergy_drug_name,patient_pregnant,patient_lactating,in_bed_no,out_bed_no,imdept_code,imdept_name,transferDept_code,transferDept_name,dept_code,dept_name,doctor_group_code,doctor_group_name,doctor_code,doctor_name,hospital_time,leave_hospital_type,is_upload_date,admission_disease_id,admission_disease_name,admission_date,discharge_disease_id,discharge_disease_name,discharge_reason,discharge_date,tsblbs,diagnose_position1,diagnose_position2,is_pathological_examination,pathology_code,is_hospital_infected,hospital_infected_code,disease_type,special_disease_code,discharge_outcome,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME") [ SqlProc, SqlViewName = DIPatientInfo ]
 {
 }
 
@@ -11,10 +15,15 @@ ClassMethod DIPatientInfoExecute(ByRef qHandle As %Binary, StartDate As %Date, E
 {
 	Set repid=$I(^CacheTemp)
  	If $G(ind)="" Set ind=1
-	s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
-    s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
-    s:StartDate="" SatarDate=+$h-1
-    s:EndDate="" EndDate=+$h-1
+	;s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
+    ;s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
+    ;s:StartDate="" SatarDate=+$h-1
+    ;s:EndDate="" EndDate=+$h-1
+    Set:StartDate="" StartDate=$h-1
+    Set:EndDate="" EndDate=$h-1
+    Set:StartDate["-" StartDate=$ZDH(StartDate,3)
+    Set:EndDate["-" EndDate=$ZDH(EndDate,3)
+    
     s AdmTypeStr="O^E^I"
     for Date=StartDate:1:EndDate{
 	    for AdmTypeInd=1:1:$l(AdmTypeStr,"^"){
@@ -23,9 +32,13 @@ ClassMethod DIPatientInfoExecute(ByRef qHandle As %Binary, StartDate As %Date, E
 		    for {
 			    s AdmId=$o(^PAADMi("NNType",OneAdmType,Date,AdmId))
 			    q:AdmId=""
+			    
 			    d OutPatientInfo
 		    }
 	    }
+	 
+ 
+	    
     }
     Set qHandle=$lb(0,repid,0)
 	Quit $$$OK
@@ -77,7 +90,9 @@ OutPatientInfo
 	s RhBloodType=OneAdmObj.RhBloodType
 	s HospitalId=OneAdmObj.HospitalId
 	s HospitalName=OneAdmObj.HospitalName
+	s HospitalName="中国医学科学院肿瘤医院"
 	s HospitalLevel=OneAdmObj.HospitalLevel
+	s isdischarge=OneAdmObj.IsDischarge
 	s PatienIdentity=OneAdmObj.PatienIdentity
 	s BloodTypeS=OneAdmObj.BloodTypeS
 	s BloodTypeE=OneAdmObj.BloodTypeE	
@@ -127,7 +142,8 @@ OutPatientInfo
 	s YYID=OneAdmObj.YYID
 	s YYUPDATETIME=OneAdmObj.YYUPDATETIME
 	s YYCREATETIME=OneAdmObj.YYCREATETIME
-	set Data=$lb(PatientId,VisitSn,VisitType,VisitCardNo,OutpatientNo,VisitTimes,VisitDatetime,MedicalRecordNo,InpatientNo,HospitalizationTimes,AdmissionDatetime,DischargeDatetime,VisitDoctorNo,Name,Gender,PatientGender,DateOfBirth,OccupationCode,OccupationName,Nationality,Ethnicity,Education,AdmissionDiseaseName,NewbronMark,AdmissionDiseaseName,CertificateNo,HealthCardType,HealthCardNo,InsuranceType,InsuranceNo,ResidenceProvince,ResidenceCity,ResidenceCounty,CurrentAddress,PhoneNo,PhoneNo2,Email,weixin,ContactPerson1,ContactPhoneNo1,ContactPerson2,ContactPhoneNo2,AboBloodType,RhBloodType,HospitalId,HospitalName,HospitalLevel,PatienIdentity,BloodTypeS,BloodTypeE,Height,Weight,newbornDate,NewbornWeight,NewbornCurrentWeight,IsDrugAllergy,AllergyDrugCode,AllergyDrugName,PatientPregnant,PatientLactating,InBedNo,InBedNo,ImdeptCode,ImdeptName,TransferDeptCode,TransferDeptName,DeptCode,DeptName,DoctorGroupCode,DoctorGroupName,DoctorCode,DoctorName,HospitalTime,LeaveHospitalType,IsUploadDate,AdmissionDiseaseId,AdmissionDiseaseName,AdmissionDiseaseId,AdmissionDiseaseName,DischargeReason,Tsblbs,DiagnosePosition1,DiagnosePosition2,IsPathologicalExamination,PathologyCode,IsHospitalInfected,HospitalInfectedCode,DiseaseType,SpecialDiseaseCode,DischargeOutcome,ExtendData1,ExtendData2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME) 																																
+	;set Data=$lb(patientid,visitsn,visittype,visitcardno,outpatientno,visittimes,visitdatetime,medicalrecordno,inpatientno,hospitalizationtimes,admissiondatetime,dischargedatetime,visitdoctorno,name,gender,dateofbirth,occupationcode,occupationname,nationality,ethnicity,education,maritalstatus,newbronmark,certificatetype,certificateno,healthcardtype,healthcardno,insurancetype,insuranceno,residenceprovince,residencecity,residencecounty,currentaddress,phoneno,phoneno2,email,weixin,contactperson1,contactphoneno1,contactperson2,contactphoneno2,abobloodtype,rhbloodtype,hospitalid,hospitalname,hospitallevel,isdischarge,patienidentity,bloodtypes,bloodtypee,height,weight,newborndate,newbornweight,newborncurrentweight,isdrugallergy,allergydrugcode,allergydrugname,patientpregnant,patientlactating,inbedno,outbedno,imdeptcode,imdeptname,transferDeptcode,transferDeptname,deptcode,deptname,doctorgroupcode,doctorgroupname,doctorcode,doctorname,hospitaltime,leavehospitaltype,isuploaddate,admissiondiseaseid,admissiondiseasename,admissiondate,dischargediseaseid,dischargediseasename,dischargereason,dischargedate,tsblbs,diagnoseposition1,diagnoseposition2,ispathologicalexamination,pathologycode,ishospitalinfected,hospitalinfectedcode,diseasetype,specialdiseasecode,dischargeoutcome,extenddata1,extenddata2,recordstatus,YYID,YYUPDATETIME,YYCREATETIME) 																																
+	set Data=$lb(PatientId,VisitSn,VisitType,VisitCardNo,OutpatientNo,VisitTimes,VisitDatetime,MedicalRecordNo,InpatientNo,HospitalizationTimes,AdmissionDatetime,DischargeDatetime,VisitDoctorNo,Name,Gender,DateOfBirth,OccupationCode,OccupationName,Nationality,Ethnicity,Education,maritalstatus,NewbronMark,certificatetype,CertificateNo,HealthCardType,HealthCardNo,InsuranceType,InsuranceNo,ResidenceProvince,ResidenceCity,ResidenceCounty,CurrentAddress,PhoneNo,PhoneNo2,Email,weixin,ContactPerson1,ContactPhoneNo1,ContactPerson2,ContactPhoneNo2,AboBloodType,RhBloodType,HospitalId,HospitalName,HospitalLevel,isdischarge,PatienIdentity,BloodTypeS,BloodTypeE,Height,Weight,newbornDate,NewbornWeight,NewbornCurrentWeight,IsDrugAllergy,AllergyDrugCode,AllergyDrugName,PatientPregnant,PatientLactating,InBedNo,InBedNo,ImdeptCode,ImdeptName,TransferDeptCode,TransferDeptName,DeptCode,DeptName,DoctorGroupCode,DoctorGroupName,DoctorCode,DoctorName,HospitalTime,LeaveHospitalType,IsUploadDate,AdmissionDiseaseId,AdmissionDiseaseName,admissiondate,AdmissionDiseaseId,AdmissionDiseaseName,DischargeReason,dischargedate,Tsblbs,DiagnosePosition1,DiagnosePosition2,IsPathologicalExamination,PathologyCode,IsHospitalInfected,HospitalInfectedCode,DiseaseType,SpecialDiseaseCode,DischargeOutcome,ExtendData1,ExtendData2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME)
 	Set ^CacheTemp(repid,ind)=Data
 	Set ind=ind+1
 	quit
@@ -162,6 +178,8 @@ ClassMethod DIPatientInfoFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByR
 /// 诊断信息  ----  ms
 /// patient_id,visit_sn,visit_type,visit_card_no,medical_record_no,outpatient_no,visit_times,inpatient_no,hospitalization_times,name,diag_id,diag_serial_number,diag_type,diag_code,diag_name,diag_explanation,diag_datetime,confirmed_diag_mark,maindiag_mark,diag_doctor_no,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME
 /// PatientId,VisitSn,VisitType,VisitCardNo,MedicalRecordNo,OutpatientNo,VisitTimes,InpatientNo,HospitalizationTimes,Name,DiagId,DiagSerialNumber,DiaType,DiagCode,DiagName,DiagExplanation,DiagDatetime,ConfirmedDiagMark,MaindiagMark,DiagDoctorNo,ExtendData1,ExtendData2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME
+/// d ##class(%ResultSet).RunQuery("web.DHCENS.BLL.ZLSB.TransInfo.Method.UploadZLData","AdmDiagnosInfo","2021-11-04","2021-11-04")
+/// CALL web_DHCENS_BLL_ZLSB_TransInfo_Method.UploadZLData_AdmDiagnosInfo("2021-11-04","2021-11-04")
 Query AdmDiagnosInfo(StartDate As %Date, EndDate As %Date) As %Query(ROWSPEC = "patient_id,visit_sn,visit_type,visit_card_no,medical_record_no,outpatient_no,visit_times,inpatient_no,hospitalization_times,name,diag_id,diag_serial_number,diag_type,diag_code,diag_name,diag_explanation,diag_datetime,confirmed_diag_mark,maindiag_mark,diag_doctor_no,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME") [ SqlProc, SqlViewName = DIPatientInfo ]
 {
 }
@@ -171,10 +189,15 @@ ClassMethod AdmDiagnosInfoExecute(ByRef qHandle As %Binary, StartDate As %Date, 
  //d ##class(%ResultSet).RunQuery("web.DHCENS.BLL.TransInfo.Method.PUMCHUpload","INPatientInfo","2017-11-19","2017-11-19")
 	Set repid=$I(^CacheTemp)
 	If $G(ind)="" Set ind=1
-	s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
-    s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
-    s:StartDate="" SatarDate=+$h-1
-    s:EndDate="" EndDate=+$h-1
+	;s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
+    ;s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
+    ;s:StartDate="" SatarDate=+$h-1
+    ;s:EndDate="" EndDate=+$h-1
+    Set:StartDate="" StartDate=$h-1
+    Set:EndDate="" EndDate=$h-1
+    Set:StartDate["-" StartDate=$ZDH(StartDate,3)
+    Set:EndDate["-" EndDate=$ZDH(EndDate,3)
+    
     for Date=StartDate:1:EndDate{
 	    s AdmId="" 
 		f {
@@ -294,8 +317,11 @@ ClassMethod AdmDiagnosInfoFetch(ByRef qHandle As %Binary, ByRef Row As %List, By
 }
 
 /// --住院医嘱记录
+/// B10-1 住院医嘱记录
 /// patient_id,visit_sn,medical_record_no,inpatient_no,hospitalization_times,order_sn,request_no,order_given_time,order_confirm_time,order_dept_code,order_dept_name,order_doctor_no,technical_title,job_title,visit_dept_code,visit_dept_name,order_start_datetime,order_end_datetime,executive_dept_code,executive_dept_name,order_type,order_class_code,order_class_name,order_item_code,order_item_name,order_group_no,dose,dose_unit,form,spec,frequency_code,frequency_name,administration_route,liquid_configuration,injection_type,drug_order,drug_compatibility,infusion_duration,num_of_order,num_of_order_unit,herbal_note,order_note,drug_flag,manufac,trade_name,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME
 /// PatientId,VisitSn,MedicalRecordNo,InpatientNo,HospitalizationTimes,OrderSn,RequestNo,OrderGivenTime,OrderConfirmTime,OrderDeptCode,OrderDeptName,OrderDoctorNo,TechnicalTitle,JobTitle,VisitDeptCode,VisitDeptName,OrderStartDatetime,OrderEndDatetime,ExecutiveDeptCode,ExecutiveDeptName,OrderType,OrderClassCode,OrderClassName,OrderItemCode,OrderItemName,OrderGroupNo,Dose,DoseUnit,Form,Spec,FrequencyCode,FrequencyName,AdministrationRoute,LiquidConfiguration,InjectionType,DrugOrder,DrugCompatibility,InfusionDuration,NumOfOrder,NumOfOrderUnit,HerbalNote,OrderNote,DrugFlag,Manufac,TradeName,ExtendData1,RxtendRata2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME
+/// d ##class(%ResultSet).RunQuery("DHCDoc.Interface.TumorReporting.ComQuery","GetIPOEOrderInfo","2019-10-01","2019-10-02")
+/// CALL DHCDoc_Interface_TumorReporting.ComQuery_GetIPOEOrderInfo("2019-10-01","2019-10-02")
 Query GetIPOEOrderInfo(StartDate As %String, EndDate As %String) As %Query(ROWSPEC = "patient_id,visit_sn,medical_record_no,inpatient_no,hospitalization_times,order_sn,request_no,order_given_time,order_confirm_time,order_dept_code,order_dept_name,order_doctor_no,technical_title,job_title,visit_dept_code,visit_dept_name,order_start_datetime,order_end_datetime,executive_dept_code,executive_dept_name,order_type,order_class_code,order_class_name,order_item_code,order_item_name,order_group_no,dose,dose_unit,form,spec,frequency_code,frequency_name,administration_route,liquid_configuration,injection_type,drug_order,drug_compatibility,infusion_duration,num_of_order,num_of_order_unit,herbal_note,order_note,drug_flag,manufac,trade_name,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME") [ SqlProc ]
 {
 }
@@ -304,10 +330,14 @@ ClassMethod GetIPOEOrderInfoExecute(ByRef qHandle As %Binary, StartDate As %Stri
 {
 	Set repid=$I(^CacheTemp)
 	If $g(ind)="" Set ind=1
-	s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
-    s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
-    s:StartDate="" SatarDate=+$h-1
-    s:EndDate="" EndDate=+$h-1
+	;s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
+    ;s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
+    ;s:StartDate="" SatarDate=+$h-1
+    ;s:EndDate="" EndDate=+$h-1
+    Set:StartDate="" StartDate=$h-1
+    Set:EndDate="" EndDate=$h-1
+    Set:StartDate["-" StartDate=$ZDH(StartDate,3)
+    Set:EndDate["-" EndDate=$ZDH(EndDate,3)
     
     s AdmTypeStr="I"
     for Date=StartDate:1:EndDate{
@@ -317,11 +347,12 @@ ClassMethod GetIPOEOrderInfoExecute(ByRef qHandle As %Binary, StartDate As %Stri
 		    for {
 			    s AdmId=$o(^PAADMi("NNType",OneAdmType,Date,AdmId))
 			    q:AdmId=""
+			    q:AdmId'="9620985"
 				s OrderRowid=$o(^OEORD(0,"Adm",AdmId,0))
 				continue:OrderRowid=""
 				s ItemSub=0
 				for{
-					s itemSub = $o(^OEORD(OrderRowid,"I",ItemSub))
+					s ItemSub = $o(^OEORD(OrderRowid,"I",ItemSub))
 					q:ItemSub=""
 					s OneOEORIRowID=OrderRowid_"||"_ItemSub
 					d OutIPOEOrderInfo
@@ -417,22 +448,32 @@ ClassMethod GetIPOEOrderInfoFetch(ByRef qHandle As %Binary, ByRef Row As %List, 
 }
 
 /// 12.恶性肿瘤患者门诊诊疗挂号记录
+/// B12-1 门诊患者信息表
 /// patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,name,regis_sn,regis_datetime,visit_datetime,first_visit_mark,regis_method_code,regis_method,regis_type_code,regis_type,regis_charge_price,regis_paid_price,regis_dept_code,regis_dept_name,visit_doctor_no,technical_title,job_title,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME
 /// PatientId,VisitSn,VisitType,VisitCardNo,OutpatientNo,VisitTimes,Name,RegisSn,RegisDatetime,VisitDatetime,FirstVisitMark,RegisMethodCode,RegisMethod,RegisTypeCode,RegisType,RegisChargePrice,RegisPaidPrice,RegisDeptCode,RegisDeptName,VisitDoctorNo,TechnicalTitle,JobTitle,ExtendData1,ExtendData2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME
+/// d ##class(%ResultSet).RunQuery("web.DHCENS.BLL.ZLSB.TransInfo.Method.UploadZLData","OPRegist","2021-11-04","2021-11-04")
+/// CALL web_DHCENS_BLL_ZLSB_TransInfo_Method.UploadZLData_OPRegist("2021-11-04","2021-11-04")
 Query OPRegist(StartDate As %Date, EndDate As %Date) As %Query(ROWSPEC = "patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,name,regis_sn,regis_datetime,visit_datetime,first_visit_mark,regis_method_code,regis_method,regis_type_code,regis_type,regis_charge_price,regis_paid_price,regis_dept_code,regis_dept_name,visit_doctor_no,technical_title,job_title,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME") [ SqlProc, SqlViewName = OPRegist ]
 {
 }
 
 ClassMethod OPRegistExecute(ByRef qHandle As %Binary, StartDate As %Date, EndDate As %Date) As %Status
 {
- //d ##class(%ResultSet).RunQuery("web.DHCENS.BLL.TransInfo.Method.PUMCHUpload","OPRegist","2017-12-06","2017-12-06")
+ 
 	Set repid=$I(^CacheTemp)
 	If $g(ind)="" Set ind=1
-	s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
-    s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
-    s:StartDate="" SatarDate=+$h-1
-    s:EndDate="" EndDate=+$h-1
+	;s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
+    ;s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
+    ;s:StartDate="" SatarDate=+$h-1
+    ;s:EndDate="" EndDate=+$h-1
+    /// 统一整理时间
+    Set:StartDate="" StartDate=$h-1
+    Set:EndDate="" EndDate=$h-1
+    Set:StartDate["-" StartDate=$ZDH(StartDate,3)
+    Set:EndDate["-" EndDate=$ZDH(EndDate,3)
+    
     ;^PAADMi("NNType",{PAADM_Type},{PAADM_AdmDate},{PAADM_RowID})
+    ;b ;00
     s AdmTypeStr="O^E"
     for Date=StartDate:1:EndDate{
 	    for AdmTypeInd=1:1:$l(AdmTypeStr,"^"){
@@ -441,15 +482,20 @@ ClassMethod OPRegistExecute(ByRef qHandle As %Binary, StartDate As %Date, EndDat
 		    for {
 			    s AdmId=$o(^PAADMi("NNType",OneAdmType,Date,AdmId))
 			    q:AdmId=""
+			    ;b ;01
 			    d OutOPRegist
 		    }
 	    }
-	    /*s AdmId="" 
+	   /**
+	   b ;01
+	    s AdmId="" 
 		f {
 			s AdmId=$O(^PAADMi("PAADM_AdmDate",Date,AdmId)) 
 			q:AdmId=""
+			b ;02
 			d OutOPRegist
-		}*/
+		}
+	 **/
     }
     Set qHandle=$lb(0,repid,0)
 	Quit $$$OK
@@ -472,8 +518,8 @@ OutOPRegist
 	s RegisType=OneOPRegistObj.RegisType
 	s RegisChargePrice=OneOPRegistObj.RegisChargePrice
 	s RegisPaidPrice=OneOPRegistObj.RegisPaidPrice
-	s RegisDeptCode=OneOPRegistObj.PatientId
-	s RegisDeptName=OneOPRegistObj.RegisDeptCode
+	s RegisDeptCode=OneOPRegistObj.RegisDeptCode
+	s RegisDeptName=OneOPRegistObj.RegisDeptName
 	s VisitDoctorNo=OneOPRegistObj.VisitDoctorNo
 	s TechnicalTitle=OneOPRegistObj.TechnicalTitle
 	s JobTitle=OneOPRegistObj.JobTitle
@@ -516,9 +562,12 @@ ClassMethod OPRegistFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef At
 	Quit $$$OK
 }
 
-/// --住院医嘱记录
+/// --门急诊医嘱记录
+/// B14-1 门急诊医嘱记录
 /// patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,order_sn,request_no,order_given_time,visit_dept_code,visit_dept_name,order_dept_code,order_dept_name,order_doctor_no,technical_title,job_title,executive_dept_code,executive_dept_name,prescription_class_code,prescription_class_name,order_class_code,order_class_name,order_item_code,order_item_name,order_group_no,dose,dose_unit,form,spec,frequency_code,frequency,administration_route,liquid_configuration,injection_type,drug_order,drug_compatibility,infusion_duration,days_of_medication,total_dose,total_dose_unit,num_of_orders,num_of_orders_unit,order_note,herbal_note,drug_flag,manufac,trade_name,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME
 /// PatientId,VisitSn,VisitType,VisitCardNo,OutpatientNo,VisitTimes,OrderSn,RequestNo,OrderGivenTime,VisitDeptCode,VisitDeptName,OrderDeptCode,OrderDeptName,OrderDoctorNo,TechnicalTitle,JobTitle,ExecutiveDeptCode,ExecutiveDeptName,PrescriptionClassCode,PrescriptionClassName,OrderClassCode,OrderClassName,OrderItemCode,OrderItemName,OrderGroupNo,Dose,DoseUnit,Form,Spec,FrequencyCode,Frequency,AdministrationRoute,LiquidConfiguration,InjectionType,DrugOrder,DrugCompatibility,InfusionDuration,DaysOfMedication,TotalDose,TotalDoseUnit,NumOfOrders,NumOfOrdersUnit,OrderNote,HerbalNote,DrugFlag,Manufac,TradeName,ExtendData1,ExtendData2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME
+/// d ##class(%ResultSet).RunQuery("DHCDoc.Interface.TumorReporting.ComQuery","GetOPOEOrderInfo","2019-10-01","2019-10-02")
+/// CALL DHCDoc_Interface_TumorReporting.ComQuery_GetOPOEOrderInfo("2019-10-01","2019-10-02")
 Query GetOPOEOrderInfo(StartDate As %String, EndDate As %String) As %Query(ROWSPEC = "patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,order_sn,request_no,order_given_time,visit_dept_code,visit_dept_name,order_dept_code,order_dept_name,order_doctor_no,technical_title,job_title,executive_dept_code,executive_dept_name,prescription_class_code,prescription_class_name,order_class_code,order_class_name,order_item_code,order_item_name,order_group_no,dose,dose_unit,form,spec,frequency_code,frequency,administration_route,liquid_configuration,injection_type,drug_order,drug_compatibility,infusion_duration,days_of_medication,total_dose,total_dose_unit,num_of_orders,num_of_orders_unit,order_note,herbal_note,drug_flag,manufac,trade_name,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME") [ SqlProc ]
 {
 }
@@ -527,12 +576,17 @@ ClassMethod GetOPOEOrderInfoExecute(ByRef qHandle As %Binary, StartDate As %Stri
 {
 	Set repid=$I(^CacheTemp)
 	If $g(ind)="" Set ind=1
-	s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
-    s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
-    s:StartDate="" SatarDate=+$h-1
-    s:EndDate="" EndDate=+$h-1
+	;s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
+    ;s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
+    ;s:StartDate="" SatarDate=+$h-1
+    ;s:EndDate="" EndDate=+$h-1
+    /// 统一整理时间
+    Set:StartDate="" StartDate=$h-1
+    Set:EndDate="" EndDate=$h-1
+    Set:StartDate["-" StartDate=$ZDH(StartDate,3)
+    Set:EndDate["-" EndDate=$ZDH(EndDate,3)
     
-    s AdmTypeStr="I"
+    s AdmTypeStr="O^E"
     for Date=StartDate:1:EndDate{
 	    for AdmTypeInd=1:1:$l(AdmTypeStr,"^"){
 		    s OneAdmType=$p(AdmTypeStr,"^",AdmTypeInd)
@@ -540,13 +594,15 @@ ClassMethod GetOPOEOrderInfoExecute(ByRef qHandle As %Binary, StartDate As %Stri
 		    for {
 			    s AdmId=$o(^PAADMi("NNType",OneAdmType,Date,AdmId))
 			    q:AdmId=""
+			    q:AdmId="9620915"
 				s OrderRowid=$o(^OEORD(0,"Adm",AdmId,0))
 				continue:OrderRowid=""
 				s ItemSub=0
 				for{
-					s itemSub = $o(^OEORD(OrderRowid,"I",ItemSub))
+					s ItemSub = $o(^OEORD(OrderRowid,"I",ItemSub))
 					q:ItemSub=""
 					s OneOEORIRowID=OrderRowid_"||"_ItemSub
+					b ;01
 					d OutOPOEOrderInfo
 				}
 			}
@@ -566,6 +622,7 @@ OutOPOEOrderInfo
 	s RequestNo=OneItemObj.RequestNo
 	s OrderGivenTime=OneItemObj.OrderGivenTime
 	s VisitDeptCode=OneItemObj.VisitDeptCode
+	s:VisitDeptCode'="" VisitDeptCode=$p(^CTPCP(VisitDeptCode,1),"^",1)
 	s VisitDeptName=OneItemObj.VisitDeptName
 	s OrderDeptCode=OneItemObj.OrderDeptCode
 	s OrderDeptName=OneItemObj.OrderDeptName
@@ -648,5 +705,147 @@ ClassMethod GetOPOEOrderInfoFetch(ByRef qHandle As %Binary, ByRef Row As %List, 
  	s qHandle=$lb(AtEnd,repid,ind)
 	Quit $$$OK
 }
+/// --常规检验记录
+/// B17-1 常规检验记录
+/// patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,order_sn,request_no,order_given_time,visit_dept_code,visit_dept_name,order_dept_code,order_dept_name,order_doctor_no,technical_title,job_title,executive_dept_code,executive_dept_name,prescription_class_code,prescription_class_name,order_class_code,order_class_name,order_item_code,order_item_name,order_group_no,dose,dose_unit,form,spec,frequency_code,frequency,administration_route,liquid_configuration,injection_type,drug_order,drug_compatibility,infusion_duration,days_of_medication,total_dose,total_dose_unit,num_of_orders,num_of_orders_unit,order_note,herbal_note,drug_flag,manufac,trade_name,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME
+/// PatientId,VisitSn,VisitType,VisitCardNo,OutpatientNo,VisitTimes,OrderSn,RequestNo,OrderGivenTime,VisitDeptCode,VisitDeptName,OrderDeptCode,OrderDeptName,OrderDoctorNo,TechnicalTitle,JobTitle,ExecutiveDeptCode,ExecutiveDeptName,PrescriptionClassCode,PrescriptionClassName,OrderClassCode,OrderClassName,OrderItemCode,OrderItemName,OrderGroupNo,Dose,DoseUnit,Form,Spec,FrequencyCode,Frequency,AdministrationRoute,LiquidConfiguration,InjectionType,DrugOrder,DrugCompatibility,InfusionDuration,DaysOfMedication,TotalDose,TotalDoseUnit,NumOfOrders,NumOfOrdersUnit,OrderNote,HerbalNote,DrugFlag,Manufac,TradeName,ExtendData1,ExtendData2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME
+/// d ##class(%ResultSet).RunQuery("DHCDoc.Interface.TumorReporting.ComQuery","GetOPOEOrderInfo","2019-10-01","2019-10-02")
+/// CALL DHCDoc_Interface_TumorReporting.ComQuery_GetOPOEOrderInfo("2019-10-01","2019-10-02")
+Query GetLabOrderInfo(StartDate As %String, EndDate As %String) As %Query(ROWSPEC = "patient_id,visit_sn,visit_type,visit_card_no,outpatient_no,visit_times,order_sn,request_no,order_given_time,visit_dept_code,visit_dept_name,order_dept_code,order_dept_name,order_doctor_no,technical_title,job_title,executive_dept_code,executive_dept_name,prescription_class_code,prescription_class_name,order_class_code,order_class_name,order_item_code,order_item_name,order_group_no,dose,dose_unit,form,spec,frequency_code,frequency,administration_route,liquid_configuration,injection_type,drug_order,drug_compatibility,infusion_duration,days_of_medication,total_dose,total_dose_unit,num_of_orders,num_of_orders_unit,order_note,herbal_note,drug_flag,manufac,trade_name,extend_data1,extend_data2,record_status,YY_ID,YY_UPDATE_TIME,YY_CREATE_TIME") [ SqlProc ]
+{
+}
 
+ClassMethod GetLabOrderInfoExecute(ByRef qHandle As %Binary, StartDate As %String, EndDate As %String) As %Status
+{
+	Set repid=$I(^CacheTemp)
+	If $g(ind)="" Set ind=1
+	;s:StartDate'="" SatarRegDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
+    ;s:EndDate'="" EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
+    ;s:StartDate="" SatarDate=+$h-1
+    ;s:EndDate="" EndDate=+$h-1
+    /// 统一整理时间
+    Set:StartDate="" StartDate=$h-1
+    Set:EndDate="" EndDate=$h-1
+    Set:StartDate["-" StartDate=$ZDH(StartDate,3)
+    Set:EndDate["-" EndDate=$ZDH(EndDate,3)
+    
+    s AdmTypeStr="O^E"
+    for Date=StartDate:1:EndDate{
+	    for AdmTypeInd=1:1:$l(AdmTypeStr,"^"){
+		    s OneAdmType=$p(AdmTypeStr,"^",AdmTypeInd)
+		    s AdmId=0
+		    for {
+			    s AdmId=$o(^PAADMi("NNType",OneAdmType,Date,AdmId))
+			    q:AdmId=""
+			    q:AdmId="9620915"
+				s OrderRowid=$o(^OEORD(0,"Adm",AdmId,0))
+				continue:OrderRowid=""
+				s ItemSub=0
+				for{
+					s ItemSub = $o(^OEORD(OrderRowid,"I",ItemSub))
+					q:ItemSub=""
+					s OneOEORIRowID=OrderRowid_"||"_ItemSub
+					b ;01
+					d OutOPOEOrderInfo
+				}
+			}
+	    }
+    }
+	Set qHandle=$lb(0,repid,0)
+	Quit $$$OK
+OutOPOEOrderInfo
+	s OneItemObj=##class(DHCDoc.Interface.TumorReporting.ComInterface).GetOrderInfo(AdmId,OneOEORIRowID)
+	s PatientId=OneItemObj.PatientId
+	s VisitSn=OneItemObj.VisitSn
+	s VisitType=OneItemObj.VisitType
+	s VisitCardNo=OneItemObj.PatientId
+	s OutpatientNo=AdmId
+	s VisitTimes=OneItemObj.VisitTimes
+	s OrderSn=OneItemObj.OrderSn
+	s RequestNo=OneItemObj.RequestNo
+	s OrderGivenTime=OneItemObj.OrderGivenTime
+	s VisitDeptCode=OneItemObj.VisitDeptCode
+	s:VisitDeptCode'="" VisitDeptCode=$p(^CTPCP(VisitDeptCode,1),"^",1)
+	s VisitDeptName=OneItemObj.VisitDeptName
+	s OrderDeptCode=OneItemObj.OrderDeptCode
+	s OrderDeptName=OneItemObj.OrderDeptName
+	s OrderDoctorNo=OneItemObj.OrderDoctorNo
+	s TechnicalTitle=OneItemObj.TechnicalTitle
+	s JobTitle=OneItemObj.JobTitle
+	s ExecutiveDeptCode=OneItemObj.ExecutiveDeptCode
+	s ExecutiveDeptName=OneItemObj.ExecutiveDeptName
+	s PrescriptionClassCode=OneItemObj.OrderClassCode
+	s PrescriptionClassName=OneItemObj.OrderClassName
+	s OrderClassCode=OneItemObj.OrderClassCode
+	s OrderClassName=OneItemObj.OrderClassName
+	s OrderItemCode=OneItemObj.OrderItemCode
+	s OrderItemName=OneItemObj.OrderItemName
+	s OrderGroupNo=OneItemObj.OrderGroupNo
+	s Dose=OneItemObj.Dose
+	s DoseUnit=OneItemObj.DoseUnit
+	s Form=OneItemObj.Form
+	s Spec=OneItemObj.Spec
+	s FrequencyCode=OneItemObj.FrequencyCode
+	s Frequency=OneItemObj.FrequencyName
+	s AdministrationRoute=OneItemObj.AdministrationRoute
+	s LiquidConfiguration=OneItemObj.LiquidConfiguration
+	s InjectionType=OneItemObj.InjectionType
+	s DrugOrder=OneItemObj.DrugOrder
+	s DrugCompatibility=OneItemObj.DrugCompatibility
+	s InfusionDuration=OneItemObj.InfusionDuration
+	s DaysOfMedication=""
+	s DurRowid=$p($g(^OEORD(OrderRowid,"I",ItemSub,2)),"^",6)	;疗程
+	s:DurRowid'="" DaysOfMedication=$p($g(^PHCDU(DurRowid)),"^",3)
+	s TotalDose=""
+	s TotalDoseUnit=""
+	s DoseUOMRowid=$p($g(^OEORD(OrderRowid,"I",ItemSub,2)),"^",3)	;每次给药剂量
+	s PackQty=$p($g(^OEORD(OrderRowid,"I",ItemSub,9)),"^",4)	;发药数量
+	s OrderPackUOMRowid=$p($g(^OEORD(OrderRowid,"I",ItemSub,"DHC")),"^",13)
+	if (OrderPackUOMRowid="") s OrderPackUOMRowid=DoseUOMRowid	;发药数量单位
+	s:PackQty="" PackQty="1"
+	s NumOfOrders=PackQty
+	s NumOfOrdersUnit=""
+	s:OrderPackUOMRowid'="" OrderPackUOMRowid=$p($g(^CT("UOM",OrderPackUOMRowid)),"^",2)
+	s OrderNote=OneItemObj.OrderNote
+	s HerbalNote=OneItemObj.HerbalNote
+	s DrugFlag=OneItemObj.DrugFlag
+	s Manufac=OneItemObj.Manufac
+	s TradeName=OneItemObj.TradeName
+	s ExtendData1=OneItemObj.ExtendData1
+	s ExtendData2=OneItemObj.ExtendData2
+	s RecordStatus=OneItemObj.RecordStatus
+	s YYID=OneItemObj.YYID
+	s YYUPDATETIME=OneItemObj.YYUPDATETIME
+	s YYCREATETIME=OneItemObj.YYCREATETIME
+	set Data=$lb(PatientId,VisitSn,VisitType,VisitCardNo,OutpatientNo,VisitTimes,OrderSn,RequestNo,OrderGivenTime,VisitDeptCode,VisitDeptName,OrderDeptCode,OrderDeptName,OrderDoctorNo,TechnicalTitle,JobTitle,ExecutiveDeptCode,ExecutiveDeptName,PrescriptionClassCode,PrescriptionClassName,OrderClassCode,OrderClassName,OrderItemCode,OrderItemName,OrderGroupNo,Dose,DoseUnit,Form,Spec,FrequencyCode,Frequency,AdministrationRoute,LiquidConfiguration,InjectionType,DrugOrder,DrugCompatibility,InfusionDuration,DaysOfMedication,TotalDose,TotalDoseUnit,NumOfOrders,NumOfOrdersUnit,OrderNote,HerbalNote,DrugFlag,Manufac,TradeName,ExtendData1,ExtendData2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME) 																																
+	Set ^CacheTemp(repid,ind)=Data
+	Set ind=ind+1
+	quit
+}
+
+ClassMethod GetGetLabOrderInfoInfoClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = GetLabOrderInfoExecute ]
+{
+	Set repid=$LIST(qHandle,2)
+ 	Kill ^CacheTemp(repid)
+	Quit $$$OK
+}
+
+ClassMethod GetLabOrderInfoFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = GetLabOrderInfoExecute ]
+{
+	Set AtEnd=$LIST(qHandle,1)
+ 	Set repid=$LIST(qHandle,2)
+ 	Set ind=$LIST(qHandle,3)
+	//
+ 	Set ind=$o(^CacheTemp(repid,ind))
+ 	If ind="" {				// if there are no more rows, finish fetching
+ 	Set AtEnd=1
+ 	Set Row=""
+ 	}
+ 	Else      {				// fetch row
+ 	Set Row=^CacheTemp(repid,ind)
+ 	}
+ 	// Save QHandle
+ 	s qHandle=$lb(AtEnd,repid,ind)
+	Quit $$$OK
+}
 }

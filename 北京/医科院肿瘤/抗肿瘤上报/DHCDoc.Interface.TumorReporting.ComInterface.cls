@@ -1,6 +1,89 @@
 Class DHCDoc.Interface.TumorReporting.ComInterface Extends %RegisteredObject
 {
 
+ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
+{
+	s OutItemObj={}
+	; patient_id	患者ID	00931222	患者在本院的唯一标识	文本	varchar(100)	是
+	s PAADMPAPMIDR=$p($g(^PAADM(AdmId)),"^",1)
+	s HospID=##Class(DHCDoc.Common.Hospital).GetAdmHospitalId(AdmId)
+	s OutItemObj.PatientId=##Class(web.PAPatMas).GetRegistration(PAADMPAPMIDR)
+	; visit_sn	单次就诊唯一标识号(与b02_1强关联)	00931222|4623477|1|门诊	标识一次就诊行为的唯一编号，如果原系统中需多个字段标识，则通过"|"进行拼接。例如，患者ID|住院号|住院次数|就诊类型、患者ID|门诊号|就诊次数|就诊类型	文本	varchar(100)	是
+	s OutItemObj.VisitSn=AdmId
+	; visit_type	就诊类型	门诊	就诊类型：门诊、急诊	文本	varchar(50)	是	
+	s PAADMType=$p($g(^PAADM(AdmId)),"^",2)
+	s OutItemObj.VisitType=$case(PAADMType,"E":"急诊","I":"住院",:"门诊")
+	; visit_card_no	就诊卡号	153898	患者在本医院就诊时使用的就诊卡号	文本	varchar(100)	是
+	//s OutItemObj.VisitCardNo=OutItemObj.PatientId
+	; outpatient_no	门诊号	4623477	患者门诊就诊时对应的门诊号或者病历号	文本	varchar(100)	是（就诊类型为门诊）
+	; visit_times	就诊次数	1	本院门诊次数	数值	int	是	
+	s OutItemObj.VisitTimes=..GetVisitNum("O^E",PAADMPAPMIDR)
+	; medical_record_no	病案号	869881	患者在本院就诊时使用的病案号	文本	varchar(100)
+	s OutItemObj.MedicalRecordNo=##class(web.DHCDocOrderCommon).GetMrNo("",PAADMPAPMIDR,"O")
+	; inpatient_no	住院号	4623477	患者住院号	文本	varchar(100)	是	开医嘱
+	s OutItemObj.InpatientNo=AdmId
+	; hospitalization_times	住院次数	2		数值	varchar(20)	是	开医嘱
+	s OutItemObj.HospitalizationTimes=..GetVisitNum("I",PAADMPAPMIDR)
+	s:OutItemObj.HospitalizationTimes=0 OutItemObj.HospitalizationTimes=1
+	; name	患者姓名	张三	张某	文本	varchar(100)	是
+	s OutItemObj.Name=$P($g(^PAPER(PAADMPAPMIDR,"ALL")),"^",1)
+	s OrdInfoItemObj=##class(DHCDoc.Interface.TumorReporting.Doc).GetOrdInfoItem(OEORIRowID)
+	; apply_no	申请单号	M009312122	该字段能够与表14门诊医嘱及处方或表10住院医嘱(request_no)进行关联	文本	varchar(100)	是
+	s OutItemObj.ApplyNo=OrdInfoItemObj.OEORILabEpisodeNo
+	; order_sn	申请医嘱流水号	423457	该字段能够与表14门诊医嘱及处方或表10住院医嘱(order_sn)进行关联	文本	varchar(100)	是
+	s OutItemObj.OrderSn=OrdInfoItemObj.OEORIRowId
+	; apply_datetime	申请时间	2018-01-03 16:31:42	符合【yyyy-MM-dd HH:mm:ss】的格式	日期	varchar(50)	是
+	s OutItemObj.OrderGivenTime=##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORITime)
+	; specimen_type_code	标本类型代码	35	填写医院原始代码	文本	varchar(50)	是
+	s OutItemObj.SpecimenTypeCode=..GetLabSpecInfo(OEORIRowID,"Code",HospID)
+	; specimen_type_name	标本类型名称	血清	填写标本类型名称	文本	varchar(100)	是
+	s OutItemObj.SpecimenTypeName=..GetLabSpecInfo(OEORIRowID,"",HospID)
+	; specimen_code	标本编号	B202005030001	标本的唯一编号	文本	varchar(100)
+	s OutItemObj.SpecimenCode=OutItemObj.SpecimenTypeCode	
+	; lab_sn	检验流水号	4623477|1	表内唯一主键：报告单号|明细项目组号	文本	varchar(100)
+	s OutItemObj.LabSn=OrdInfoItemObj.OEORIPlacerNo
+	; test_datetime	检验时间	2018-01-03 16:31:42	符合【yyyy-MM-dd HH:mm:ss】的格式	日期	varchar(50)	是
+	; test_method_code	检验方法代码	32	填写医院原始代码	文本	varchar(50)	
+	; test_method	检验方法	显微镜计数法	填写检验方法名称	文本	varchar(100)	
+	; lab_type	检验类型	生化	生化等	文本	varchar(50)	
+	; item_group_code	组合项目代码	X212031	填写医院原始代码	文本	varchar(50)	
+	; item_group_name	组合项目名称	血常规	如：血常规、血生化等	文本	varchar(100)	
+	; report_no	报告单号			文本	varchar(100)	
+	; report_datetime	报告时间			日期	varchar(50)	是
+	; extend_data1	扩展字段1			文本	text	
+	; extend_data2	扩展字段2			文本	text	
+	; record_status	记录状态	1	1正常 0作废	数值	int	是
+	; record_datetime	记录创建时间			日期	varchar(50)	
+	; record_update_datetime	记录更新时间			日期	varchar(50)	
+}
+
+///w ##class(web.DHCOEOrdItem).GetLabSpec("93||59",2)
+ClassMethod GetLabSpecInfo(OrderItemRowid As %String,TextType As %String, HospitalId As %String = "") As %String
+{
+	
+	s SpecStr=""
+	s OrderRowid=$p(OrderItemRowid,"||",1)
+	s Childsub=$p(OrderItemRowid,"||",2)
+	if (HospitalId=""){
+		s RecDr=$P($G(^OEORD(OrderRowid,"I",Childsub,3)),"^",6)
+		s HospitalId=$P($G(^CTLOC(+RecDr)),"^",22)
+	}
+	s HospitalCode=##class(web.DHCDocOrderCommon).GetCurrentSYSHospitalCode(HospitalId)
+	s spec=0 for  s spec=$o(^OEORD(OrderRowid,"I",Childsub,"SPEC",spec)) QUIT:spec=""  do
+	. s SpecCode=$P($g(^OEORD(OrderRowid,"I",Childsub,"SPEC",spec)),"^",1)
+	. i TextType="Code" d
+	. . i SpecStr="" s SpecStr=SpecCode
+	. . e  s SpecStr=SpecStr+","+SpecCode
+	. . continue
+	. i $d(^DHCLISBSVersion(1)) d
+	.. s SpecDesc=$p(##Class(DHCLIS.DHCCommon).GetSpecimen(SpecCode,$g(HospitalCode)),$c(2),2) 
+	. e  d
+	.. s SpecDesc=$p($G(^TTAB("SPEC",SpecCode)),"\",1)
+	. i SpecStr="" s SpecStr=SpecDesc
+	. e  s SpecStr=SpecStr+","+SpecDesc
+	Q SpecStr
+}
+
 ClassMethod GetOPRegistInfo(PAADMRowID As %String)
 {
 	s OutRegistObj={}
@@ -15,13 +98,12 @@ ClassMethod GetOPRegistInfo(PAADMRowID As %String)
 	s PAADMType=PAAdmInfoObj.PAADMType
 	s OutRegistObj.VisitType=$case(PAADMType,"E":"急诊",:"门诊")
 	; visit_card_no	就诊卡号	153898	患者在本医院就诊时使用的就诊卡号	文本	varchar(100)	是
-	s VisitCardNo=OutRegistObj.PatientId	
+	s OutRegistObj.VisitCardNo=OutRegistObj.PatientId	
 	; outpatient_no	门诊号	4623477	患者门诊就诊时对应的门诊号或者病历号	文本	varchar(100)	是	
 	s OutRegistObj.OutpatientNo=PAAdmInfoObj.PAADMRowID
 	; visit_times	就诊次数	1	本院门诊次数	数值	int	是	
 	s OutRegistObj.VisitTimes=..GetVisitNum("O^E",PAADMPAPMIDR)
 	; name	患者姓名	张某		文本	varchar(100)	是
-	
 	s OutRegistObj.Name=$P($g(^PAPER(PAADMPAPMIDR,"ALL")),"^",1)
 	; regis_sn	挂号流水号	13423	挂号业务对应的唯一编号	文本	varchar(100)
 	s OutRegistObj.RegisSn=PAAdmInfoObj.PAADMADMNo		
@@ -57,7 +139,6 @@ ClassMethod GetOPRegistInfo(PAADMRowID As %String)
 	s OutRegistObj.TechnicalTitle=""		
 	; job_title	医师职务名称	科室主任	就诊医生职务名称	文本	varchar(100)
 	s OutRegistObj.JobTitle=""
-	
 	; ExtendData1,ExtendData2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME		
 	; extend_data1	扩展字段1		用于填写补充信息	文本	text
 	s OutRegistObj.ExtendData1=""	
@@ -65,14 +146,14 @@ ClassMethod GetOPRegistInfo(PAADMRowID As %String)
 	s OutRegistObj.ExtendData2=""		
 	; record_status	记录状态	1	1正常 0作废	数值	int	是
 	s PAADMVisitStatus=PAAdmInfoObj.PAADMVisitStatus	
-	s OutRegistObj.ExtendData1="1"
-	s:PAADMVisitStatus="C" OutRegistObj.ExtendData1="0"
+	s OutRegistObj.RecordStatus="1"
+	s:PAADMVisitStatus="C" OutRegistObj.RecordStatus="0"
 	; YY_ID	数据唯一标识			文本	varchar(100)	是	
-	s OutRegistObj.ExtendData1=OutRegistObj.PAADMRowID
+	s OutRegistObj.YYID=PAADMRowID
 	; YY_UPDATE_TIME	数据更新时间(增量采集时间)			日期	datetime	是	
-	s OutRegistObj.ExtendData1=##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMUpdateDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMUpdateTime)
+	s:PAAdmInfoObj.PAADMUpdateDate'="" OutRegistObj.YYUPDATETIME=$zd(PAAdmInfoObj.PAADMUpdateDate,3)_" "_$zt(PAAdmInfoObj.PAADMUpdateTime) ;##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMUpdateDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMUpdateTime)
 	; YY_CREATE_TIME	数据创建时间			日期	datetime	是
-	s OutRegistObj.ExtendData1=##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMCreateDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMCreateTime)
+	s:PAAdmInfoObj.PAADMCreateDate'="" OutRegistObj.YYCREATETIME=$zd(PAAdmInfoObj.PAADMCreateDate,3)_" "_$zt(PAAdmInfoObj.PAADMCreateTime) ;##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMCreateDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMCreateTime)
 	q OutRegistObj
 }
 
@@ -98,7 +179,9 @@ ClassMethod GetOrderInfo(AdmId As %String, OEORIRowID As %String)
 	s OutItemObj.InpatientNo=AdmId
 	; hospitalization_times	住院次数	2		数值	varchar(20)	是	开医嘱
 	s OutItemObj.HospitalizationTimes=..GetVisitNum("I",PAADMPAPMIDR)
-	s OrdInfoItemObj=##class(DHCDoc.GetInfo.Method.Doc).GetOrdInfoItem(OEORIRowID)
+	s:OutItemObj.HospitalizationTimes=0 OutItemObj.HospitalizationTimes=1
+
+	s OrdInfoItemObj=##class(DHCDoc.Interface.TumorReporting.Doc).GetOrdInfoItem(OEORIRowID)
 	; order_sn	医嘱流水号	74471930001|12	其值为医嘱表主键，如果存在医嘱子序号，则需要通过"|"进行字段拼接，保证数据唯一性。如果存在长期、临时多表情况，则拼接医嘱类别字段。	
 	;文本	varchar(100)	是	开医嘱
 	s OutItemObj.OrderSn=OrdInfoItemObj.OEORIRowId
@@ -106,7 +189,6 @@ ClassMethod GetOrderInfo(AdmId As %String, OEORIRowID As %String)
 	s OutItemObj.RequestNo=OrdInfoItemObj.OEORILabEpisodeNo
 	; order_given_time	医嘱下达时间	2018-01-03 16:31:42	"本业务数据在医院系统中的实际产生时间
 	s OutItemObj.OrderGivenTime=##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORITime)
-	
 	; order_confirm_time	医嘱确认时间	43103.69007		日期	datetime		开医嘱
 	s OutItemObj.OrderConfirmTime=OutItemObj.OrderGivenTime
 	; order_dept_code	医嘱下达科室代码	15	医嘱开立对应的科室	文本	varchar(50)	是	开医嘱
@@ -121,9 +203,9 @@ ClassMethod GetOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; job_title	职务名称	科室主任	医嘱开单医生职务名称	文本	varchar(100)		开医嘱
 	s OutItemObj.JobTitle=""
 	; visit_dept_code	住院科室代码	15	填写医院原始代码	文本	varchar(50)		开医嘱
-	s OutItemObj.VisitDeptCode=""
+	s OutItemObj.VisitDeptCode=$p(^CTLOC($p($g(^PAADM(AdmId)),"^",4)),"^",1)
 	; visit_dept_name	住院科室名称	内科	填写医院住院科室名称	文本	varchar(100)		开医嘱
-	s OutItemObj.VisitDeptName=""
+	s OutItemObj.VisitDeptName=$p(^CTLOC($p($g(^PAADM(AdmId)),"^",4)),"^",2)
 	; order_start_datetime	医嘱开始时间	2018-12-13 18:12:21	医嘱实际开始时间	日期	datetime	是	开医嘱
 	s OutItemObj.OrderStartDatetime=##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORISttDat)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORISttTim)
 	; order_end_datetime	医嘱停止时间	2018-12-16 13:12:21	医嘱实际停止时间	日期	datetime		开医嘱
@@ -148,9 +230,15 @@ ClassMethod GetOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; dose	单次剂量	0.3	药品使用单次剂量	文本	varchar(100)	是	开医嘱
 	s OutItemObj.Dose=OrdInfoItemObj.OEORIDoseQty
 	; dose_unit	单次剂量单位	g(克)	药品使用剂量单位	文本	varchar(100)	是	开医嘱
+	//s doseunit=$p($g(^OEORD(+OEORIRowID,"I",$p(OEORIRowID,"||",2),2)),"^",3)
 	s OutItemObj.DoseUnit=OrdInfoItemObj.OEORIUnitDesc
+	//s:doseunit'="" OutItemObj.DoseUnit=$p($g(^CT("UOM",doseunit)),"^",2)
 	; form	药品剂型	片剂	填写药品剂型，如：片剂、注射剂、乳剂、滴眼剂等。	文本	varchar(128)	是	开医嘱
-	s OutItemObj.Form=##class(web.DHCDocOrderEntry).GetINCI(+OrdInfoItemObj.ARCIMRowId)
+	s DrgformRowid=##class(web.DHCDocOrderEntry).GetDrgForm(OrdInfoItemObj.ARCIMRowId)
+	s FormRowid=""
+  	i DrgformRowid'="" s FormRowid=$p($g(^PHCD(+DrgformRowid,"DF",$p(DrgformRowid,"||",2),1)),"^",1)
+	s OutItemObj.Form="" //##class(web.DHCDocOrderEntry).GetINCI(+OrdInfoItemObj.ARCIMRowId)
+	s:FormRowid'="" OutItemObj.Form=$p($g(^PHCF(FormRowid)),"^",2)
 	; spec	规格	250mg 	系指每一支、片或其他每一个单位制剂中含有主药的重量（或效价）或含量（%）或装量	文本	varchar(100)	是	开医嘱
 	s Incitmid=$o(^INCI(0,"ARCIM_DR",+OrdInfoItemObj.ARCIMRowId,0))
 	s:Incitmid'="" OutItemObj.Spec=##class(web.DHCSTKUTIL).GetSpec(Incitmid)
@@ -177,9 +265,9 @@ ClassMethod GetOrderInfo(AdmId As %String, OEORIRowID As %String)
 	s OutItemObj.NumOfOrderUnit=""
 	; HerbalNote,OrderNote,DrugFlag,anufac,TradeName,ExtendData1,RxtendRata2,RecordStatus,YYID,YYUPDATETIME,YYCREATETIME
 	; herbal_note	草药备注			文本	varchar(200)
-	s OutItemObj.HerbalNote=OrdInfoItemObj.OEORIDepProcNotes		
+	s OutItemObj.HerbalNote=$P($G(^OEORD(+OEORIRowID,"I",$p(OEORIRowID,"||",2),2)),"^",8) //OrdInfoItemObj.OEORIDepProcNotes		
 	; order_note	医嘱备注	自备	填写医嘱备注信息	文本	varchar(200)	是	开医嘱
-	s OutItemObj.OrderNote=OrdInfoItemObj.OEORIDepProcNotes
+	s OutItemObj.OrderNote=$g(^OEORD(+OEORIRowID,"I",$p(OEORIRowID,"||",2),"DEP",1))
 	; drug_flag	是否药品	是	根据该条医嘱分类名称是否属于药品类进行填写，药品类医嘱填写“是”，非药品类填写“否”	文本	varchar(50)		开医嘱
 	s OutItemObj.DrugFlag=""
 	; manufac	生产厂家			文本	varchar(128)		开医嘱
@@ -198,7 +286,7 @@ ClassMethod GetOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; YY_ID	数据唯一标识			文本	varchar(100)	是	开医嘱
 	s OutItemObj.YYID=OrdInfoItemObj.OEORIRowId
 	; YY_UPDATE_TIME	数据更新时间(增量采集时间)			日期	datetime	是	开医嘱
-	s OutItemObj.YYUPDATETIME=##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)
+	s:OrdInfoItemObj.OEORIUpdateDate'="" OutItemObj.YYUPDATETIME=$zd(OrdInfoItemObj.OEORIUpdateDate,3)_" "_$zt(OrdInfoItemObj.OEORIUpdateTime) ;##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)
 	; YY_CREATE_TIME	数据创建时间			日期	datetime	是	开医嘱
 	s OutItemObj.YYCREATETIME=OutItemObj.OrderGivenTime
 	q OutItemObj
@@ -212,7 +300,7 @@ ClassMethod GetPatientInfoObj(AdmId As %String)
 	s PAAdmInfoObj=##class(DHCDoc.GetInfo.Method.Business.Register).GetPAAdmInfo(AdmId)
 	s AdmObj.PatientId=##class(web.PAPatMas).GetRegistration(PAAdmInfoObj.PAADMPAPMIDR)
 	// visit_sn	单次就诊唯一标识号(唯一)	436653|4623477|1|门诊	标识一次就诊行为的唯一编号，如果原系统中需多个字段标识，则通过"|"进行拼接。例如，患者ID|住院号|住院次数|就诊类型、患者ID|门诊号|就诊次数|就诊类型。	文本	varchar(100)	是
-	s AdmObj.VisitSn=PAAdmInfoObj.PAADMADMNo
+	s AdmObj.VisitSn= PAAdmInfoObj.PAADMRowID  ;PAAdmInfoObj.PAADMADMNo
 	// visit_type	就诊类型	门诊	就诊类型：住院、门诊	文本	varchar(50)	是
 	s AdmObj.VisitType=$case(PAAdmInfoObj.PAADMType,"I":"住院","E":"急诊",:"门诊")
 	// visit_card_no	就诊卡号	153898	患者在本医院就诊时使用的就诊卡号	文本	varchar(100)	是
@@ -222,7 +310,8 @@ ClassMethod GetPatientInfoObj(AdmId As %String)
 	// visit_times	就诊次数	1	本院门诊次数	数值	int	是（就诊类型为门诊）
 	s AdmObj.VisitTimes=..GetVisitNum(PAAdmInfoObj.PAADMType,PAAdmInfoObj.PAADMPAPMIDR)
 	// visit_datetime	就诊时间	2020-04-21 09:45:34		日期	datetime
-	s AdmObj.VisitDatetime=##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMAdmDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMAdmTime)
+	;s AdmObj.VisitDatetime=##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMAdmDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMAdmTime)
+	s:PAAdmInfoObj.PAADMAdmDate'="" AdmObj.VisitDatetime=$zd(PAAdmInfoObj.PAADMAdmDate,3)_" "_$zt(PAAdmInfoObj.PAADMAdmTime)
 	// medical_record_no	病案号	869882	患者在本院就诊时使用的病案号	文本	varchar(100)	是（就诊类型为住院，出院时必填）
 	s AdmObj.MedicalRecordNo=##class(web.DHCDocOrderCommon).GetMrNo("",PAAdmInfoObj.PAADMPAPMIDR,"O")
 	// inpatient_no	住院号	4623477		文本	varchar(100)	是（就诊类型为住院）
@@ -230,9 +319,15 @@ ClassMethod GetPatientInfoObj(AdmId As %String)
 	// hospitalization_times	住院次数	1		数值	varchar(20)	是（就诊类型为住院）
 	s AdmObj.HospitalizationTimes=..GetVisitNum("I",PAAdmInfoObj.PAADMPAPMIDR)
 	// admission_datetime	入院时间	2018-01-03 16:31:42		日期	datetime	是（就诊类型为住院）
-	s AdmObj.AdmissionDatetime=##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMAdminDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMAdminTime)
+	;s AdmObj.AdmissionDatetime=##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMAdminDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMAdminTime)
+	s AdmObj.AdmissionDatetime=$zd(PAAdmInfoObj.PAADMAdmDate,3)_" "_$zt(PAAdmInfoObj.PAADMAdmTime)
 	// discharge_datetime	出院时间	2020-04-21 09:45:34		日期	datetime	是（就诊类型为住院，出院时必填）
-	s AdmObj.DischargeDatetime=##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMDischargeDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMDischargeTime)
+	;s AdmObj.DischargeDatetime=##class(websys.Conversions).DateLogicalToHtml(PAAdmInfoObj.PAADMDischargeDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(PAAdmInfoObj.PAADMDischargeTime)
+	;s:PAAdmInfoObj.PAADMDischargeDate'="" AdmObj.DischargeDatetime=$zd(PAAdmInfoObj.PAADMDischargeDate,3)_" "_$zt(PAAdmInfoObj.PAADMDischargeTime)
+	s AdmInOutDateInfo=##class(web.UDHCJFBaseCommon).GetOutAdmInOutDateInfo(AdmId)
+	;s admdate=$p(AdmInOutDateInfo,"^",1)	
+	s dischdate=$p(AdmInOutDateInfo,"^",2)
+	s AdmObj.DischargeDatetime=dischdate
 	// visit_doctor_no	就诊医生代码	1346	住院：主治医生工号、门诊：就诊医生工号      	文本	varchar(50)	是
 	s AdmObj.VisitDoctorNo=PAAdmInfoObj.PAADMAdmDocCode
 	// name	姓名	张某		文本	varchar(50)	是
@@ -240,7 +335,7 @@ ClassMethod GetPatientInfoObj(AdmId As %String)
 	// gender	性别	女	性别：男、女、未知	文本	varchar(100)	是
 	s AdmObj.Gender=""
 	s SexDr=$P(^PAPER(PAAdmInfoObj.PAADMPAPMIDR,"ALL"),"^",7)
-	s:SexDr'="" AdmObj.Gender=$p(^CT("SEX",SexDr),"^",2)
+	s:SexDr'="" AdmObj.Gender=$case($p(^CT("SEX",SexDr),"^",2),"女":"女","男":"男",:"未知")
 	// patient_gender	性别编码	0：女，1：男,2：其他		文本	varchar(100)	是
 	s AdmObj.PatientGender=$case(AdmObj.Gender,"女":"0","男":"1",:"2")
 	// date_of_birth	出生日期	1952-05-25	出生日期：yyyy-MM-dd	日期	date	是
@@ -252,7 +347,10 @@ ClassMethod GetPatientInfoObj(AdmId As %String)
 	// occupation_name	职业类别名称	其他	填写职业类别对应的中文名称，如工人、农民等。	文本	varchar(100)	是
 	s:OccupationDr'="" AdmObj.OccupationName=$P($g(^CT("OCC",OccupationDr)),"^",2)
 	// nationality	国籍	中国	患者国籍	文本	varchar(100)	
-	s AdmObj.Nationality=PAAdmInfoObj.PAADMRegionDesc
+	s AdmObj.Nationality="中国"
+	s countrydr =$p($g(^PAPER(PAAdmInfoObj.PAADMPAPMIDR,"PER",1)),"^",8) //国籍
+    i countrydr'=""  d
+    .s AdmObj.Nationality=$p(^CT("COU",countrydr),"^",2)
 	// ethnicity	民族	汉族	患者民族	文本	varchar(100)
 	s AdmObj.Ethnicity=""
 	s NationDr=$P($g(^PAPER(PAAdmInfoObj.PAADMPAPMIDR,"PER",2)),"^",1)	
@@ -389,13 +487,13 @@ ClassMethod GetPatientInfoObj(AdmId As %String)
 	;是（就诊类型为住院）
 	// discharge_disease_id	出院诊断编码（在院为主要诊断）	C34.904	出院诊断编码（在院为主要诊断），必须是IDC10规范	文本	varchar(100)	
 	;是（就诊类型为住院，出院时必填）
-	s AdmObj.AdmissionDiseaseId=""
+	s AdmObj.dischargediseaseid=""
 	s OutDiagns=..GetPatDiagnsInfo(AdmId,"出院诊断","Y","1","","","")
-	s:OutDiagns'="" AdmObj.AdmissionDiseaseId=$p($g(^MRC("ID",+OutDiagns)),"^",9)
+	s:OutDiagns'="" AdmObj.dischargediseaseid=$p($g(^MRC("ID",+OutDiagns)),"^",9)
 	// discharge_disease_name	出院诊断名称（在院为主要诊断）	右支气管肺癌	出院诊断名称（在院为主要诊断），必须是IDC10规范	文本	varchar(100)	
 	;是（就诊类型为住院，出院时必填）
-	s AdmObj.AdmissionDiseaseName=""
-	s:OutDiagns'="" AdmObj.AdmissionDiseaseName=$p($g(^MRC("ID",+OutDiagns)),"^",2)
+	s AdmObj.dischargediseasename=""
+	s:OutDiagns'="" AdmObj.dischargediseasename=$p($g(^MRC("ID",+OutDiagns)),"^",2)
 	// discharge_reason	出院原因	痊愈	出院原因	文本	varchar(100)	是（就诊类型为住院，出院时必填）\
 	s AdmObj.DischargeReason=PAAdmInfoObj.PAADMDischCondDesc
 	// tsblbs	特殊病例标识（具体值）	0	"0	普通 	文本	varchar(100)	
@@ -424,7 +522,8 @@ ClassMethod GetPatientInfoObj(AdmId As %String)
 	// extend_data2	扩展字段2		用于填写补充信息	文本	varchar(100)
 	s AdmObj.ExtendData2=""
 	// record_status	记录状态	1	1正常 0作废	数值	varchar(100)	是
-	s AdmObj.RecordStatus=$case(PAAdmInfoObj.PAADMVisitStatus,"A":"正常",:"作废")
+	;s AdmObj.RecordStatus=$case(PAAdmInfoObj.PAADMVisitStatus,"A":"正常",:"作废")
+	s AdmObj.RecordStatus=$case(PAAdmInfoObj.PAADMVisitStatus,"A":"1","D":"1",:"0")
 	// YY_ID	数据唯一标识			文本	varchar(100)	是
 	s AdmObj.YYID=AdmId
 	// YY_UPDATE_TIME	数据更新时间(增量采集时间)			日期	datetime	是
@@ -453,6 +552,7 @@ ClassMethod GetVisitNum(AdmTypeStr As %String, PatId As %String)
 /// 汇总取诊断接口  
 /// input : 就诊ID ，诊断类型描述（初步诊断，入院诊断...多个使用^连接），诊断类型（Y:ICD表Rowid,其余描述），获取诊断数量(全部用ALL)，是否按照主诊断获取，诊断状态（确诊，待诊。。。）
 /// w ##class(web.Sxddhc).GetPatDiagnsInfo("901","初步诊断","","ALL")
+/// w ##class(DHCDoc.Interface.TumorReporting.ComInterface).GetPatDiagnsInfo(11940502,"出院诊断","Y","1","","","")
 ClassMethod GetPatDiagnsInfo(AdmId As %String, DiagnosTypeDesc As %String = "", DiagnosFlag As %String = "", DiagNum As %String = "", MianFalg As %String = "", DiagStat As %String = "", PDlime As %String = ";")
 {
 	s MradmRowid=$P($g(^PAADM(AdmId)),"^",61)
@@ -463,8 +563,7 @@ ClassMethod GetPatDiagnsInfo(AdmId As %String, DiagnosTypeDesc As %String = "", 
 	d obj.Execute(MradmRowid)
 	For{
 		Quit:('obj.Next())
-		q:(DiagNum'="ALL")&&((+DiagNum=$l(RetStr,"^"))||(DiagNum=RetStr))
-		//b //q:((TypeFlag="0")&&(IcdDrStr'=""))
+		q:(DiagNum="ALL")&&((+DiagNum=$l(RetStr,"^"))||(DiagNum=RetStr))
 		s Rowid=obj.Data("ID")
 		s CodeRowid=obj.Data("MRDIAICDCodeDR")
 		s Desc=obj.Data("MRDIAICDCodeDRDesc")
