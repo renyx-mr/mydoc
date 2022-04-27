@@ -1,6 +1,11 @@
 Class DHCDoc.Interface.TumorReporting.ComInterface Extends %RegisteredObject
 {
 
+ClassMethod GetPacsOrderInfo(AdmId As %String, OEORIRowID As %String)
+{
+
+}
+
 ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
 {
 	s OutItemObj={}
@@ -55,6 +60,7 @@ ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; record_status	记录状态	1	1正常 0作废	数值	int	是
 	; record_datetime	记录创建时间			日期	varchar(50)	
 	; record_update_datetime	记录更新时间			日期	varchar(50)	
+	q OutItemObj
 }
 
 ///w ##class(web.DHCOEOrdItem).GetLabSpec("93||59",2)
