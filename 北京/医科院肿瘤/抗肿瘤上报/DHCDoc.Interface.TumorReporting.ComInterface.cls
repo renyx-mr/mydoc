@@ -3,7 +3,91 @@ Class DHCDoc.Interface.TumorReporting.ComInterface Extends %RegisteredObject
 
 ClassMethod GetPacsOrderInfo(AdmId As %String, OEORIRowID As %String)
 {
+	s OutItemObj={}
+	; patient_id	患者ID	00931222	患者在本院的唯一标识	文本	varchar(100)	是
+	s PAADMPAPMIDR=$p($g(^PAADM(AdmId)),"^",1)
+	s HospID=##Class(DHCDoc.Common.Hospital).GetAdmHospitalId(AdmId)
+	s OutItemObj.PatientId=##Class(web.PAPatMas).GetRegistration(PAADMPAPMIDR)
+	; visit_sn	单次就诊唯一标识号(与b02_1强关联)	00931222|4623477|1|门诊	标识一次就诊行为的唯一编号，如果原系统中需多个字段标识，则通过"|"进行拼接。例如，患者ID|住院号|住院次数|就诊类型、患者ID|门诊号|就诊次数|就诊类型	文本	varchar(100)	是
+	s OutItemObj.VisitSn=AdmId
+	; visit_type	就诊类型	门诊	就诊类型：门诊、急诊	文本	varchar(50)	是	
+	s PAADMType=$p($g(^PAADM(AdmId)),"^",2)
+	s OutItemObj.VisitType=$case(PAADMType,"E":"急诊","I":"住院",:"门诊")
+	; visit_card_no	就诊卡号	153898	患者在本医院就诊时使用的就诊卡号	文本	varchar(100)	是
+	//s OutItemObj.VisitCardNo=OutItemObj.PatientId
+	; outpatient_no	门诊号	4623477	患者门诊就诊时对应的门诊号或者病历号	文本	varchar(100)	是（就诊类型为门诊）
+	; visit_times	就诊次数	1	本院门诊次数	数值	int	是	
+	s OutItemObj.VisitTimes=..GetVisitNum("O^E",PAADMPAPMIDR)
+	; medical_record_no	病案号	869881	患者在本院就诊时使用的病案号	文本	varchar(100)
+	s OutItemObj.MedicalRecordNo=##class(web.DHCDocOrderCommon).GetMrNo("",PAADMPAPMIDR,"O")
+	; inpatient_no	住院号	4623477	患者住院号	文本	varchar(100)	是	开医嘱
+	s OutItemObj.InpatientNo=AdmId
+	; hospitalization_times	住院次数	2		数值	varchar(20)	是	开医嘱
+	s OutItemObj.HospitalizationTimes=..GetVisitNum("I",PAADMPAPMIDR)
+	s:OutItemObj.HospitalizationTimes=0 OutItemObj.HospitalizationTimes=1
+	; name	患者姓名	张三	张某	文本	varchar(100)	是
+	s OutItemObj.Name=$P($g(^PAPER(PAADMPAPMIDR,"ALL")),"^",1)
+	s OrdInfoItemObj=##class(DHCDoc.GetInfo.Method.Doc).GetOrdInfoItem(OEORIRowID)
+	; apply_no	申请单号	P100830120	该字段能够与表14门诊医嘱及处方或表10住院医嘱(request_no)进行关联	文本	varchar(100)	是
+	s OutItemObj.ApplyNo=##class(web.DHCAPPSeePatPacs).GetStudyNoByORORIAndPart(OEORIRowID,"")
+	; order_sn	申请医嘱流水号	42534677	该字段能够与表14门诊医嘱及处方或表10住院医嘱(order_sn)进行关联	文本	varchar(100)	是
+	s OutItemObj.OrderSn=OrdInfoItemObj.OEORIRowId
+	; apply_datetime	申请时间	2018-01-03 16:31:42	申请单开单时间	日期	varchar(50)	是
+	s OutItemObj.ApplyDatetime=##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORITime)
+	; apply_dept_code	申请科室代码	32	科室名称对应的编码	文本	varchar(50)	
+	s OutItemObj.ApplyDeptCode=""
+	; apply_dept_name	申请科室名称	神经外科		文本	varchar(100)	
+	s OutItemObj.ApplyDeptName=""
+	; exam_sn	检查流水号	43655		文本	varchar(100)	
+	s OutItemObj.ExamSn=""
+	; exam_datetime	检查时间	2018-01-12 11:12:10	即到检时间	日期	varchar(50)	是
+	s OutItemObj.ExamDatetime=""
+	; exam_type	检查类型	心电\超声\放射	心电\超声\放射	文本	varchar(50)	是
+	s OutItemObj.ExamType=##class(web.DHCEMInComUseMethod).GetOECCatByOEORDItmDr(OEORIRowID)
+	; exam_item_type	检查项目类型	CT、腹部彩超、肠镜、胃镜、动态心电、12导联心电	CT、腹部彩超、肠镜、胃镜、动态心电、12导联心电	文本	varchar(100)	是
+	s OutItemObj.ExamItemType=""
+	; exam_item_code	检查项目代码		填写医院原始代码	文本	varchar(100)	
+	s OutItemObj.ExamItemCode=""
+	; exam_item_name	检查项目名称	头部CT	填写检查项目名称	文本	varchar(200)	是
+	s OutItemObj.ExamItemName=""
+	; exam_sites	检查部位	头颅		文本	text	
+	s OutItemObj.ExamSites=""
+	; report_no	报告单号	T102109231		文本	varchar(100)	
+	s OutItemObj.ReportNo=""
+	; report_datetime	报告时间	2018-01-12 11:32:11	符合【yyyy-MM-dd HH:mm:ss】的格式	日期	varchar(50)	是
+	s OutItemObj.ReportDatetime=""
+	; report_dept_code	报告科室代码	19	报告科室对应的编码	文本	varchar(50)	是
+	s OutItemObj.ReportDeptCode=""
+	; report_dept_name	报告科室名称	影像科	发布检查报告的科室	文本	varchar(100)	是
+	s OutItemObj.ReportDeptName=""
+	; exam_diag_description	检查所见	中线居中，颅内未见异常密度影。脑室系统大小形态无异常。	可上传json结构数据或者字符串拼接	文本	text	是
+	s OutItemObj.ExamDiagDescription=""
+	; exam_diag_conclusion	检查结论	颅内CT平扫未见明显异常。	可上传json结构数据或者字符串拼接	文本	text	是
+	s OutItemObj.ExamDiagConclusion=""
+	; qualitive_description 	检查结果阴阳性	0：阴性，1：阳性，2：未定		文本	text	
+	s OutItemObj.QualitiveDescription=""
+	; extend_data2	扩展字段2			文本	text
+	s OutItemObj.ExtendData2=""		
+	; record_status	记录状态	1	1正常 0作废	数值	int	是
+	s OEORIItemStatCode=OrdInfoItemObj.OEORIItemStatCode
+	s OutItemObj.RecordStatus="1"
+	if (" D U C "[OEORIItemStatCode) s OutItemObj.RecordStatus="0"
+	; record_datetime	记录创建时间			日期	varchar(50)	
+	s OutItemObj.RecordDatetime=OutItemObj.OrderGivenTime
+	; record_update_datetime	记录更新时间			日期	varchar(50)	
+	s:OrdInfoItemObj.OEORIUpdateDate'="" OutItemObj.RecordUpdateDatetime=$zd(OrdInfoItemObj.OEORIUpdateDate,3)_" "_$zt(OrdInfoItemObj.OEORIUpdateTime) ;##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)
+	q OutItemObj
+}
 
+ClassMethod GetPacsInfoByOrdItemDr(AdmId As %String, OEORIRowID As %String)
+{
+	s PisDr=$o(^DHCAPPPM(0,"Adm",AdmId,""))
+	q:PisDr="" ""
+	s ChildSub=$o(^DHCAPPPM(0,"OrdItem",OEORIRowID,PisDr,""))
+	q:ChildSub="" ""
+	s CreatDate=$p(^DHCAPPPM(PisDr),"^",6)	    			/// 申请日期
+	s CreatTime=$p(^DHCAPPPM(PisDr),"^",7)	   				/// 申请时间
+	s CreateDateStr=##class(websys.Conversions).DateLogicalToHtml(CreatDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(CreatTime)
 }
 
 ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
@@ -32,7 +116,7 @@ ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
 	s:OutItemObj.HospitalizationTimes=0 OutItemObj.HospitalizationTimes=1
 	; name	患者姓名	张三	张某	文本	varchar(100)	是
 	s OutItemObj.Name=$P($g(^PAPER(PAADMPAPMIDR,"ALL")),"^",1)
-	s OrdInfoItemObj=##class(DHCDoc.Interface.TumorReporting.Doc).GetOrdInfoItem(OEORIRowID)
+	s OrdInfoItemObj=##class(DHCDoc.GetInfo.Method.Doc).GetOrdInfoItem(OEORIRowID)
 	; apply_no	申请单号	M009312122	该字段能够与表14门诊医嘱及处方或表10住院医嘱(request_no)进行关联	文本	varchar(100)	是
 	s OutItemObj.ApplyNo=OrdInfoItemObj.OEORILabEpisodeNo
 	; order_sn	申请医嘱流水号	423457	该字段能够与表14门诊医嘱及处方或表10住院医嘱(order_sn)进行关联	文本	varchar(100)	是
@@ -48,18 +132,33 @@ ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; lab_sn	检验流水号	4623477|1	表内唯一主键：报告单号|明细项目组号	文本	varchar(100)
 	s OutItemObj.LabSn=OrdInfoItemObj.OEORIPlacerNo
 	; test_datetime	检验时间	2018-01-03 16:31:42	符合【yyyy-MM-dd HH:mm:ss】的格式	日期	varchar(50)	是
+	s OutItemObj.TestDatetime=""	
 	; test_method_code	检验方法代码	32	填写医院原始代码	文本	varchar(50)	
+	s OutItemObj.TestMethodCode=""	
 	; test_method	检验方法	显微镜计数法	填写检验方法名称	文本	varchar(100)	
+	s OutItemObj.TestMethod=""	
 	; lab_type	检验类型	生化	生化等	文本	varchar(50)	
+	s OutItemObj.LabType=""	
 	; item_group_code	组合项目代码	X212031	填写医院原始代码	文本	varchar(50)	
+	s OutItemObj.ItemGroupCode=""	
 	; item_group_name	组合项目名称	血常规	如：血常规、血生化等	文本	varchar(100)	
+	s OutItemObj.ItemGroupName=""	
 	; report_no	报告单号			文本	varchar(100)	
+	s OutItemObj.ReportNo=OrdInfoItemObj.OEORIPlacerNo
 	; report_datetime	报告时间			日期	varchar(50)	是
-	; extend_data1	扩展字段1			文本	text	
-	; extend_data2	扩展字段2			文本	text	
+	s OutItemObj.ReportDatetime=""	
+	; extend_data1	扩展字段1			文本	text
+	s OutItemObj.ExtendData1=""	
+	; extend_data2	扩展字段2			文本	text
+	s OutItemObj.ExtendData2=""		
 	; record_status	记录状态	1	1正常 0作废	数值	int	是
+	s OEORIItemStatCode=OrdInfoItemObj.OEORIItemStatCode
+	s OutItemObj.RecordStatus="1"
+	if (" D U C "[OEORIItemStatCode) s OutItemObj.RecordStatus="0"
 	; record_datetime	记录创建时间			日期	varchar(50)	
+	s OutItemObj.RecordDatetime=OutItemObj.OrderGivenTime
 	; record_update_datetime	记录更新时间			日期	varchar(50)	
+	s:OrdInfoItemObj.OEORIUpdateDate'="" OutItemObj.RecordUpdateDatetime=$zd(OrdInfoItemObj.OEORIUpdateDate,3)_" "_$zt(OrdInfoItemObj.OEORIUpdateTime) ;##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)
 	q OutItemObj
 }
 
@@ -80,7 +179,7 @@ ClassMethod GetLabSpecInfo(OrderItemRowid As %String,TextType As %String, Hospit
 	. i TextType="Code" d
 	. . i SpecStr="" s SpecStr=SpecCode
 	. . e  s SpecStr=SpecStr+","+SpecCode
-	. . continue
+	. . q
 	. i $d(^DHCLISBSVersion(1)) d
 	.. s SpecDesc=$p(##Class(DHCLIS.DHCCommon).GetSpecimen(SpecCode,$g(HospitalCode)),$c(2),2) 
 	. e  d
@@ -187,12 +286,13 @@ ClassMethod GetOrderInfo(AdmId As %String, OEORIRowID As %String)
 	s OutItemObj.HospitalizationTimes=..GetVisitNum("I",PAADMPAPMIDR)
 	s:OutItemObj.HospitalizationTimes=0 OutItemObj.HospitalizationTimes=1
 
-	s OrdInfoItemObj=##class(DHCDoc.Interface.TumorReporting.Doc).GetOrdInfoItem(OEORIRowID)
+	s OrdInfoItemObj=##class(DHCDoc.GetInfo.Method.Doc).GetOrdInfoItem(OEORIRowID)
 	; order_sn	医嘱流水号	74471930001|12	其值为医嘱表主键，如果存在医嘱子序号，则需要通过"|"进行字段拼接，保证数据唯一性。如果存在长期、临时多表情况，则拼接医嘱类别字段。	
 	;文本	varchar(100)	是	开医嘱
 	s OutItemObj.OrderSn=OrdInfoItemObj.OEORIRowId
 	; request_no	医技申请单号		其值可以关联到医技报告信息	文本	varchar(100)		开医嘱
 	s OutItemObj.RequestNo=OrdInfoItemObj.OEORILabEpisodeNo
+	s:OutItemObj.RequestNo="" OutItemObj.RequestNo=##class(web.DHCAPPSeePatPacs).GetStudyNoByORORIAndPart(OEORIRowID,"")
 	; order_given_time	医嘱下达时间	2018-01-03 16:31:42	"本业务数据在医院系统中的实际产生时间
 	s OutItemObj.OrderGivenTime=##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORITime)
 	; order_confirm_time	医嘱确认时间	43103.69007		日期	datetime		开医嘱
