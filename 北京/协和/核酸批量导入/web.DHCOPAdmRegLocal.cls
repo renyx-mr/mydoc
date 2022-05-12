@@ -7,6 +7,32 @@ Parameter CheckArcItemStr = "52593||1^52662||1^52845||1^53545||1";
 
 Parameter CheckCovidCountNum = 10;
 
+ClassMethod InsertCaregiverCovid19(RegNo As %String, EpisodeID As %String, DiagICDDr As %String, ArcItemRowDr As %String)
+{
+	s $ZTRAP="InsertCaregiverCovid19Err"
+	s ret=$$Covid2019Test^DHCDocOrdCovidBatch(RegNo,"",ArcItemRowDr)
+	s CaregiverName=""
+	s CaregiverCredNo=""
+	s CaregiverPatNo=##class(web.DHCOPAdmRegLocal).GetPatNoByCredNo(CaregiverCredNo,CaregiverName)
+	if (CaregiverPatNo'["^"){
+		s ret=$$Covid2019Test^DHCDocOrdCovidBatch(CaregiverPatNo,"",ArcItemRowDr)
+	}
+InsertCaregiverCovid19Err
+	s $ZTRAP=""
+	q ""
+}
+
+/// 插入陪诊人数据，并校验该陪诊人在系统中的情况
+ClassMethod SaveCaregiver(EpisodeID As %String, CaregiverName As %String, CaregiverCredNo As %String)
+{
+	q:'$d(^PAADM(EpisodeID)) "-1^未找到该病人就诊信息"
+	//s $p(^PAADM(EpisodeID),"Local",111)=CaregiverName
+	//s $p(^PAADM(EpisodeID),"Local",112)=CaregiverCredNo
+	s PatNo=##class(web.DHCOPAdmRegLocal).GetPatNoByCredNo(CaregiverCredNo,CaregiverName)
+	q:(PatNo["^") "1^"_$p(PatNo,"^",2)
+	q "1"
+}
+
 ClassMethod GetSamplingDate(PatientNo As %String, StartDate As %String, EndDate As %String)
 {
 	s SamplingDate=""
@@ -73,9 +99,10 @@ ClassMethod GetLastSamplingDate(PatientNo As %String)
 	}
 	q SamplingDate_"^"_SamplingTime
 }
+
 /// 获取单采混采次数 入参登记号
 /// w ##class(web.DHCOPAdmRegLocal).GetCovidNumInfo("46670579")
-ClassMethod GetCovidNumInfoNew(PatientNo As %String, ArcItemId As %String,resCode As %String = "")
+ClassMethod GetCovidNumInfoNew(PatientNo As %String, ArcItemId As %String, resCode As %String = "")
 {
     s StartCovidData=$zdh(..#CheckCovidData,3)
 	s CovidSingleNum=""
@@ -119,6 +146,7 @@ ClassMethod GetCovidNumInfoNew(PatientNo As %String, ArcItemId As %String,resCod
     }
     q CovidSingleNum_"^"_CovidMixleNum
 }
+
 /// 获取单采混采次数 入参登记号
 /// w ##class(web.DHCOPAdmRegLocal).GetCovidNumInfo("46670579")
 ClassMethod GetCovidNumInfo(PatientNo As %String, ArcItemId As %String)

@@ -35,35 +35,37 @@ ClassMethod GetPacsOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; apply_datetime	申请时间	2018-01-03 16:31:42	申请单开单时间	日期	varchar(50)	是
 	s OutItemObj.ApplyDatetime=##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORITime)
 	; apply_dept_code	申请科室代码	32	科室名称对应的编码	文本	varchar(50)	
-	s OutItemObj.ApplyDeptCode=""
+	s OutItemObj.ApplyDeptCode=OrdInfoItemObj.OEORIUserDepartmentCode
 	; apply_dept_name	申请科室名称	神经外科		文本	varchar(100)	
-	s OutItemObj.ApplyDeptName=""
+	s OutItemObj.ApplyDeptName=OrdInfoItemObj.OEORIUserDepartmentDesc
+	s ReqID=$o(^DHCAPREP(0,"OrdItem",OEORIRowID,""))
+	s BuildRBReport=##Class(web.DHCENS.STBLL.Method.PostReportInfo).BuildRBReport(ReqID)
 	; exam_sn	检查流水号	43655		文本	varchar(100)	
-	s OutItemObj.ExamSn=""
+	s OutItemObj.ExamSn=$List(BuildRBReport,3)
 	; exam_datetime	检查时间	2018-01-12 11:12:10	即到检时间	日期	varchar(50)	是
-	s OutItemObj.ExamDatetime=""
+	s OutItemObj.ExamDatetime=$List(BuildRBReport,10)_" "_$List(BuildRBReport,11)
 	; exam_type	检查类型	心电\超声\放射	心电\超声\放射	文本	varchar(50)	是
 	s OutItemObj.ExamType=##class(web.DHCEMInComUseMethod).GetOECCatByOEORDItmDr(OEORIRowID)
 	; exam_item_type	检查项目类型	CT、腹部彩超、肠镜、胃镜、动态心电、12导联心电	CT、腹部彩超、肠镜、胃镜、动态心电、12导联心电	文本	varchar(100)	是
-	s OutItemObj.ExamItemType=""
+	s OutItemObj.ExamItemType=##class(web.DHCEMInComUseMethod).GetOECCatByOEORDItmDr(OEORIRowID)
 	; exam_item_code	检查项目代码		填写医院原始代码	文本	varchar(100)	
-	s OutItemObj.ExamItemCode=""
+	s OutItemObj.ExamItemCode=$List(BuildRBReport,6)
 	; exam_item_name	检查项目名称	头部CT	填写检查项目名称	文本	varchar(200)	是
-	s OutItemObj.ExamItemName=""
+	s OutItemObj.ExamItemName=$List(BuildRBReport,7)
 	; exam_sites	检查部位	头颅		文本	text	
 	s OutItemObj.ExamSites=""
 	; report_no	报告单号	T102109231		文本	varchar(100)	
-	s OutItemObj.ReportNo=""
+	s OutItemObj.ReportNo=$List(BuildRBReport,3)
 	; report_datetime	报告时间	2018-01-12 11:32:11	符合【yyyy-MM-dd HH:mm:ss】的格式	日期	varchar(50)	是
-	s OutItemObj.ReportDatetime=""
+	s OutItemObj.ReportDatetime=$List(BuildRBReport,14)_" "_$List(BuildRBReport,15)
 	; report_dept_code	报告科室代码	19	报告科室对应的编码	文本	varchar(50)	是
-	s OutItemObj.ReportDeptCode=""
+	s OutItemObj.ReportDeptCode=OrdInfoItemObj.OEORIRecDepCode
 	; report_dept_name	报告科室名称	影像科	发布检查报告的科室	文本	varchar(100)	是
-	s OutItemObj.ReportDeptName=""
+	s OutItemObj.ReportDeptName=OrdInfoItemObj.OEORIRecDepDesc
 	; exam_diag_description	检查所见	中线居中，颅内未见异常密度影。脑室系统大小形态无异常。	可上传json结构数据或者字符串拼接	文本	text	是
-	s OutItemObj.ExamDiagDescription=""
+	s OutItemObj.ExamDiagDescription=$List(BuildRBReport,8)
 	; exam_diag_conclusion	检查结论	颅内CT平扫未见明显异常。	可上传json结构数据或者字符串拼接	文本	text	是
-	s OutItemObj.ExamDiagConclusion=""
+	s OutItemObj.ExamDiagConclusion=$List(BuildRBReport,9)
 	; qualitive_description 	检查结果阴阳性	0：阴性，1：阳性，2：未定		文本	text	
 	s OutItemObj.QualitiveDescription=""
 	; extend_data2	扩展字段2			文本	text
@@ -117,6 +119,7 @@ ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; name	患者姓名	张三	张某	文本	varchar(100)	是
 	s OutItemObj.Name=$P($g(^PAPER(PAADMPAPMIDR,"ALL")),"^",1)
 	s OrdInfoItemObj=##class(DHCDoc.GetInfo.Method.Doc).GetOrdInfoItem(OEORIRowID)
+	s LabReportObj=..GetPISReportDocument(OrdInfoItemObj.OEORILabEpisodeNo)
 	; apply_no	申请单号	M009312122	该字段能够与表14门诊医嘱及处方或表10住院医嘱(request_no)进行关联	文本	varchar(100)	是
 	s OutItemObj.ApplyNo=OrdInfoItemObj.OEORILabEpisodeNo
 	; order_sn	申请医嘱流水号	423457	该字段能够与表14门诊医嘱及处方或表10住院医嘱(order_sn)进行关联	文本	varchar(100)	是
@@ -132,21 +135,21 @@ ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; lab_sn	检验流水号	4623477|1	表内唯一主键：报告单号|明细项目组号	文本	varchar(100)
 	s OutItemObj.LabSn=OrdInfoItemObj.OEORIPlacerNo
 	; test_datetime	检验时间	2018-01-03 16:31:42	符合【yyyy-MM-dd HH:mm:ss】的格式	日期	varchar(50)	是
-	s OutItemObj.TestDatetime=""	
+	s OutItemObj.TestDatetime=##class(websys.Conversions).DateLogicalToHtml(LabReportObj.RISRCheckDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(LabReportObj.RISRCheckTime)	
 	; test_method_code	检验方法代码	32	填写医院原始代码	文本	varchar(50)	
-	s OutItemObj.TestMethodCode=""	
+	s OutItemObj.TestMethodCode=""
 	; test_method	检验方法	显微镜计数法	填写检验方法名称	文本	varchar(100)	
-	s OutItemObj.TestMethod=""	
+	s OutItemObj.TestMethod=LabReportObj.RISRMethod	
 	; lab_type	检验类型	生化	生化等	文本	varchar(50)	
-	s OutItemObj.LabType=""	
+	s OutItemObj.LabType=LabReportObj.RISRSysCode	
 	; item_group_code	组合项目代码	X212031	填写医院原始代码	文本	varchar(50)	
 	s OutItemObj.ItemGroupCode=""	
 	; item_group_name	组合项目名称	血常规	如：血常规、血生化等	文本	varchar(100)	
-	s OutItemObj.ItemGroupName=""	
+	s OutItemObj.ItemGroupName=OrdInfoItemObj.RISRItemDesc	
 	; report_no	报告单号			文本	varchar(100)	
 	s OutItemObj.ReportNo=OrdInfoItemObj.OEORIPlacerNo
 	; report_datetime	报告时间			日期	varchar(50)	是
-	s OutItemObj.ReportDatetime=""	
+	s OutItemObj.ReportDatetime=##class(websys.Conversions).DateLogicalToHtml(LabReportObj.RISRReportDate)_" "_##class(websys.Conversions).TimeLogicalToHtml(LabReportObj.RISRReportTime)	
 	; extend_data1	扩展字段1			文本	text
 	s OutItemObj.ExtendData1=""	
 	; extend_data2	扩展字段2			文本	text
@@ -160,6 +163,53 @@ ClassMethod GetLabOrderInfo(AdmId As %String, OEORIRowID As %String)
 	; record_update_datetime	记录更新时间			日期	varchar(50)	
 	s:OrdInfoItemObj.OEORIUpdateDate'="" OutItemObj.RecordUpdateDatetime=$zd(OrdInfoItemObj.OEORIUpdateDate,3)_" "_$zt(OrdInfoItemObj.OEORIUpdateTime) ;##class(websys.Conversions).DateLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)_" "_##class(websys.Conversions).TimeLogicalToHtml(OrdInfoItemObj.OEORIUpdateTime)
 	q OutItemObj
+}
+
+/// 获取集成平台中间表的数据
+ClassMethod GetPISReportDocument(StudyNo As %String)
+{
+	s ReportDocument={}
+	set RARRowid=""
+	set RARRowid=$o(^Busi.ENS.EnsRISReportResultI("RISRExamIDIndex",StudyNo,RARRowid))
+	s EnsRISReportResultObj=##class(User.EnsRISReportResult).%OpenId(RARRowid)
+	if $ISOBJECT(EnsRISReportResultObj){
+		s ReportDocument.RISRReportID=EnsRISReportResultObj.RISRReportID
+		s ReportDocument.RISRExamID=EnsRISReportResultObj.RISRExamID
+		s ReportDocument.RISROrderItemID=EnsRISReportResultObj.RISROrderItemID
+		s ReportDocument.RISRPatientID=EnsRISReportResultObj.RISRPatientIDGetObjectId()
+		s ReportDocument.RISRVisitNumber=EnsRISReportResultObj.RISRVisitNumberGetObjectId()
+		s ReportDocument.RISRSysCode=EnsRISReportResultObj.RISRSysCode
+		s ReportDocument.RISRReportDocCode=EnsRISReportResultObj.RISRReportDocCode
+		s ReportDocument.RISRReportDocDesc=EnsRISReportResultObj.RISRReportDocDesc
+		s ReportDocument.RISRReportDate=EnsRISReportResultObj.RISRReportDate
+		s ReportDocument.RISRReportTime=EnsRISReportResultObj.RISRReportTime
+		s ReportDocument.RISRCheckDocCode=EnsRISReportResultObj.RISRCheckDocCode
+		s ReportDocument.RISRCheckDocDesc=EnsRISReportResultObj.RISRCheckDocDesc
+		s ReportDocument.RISRCheckDate=EnsRISReportResultObj.RISRCheckDate
+		s ReportDocument.RISRCheckTime=EnsRISReportResultObj.RISRCheckTime
+		s ReportDocument.RISRFinalCheckDocCode=EnsRISReportResultObj.RISRFinalCheckDocCode
+		s ReportDocument.RISRFinalCheckDocDesc=EnsRISReportResultObj.RISRFinalCheckDocDesc
+		s ReportDocument.RISRFinalCheckDate=EnsRISReportResultObj.RISRFinalCheckDate
+		s ReportDocument.RISRFinalCheckTime=EnsRISReportResultObj.RISRFinalCheckTime
+		s ReportDocument.RISRItemDesc=EnsRISReportResultObj.RISRItemDesc
+		s ReportDocument.RISRBACode=EnsRISReportResultObj.RISRBACode
+		s ReportDocument.RISRBADesc=EnsRISReportResultObj.RISRBADesc
+		s ReportDocument.RISRMethod=EnsRISReportResultObj.RISRMethod
+		s ReportDocument.RISRExamDesc=EnsRISReportResultObj.RISRExamDesc
+		s ReportDocument.RISRDiagDesc=EnsRISReportResultObj.RISRDiagDesc
+		s ReportDocument.RISRACRCode=EnsRISReportResultObj.RISRACRCode
+		s ReportDocument.RISRAdviseDesc=EnsRISReportResultObj.RISRAdviseDesc
+		s ReportDocument.RISRIsGet=EnsRISReportResultObj.RISRIsGet
+		s ReportDocument.RISRUpdateDate=EnsRISReportResultObj.RISRUpdateDate
+		s ReportDocument.RISRUpdateTime=EnsRISReportResultObj.RISRUpdateTime
+		s ReportDocument.RISROrderItemDesc=EnsRISReportResultObj.RISROrderItemDesc
+		s ReportDocument.RISRImageSrc=EnsRISReportResultObj.RISRImageSrc
+		s ReportDocument.RISRReportImageSrc=EnsRISReportResultObj.RISRReportImageSrc
+		s ReportDocument.RISRWarnCode=EnsRISReportResultObj.RISRWarnCode
+		s ReportDocument.RISRIsPositive=EnsRISReportResultObj.RISRIsPositive
+		d EnsRISReportResultObj.%Close()
+	}
+	q ReportDocument
 }
 
 ///w ##class(web.DHCOEOrdItem).GetLabSpec("93||59",2)
