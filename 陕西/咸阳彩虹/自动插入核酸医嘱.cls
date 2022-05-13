@@ -27,7 +27,7 @@ ClassMethod InsertCovi19MRDiagnos(EpisodeID, UserID, ICDRowID){
 			s Rtn=##class(web.DHCMRDiagnos).UpdateOnsetDate(MRDIAID,$ZD(+$H,3))
 		}
 }
-    /// 插入核酸医嘱
+/// 插入核酸医嘱
 ClassMethod InsertCovi19Order(EpisodeID As %String, LocID As %String, UserID As %String, ARCIMRowID As %String, OrderLabSpecRowid As %String = "", OrderInstrRowid As %String = "", OrderPackQty As %String = "")
 {
 	q:EpisodeID="" ""
