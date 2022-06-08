@@ -3,20 +3,50 @@ Class web.DHCOPAdmRegLocal Extends %RegisteredObject
 
 Parameter CheckCovidData = "2022-01-03";
 
-Parameter CheckArcItemStr = "52593||1^52662||1^52845||1^53545||1";
+Parameter CheckArcItemStr = "52593||1^52662||1^52845||1^53545||1^53546||1";
+
+Parameter CheckMRCICD="24586";
 
 Parameter CheckCovidCountNum = 10;
 
-ClassMethod InsertCaregiverCovid19(RegNo As %String, EpisodeID As %String, DiagICDDr As %String, ArcItemRowDr As %String)
+ClassMethod InsertCaregiverCovid19(RegNo As %String, EpisodeID As %String, DiagICDDr As %String, ArcItemRowDr As %String, UserId As %String, Select As %String, CaregiverSel As %String)
 {
 	s $ZTRAP="InsertCaregiverCovid19Err"
-	s ret=$$Covid2019Test^DHCDocOrdCovidBatch(RegNo,"",ArcItemRowDr)
-	s CaregiverName=""
-	s CaregiverCredNo=""
-	s CaregiverPatNo=##class(web.DHCOPAdmRegLocal).GetPatNoByCredNo(CaregiverCredNo,CaregiverName)
-	if (CaregiverPatNo'["^"){
-		s ret=$$Covid2019Test^DHCDocOrdCovidBatch(CaregiverPatNo,"",ArcItemRowDr)
+	s ^TempRen("InsertCaregiverCovid19")=$lb(RegNo,EpisodeID,DiagICDDr,ArcItemRowDr,UserId)
+	s Covid19Settlement=##class(DHCDoc.DHCDocConfig.LocalConfig).GetLocalConfigValue("OPDoc","Covid19Settlement")
+	if (Select="Y"){
+		s ret=$$Covid2019Test^DHCDocOrdCovid(RegNo,DiagICDDr,ArcItemRowDr)
+		s retCode=$p(ret,"^",1)
+		s retDesc=$p(ret,"^",2)
+		s MyEpisodeID=$p(ret,"^",3)
+		q:retCode'="0" ret
+		// renyx 添加调用结算接口 
+	
+		if (Covid19Settlement="Y"){
+		
+			////固定收费员 K0036
+			s ICovidCharge=##class(web.DHCBillInterface).ICovidCharge(MyEpisodeID,5087)
+		
+		}
 	}
+	if (CaregiverSel="Y"){
+		s CaregiverName=$p($g(^PAADM(EpisodeID,"Local")),"^",5)
+		s CaregiverCredNo=$p($g(^PAADM(EpisodeID,"Local")),"^",6)
+		s CaregiverPatNo=##class(web.DHCOPAdmRegLocal).GetPatNoByCredNo(CaregiverCredNo,CaregiverName)
+		if (CaregiverPatNo'["^"){
+			s CaregiverRet=$$Covid2019Test^DHCDocOrdCovid(CaregiverPatNo,DiagICDDr,ArcItemRowDr)
+			s CareretCode=$p(CaregiverRet,"^",1)
+			s CareretDesc=$p(CaregiverRet,"^",2)
+			s CareEpisodeID=$p(CaregiverRet,"^",3)
+			q:CareretCode'="0" CareretCode_"^陪诊人核酸插入失败："_CareretDesc
+			if (Covid19Settlement="Y"){
+				////固定收费员 K0036
+				s ICovidCharge=##class(web.DHCBillInterface).ICovidCharge(CareEpisodeID,5087)
+		
+			}
+		}
+	}
+	q "0"
 InsertCaregiverCovid19Err
 	s $ZTRAP=""
 	q ""
@@ -26,10 +56,14 @@ InsertCaregiverCovid19Err
 ClassMethod SaveCaregiver(EpisodeID As %String, CaregiverName As %String, CaregiverCredNo As %String)
 {
 	q:'$d(^PAADM(EpisodeID)) "-1^未找到该病人就诊信息"
-	//s $p(^PAADM(EpisodeID),"Local",111)=CaregiverName
-	//s $p(^PAADM(EpisodeID),"Local",112)=CaregiverCredNo
-	s PatNo=##class(web.DHCOPAdmRegLocal).GetPatNoByCredNo(CaregiverCredNo,CaregiverName)
-	q:(PatNo["^") "1^"_$p(PatNo,"^",2)
+	
+	// s PatNo=##class(web.DHCOPAdmRegLocal).GetPatNoByCredNo(CaregiverCredNo,CaregiverName)
+	set PatNo=..GetAllPatIDByIDCardAndName(CaregiverCredNo,CaregiverName)
+   	// if (myHadFlag="") set myHadFlag=..GetAllPatIDByIDCardAndName(myIDCardNo15,PatientName)
+    q:(PatNo="") "1^患者信息录入错误，或者该患者未建档，请核对患者信息后再录入"
+    q:$l(PatNo,"^")>1 "1^该身份号对应多条信息"
+	s $p(^PAADM(EpisodeID,"Local"),"^",5)=CaregiverName
+	s $p(^PAADM(EpisodeID,"Local"),"^",6)=CaregiverCredNo
 	q "1"
 }
 
@@ -43,7 +77,7 @@ ClassMethod GetSamplingDate(PatientNo As %String, StartDate As %String, EndDate 
 	for {
 		s PAAdmDr=$o(^PAPERdr(PatientId,"ADM","O",PAAdmDr),-1)
 		q:(PAAdmDr="")||(SamplingDate'="")
-		s AdmDate=$p($g(PAAdmDr),"^",6)
+		s AdmDate=$p($g(^PAADM(PAAdmDr)),"^",6)
 		continue:((StartDate'="")&&(AdmDate<StartDate))
 		continue:((EndDate'="")&&(AdmDate>EndDate))
 		s Oeori=$o(^OEORD(0,"Adm",PAAdmDr,0))
@@ -101,22 +135,59 @@ ClassMethod GetLastSamplingDate(PatientNo As %String)
 }
 
 /// 获取单采混采次数 入参登记号
-/// w ##class(web.DHCOPAdmRegLocal).GetCovidNumInfo("46670579")
-ClassMethod GetCovidNumInfoNew(PatientNo As %String, ArcItemId As %String, resCode As %String = "")
+/// w ##class(web.DHCOPAdmRegLocal).GetCovidNumInfo("17252402","53546||1")
+ClassMethod GetCovidNumInfo(PatientNo As %String, ArcItemId As %String, resCode As %String = "")
 {
+	s ^tempRen("GetCovidNumInfo")=$lb(PatientNo,ArcItemId,resCode)
+	s CovidSingleNum=""
+	s CovidMixleNum=""
+	s:resCode="" resCode=44363
+	s ArcItemDrStr=ArcItemId
+	s:ArcItemDrStr="" ArcItemDrStr=..#CheckArcItemStr
+	s PatientId =$o(^PAPERi("PAPMI_PatNo",$$ALPHAUP^SSUTIL4(PatientNo),""))
+	s AdmDoc=$p(^RB("RES",resCode),"^",2)
+	&SQL(DECLARE OrdItemList CURSOR FOR
+		SELECT OrdItem.OEORI_RowId INTO :OEORIRowId FROM 
+		SQLUser.OE_OrdItem AS OrdItem 
+		INNER JOIN SQLUser.OE_OrdItemExt AS OrdItemExt ON OrdItem.OEORI_RowId=OrdItemExt.OEORI_RowId
+		WHERE OrdItem.OEORI_OEORD_ParRef->OEORD_Adm_DR->PAADM_PAPMI_DR=:PatientId
+		AND OrdItem.OEORI_OEORD_ParRef->OEORD_Adm_DR->PAADM_AdmDocCodeDR=:AdmDoc
+		AND OrdItem.OEORI_ItmMast_DR %INLIST $listfromstring(:ArcItemDrStr,"^")
+		AND OrdItemExt.OEORI_OtherFlags="ImportCovidOrd"
+	)
+	&SQL(OPEN OrdItemList)
+	s RetStr=""
+	For {
+		&SQL(FETCH OrdItemList) 
+		QUIT:SQLCODE
+		s Oeori=+OEORIRowId
+		s OrdChildsub=$p(OEORIRowId,"||",2)
+		s ItmMastDr=$p($g(^OEORD(Oeori,"I",OrdChildsub,1)),"^",2)
+		continue:("^"_ArcItemDrStr_"^")'[("^"_ItmMastDr_"^")
+		s ArcimDesc=$P(^ARCIM(+ItmMastDr,$P(ItmMastDr,"||",2),1),"^",2)
+		s itemstat=$p($g(^OEORD(Oeori,"I",OrdChildsub,1)),"^",13)
+		continue:itemstat=""
+		s statcode=$p($g(^OEC("OSTAT",itemstat)),"^",1)
+		continue:(statcode'="V")
+		if (ArcimDesc["混采") s CovidMixleNum=+CovidMixleNum+1
+		else  s CovidSingleNum=+CovidSingleNum+1
+	}
+	&SQL(CLOSE OrdItemList)
+	
+	q CovidSingleNum_"^"_CovidMixleNum
     s StartCovidData=$zdh(..#CheckCovidData,3)
 	s CovidSingleNum=""
 	s CovidMixleNum=""
 	s PatientId =$o(^PAPERi("PAPMI_PatNo",$$ALPHAUP^SSUTIL4(PatientNo),""))
     s ArcItemDrStr=ArcItemId
 	s:ArcItemDrStr="" ArcItemDrStr=..#CheckArcItemStr
-    s:resCode="" resCode=44434
+    s:resCode="" resCode=44363
     s AdmLoc=$p(^RB("RES",resCode),"^",1)
     // ^PAADMi("NNLoc",{PAADM_DepCode_DR},{PAADM_AdmDate},{PAADM_RowID})
     s AdmDoc=$p(^RB("RES",resCode),"^",2)
     // ^PAADMi("NNDoc",{PAADM_AdmDocCodeDR},{PAADM_AdmDate},{PAADM_RowID})
     s AdmDate=StartCovidData-1
-    
+    k AdmOrderDrList($j)
     for {
         s AdmDate=$o(^PAADMi("NNDoc",AdmDoc,AdmDate))
         q:AdmDate=""
@@ -124,32 +195,51 @@ ClassMethod GetCovidNumInfoNew(PatientNo As %String, ArcItemId As %String, resCo
         for {
             s PAAdmDr=$o(^PAADMi("NNDoc",AdmDoc,AdmDate,PAAdmDr))
             q:PAAdmDr=""
-            s Oeori=$o(^OEORD(0,"Adm",PAAdmDr,0))
+            s AdmPatId=$p($g(^PAADM(PAAdmDr)),"^")
+            continue:AdmPatId'=PatientId
+            s Oeori=0
+            s Oeori=$o(^OEORD(0,"Adm",PAAdmDr,Oeori))
 		    continue:Oeori=""
-            s OrdChildsub=0
-            for {
-                s OrdChildsub=$o(^OEORD(Oeori,"I",OrdChildsub))
-                q:OrdChildsub=""
-                s ItmMastDr=$p($g(^OEORD(Oeori,"I",OrdChildsub,1)),"^",2)
-                continue:("^"_ArcItemDrStr_"^")'[("^"_ItmMastDr_"^")
-                s ArcimDesc=$P(^ARCIM(+ItmMastDr,$P(ItmMastDr,"||",2),1),"^",2)
-                s OtherFlags=$p($g(^OEORD(Oeori,"I",OrdChildsub,"DHC")),"^",23)
-                continue:(OtherFlags'="ImportCovidOrd")
-                s itemstat=$p($g(^OEORD(Oeori,"I",OrdChildsub,1)),"^",13)
-                continue:itemstat=""
-                s statcode=$p($g(^OEC("OSTAT",itemstat)),"^",1)
-                continue:(statcode'="V")
-                if (ArcimDesc["混采") s CovidMixleNum=CovidMixleNum+1
-                else  s CovidSingleNum=CovidSingleNum+1
-            }
+		    s AdmOrderDrList($j,Oeori)=""
         }
+    }
+    /*s PAAdmDr=""
+    for {
+		s PAAdmDr=$o(^PAPERdr(PatientId,"ADM","O",PAAdmDr),-1)
+		q:(PAAdmDr="")
+		s AdmDate=$p($g(^PAADM(PAAdmDr)),"^",6)
+		continue:((StartCovidData'="")&&(AdmDate<StartCovidData))
+		s Oeori=$o(^OEORD(0,"Adm",PAAdmDr,0))
+		continue:Oeori=""
+		s AdmOrderDrList($j,Oeori)=""
+    }*/
+    s Oeori=0
+    for {
+	    s Oeori=$O(AdmOrderDrList($j,Oeori))
+	    q:Oeori=""
+	    s OrdChildsub=0
+	    for {
+			s OrdChildsub=$o(^OEORD(Oeori,"I",OrdChildsub))
+			q:OrdChildsub=""
+			s ItmMastDr=$p($g(^OEORD(Oeori,"I",OrdChildsub,1)),"^",2)
+			continue:("^"_ArcItemDrStr_"^")'[("^"_ItmMastDr_"^")
+			s ArcimDesc=$P(^ARCIM(+ItmMastDr,$P(ItmMastDr,"||",2),1),"^",2)
+			s OtherFlags=$p($g(^OEORD(Oeori,"I",OrdChildsub,"DHC")),"^",23)
+			continue:(OtherFlags'="ImportCovidOrd")
+			s itemstat=$p($g(^OEORD(Oeori,"I",OrdChildsub,1)),"^",13)
+			continue:itemstat=""
+			s statcode=$p($g(^OEC("OSTAT",itemstat)),"^",1)
+			continue:(statcode'="V")
+			if (ArcimDesc["混采") s CovidMixleNum=+CovidMixleNum+1
+			else  s CovidSingleNum=+CovidSingleNum+1
+		}
     }
     q CovidSingleNum_"^"_CovidMixleNum
 }
 
 /// 获取单采混采次数 入参登记号
 /// w ##class(web.DHCOPAdmRegLocal).GetCovidNumInfo("46670579")
-ClassMethod GetCovidNumInfo(PatientNo As %String, ArcItemId As %String)
+ClassMethod GetCovidNumInfoOld(PatientNo As %String, ArcItemId As %String)
 {
 	s StartCovidData=$zdh(..#CheckCovidData,3)
 	s CovidSingleNum=""
@@ -170,7 +260,7 @@ ClassMethod GetCovidNumInfo(PatientNo As %String, ArcItemId As %String)
 			continue:ArcItemDr=""
 			s ArcimDesc=$P(^ARCIM(+ArcItemDr,$P(ArcItemDr,"||",2),1),"^",2)
 			s OrdSStDat=StartCovidData-1
-			for {
+			for{
 				s OrdSStDat=$o(^OEORDi(0,"ARCIM",Oeori,ArcItemDr,OrdSStDat))
 				q:OrdSStDat=""
 				s OrdChildsub=0
@@ -231,12 +321,20 @@ ClassMethod InsertTmpGlobal(Pid As %String, IDNo As %String, PatientName As %Str
 	q 0
 }
 
+/// 进行界面和后天的异步处理,暂时先不启用，启用后前后端没有办法同步提示
+ClassMethod InsertAdmAndArcItemBroker(ArcItem As %String, Pid As %String)
+{
+	j ..InsertAdmAndArcItem(ArcItem,Pid)::5
+	q ""
+}
+
 /// 插入就诊和医嘱
-/// w ##Class(web.DHCOPAdmRegLocal).InsertAdmAndArcItem("")
+/// w ##Class(web.DHCOPAdmRegLocal).InsertAdmAndArcItem("52593||1","5178022")
 ClassMethod InsertAdmAndArcItem(ArcItem As %String, Pid As %String)
 {
 	s ^tempren("InsertAdmAndArcItem")=$lb(ArcItem,Pid)
     //(PatientNo,DiagnoCode="",ArcimCode="",resCode="",docUserID="",regUserID="")
+    s Covid19Settlement=##class(DHCDoc.DHCDocConfig.LocalConfig).GetLocalConfigValue("OPDoc","Covid19Settlement")
     s CovidInd=0
     s SuccessCount=0,ErrCount=0
     for{
@@ -253,10 +351,14 @@ ClassMethod InsertAdmAndArcItem(ArcItem As %String, Pid As %String)
 			s ErrCount=ErrCount+1
 			continue
 		}
-		s ret=$$Covid2019Test^DHCDocOrdCovidBatch(OnePatNo,"",ArcItem)
+		s ret=$$Covid2019Test^DHCDocOrdCovid(OnePatNo,..#CheckMRCICD,ArcItem)
 		s EpisodeID=""
 		s:(ret'="err")||(+ret>=0) EpisodeID=$p(ret,"^",3)
 		d:EpisodeID'="" ..SaveOrdItemImportFlag(EpisodeID)
+		if (Covid19Settlement="Y")&&(EpisodeID'=""){
+			////固定收费员 K0036
+			s ICovidCharge=##class(web.DHCBillInterface).ICovidCharge(EpisodeID,5087)
+		}
 		if (ret="err")||(+ret<0) s RetMsg="导入医嘱数据失败："_$p(ret,"^",2),RetFlag="1",ErrCount=ErrCount+1
 		else  s RetMsg="导入医嘱数据成功",RetFlag="0",SuccessCount=SuccessCount+1
 		s $p(^TEMP("Covid19","web.DHCOPAdmRegLocal",Pid,CovidInd),"^",4)=RetFlag
@@ -270,8 +372,6 @@ ClassMethod InsertAdmAndArcItem(ArcItem As %String, Pid As %String)
 /// w ##class(web.DHCOPAdmRegLocal).GetPatNoByCredNo("110109201502025236","张晓峰")
 ClassMethod GetPatNoByCredNo(IDNo As %String, PatientName As %String) As %Status
 {
-
-   
     set myHadFlag=..GetAllPatIDByIDCardAndName(IDNo,PatientName)
    	// if (myHadFlag="") set myHadFlag=..GetAllPatIDByIDCardAndName(myIDCardNo15,PatientName)
     if (myHadFlag="") q "-1^没有在his里面找到该患者信息"
@@ -369,7 +469,7 @@ ClassMethod GetCovid19ListExecute(ByRef qHandle As %Binary, Pid As %String) As %
 				s ActiveStatus="有效"
 				s FocusGroups="否"
 				s CovidNumInfo=""
-				s:PatId'="" CovidNumInfo="" ;..GetCovidNumInfo(PatId,"")
+				s:PatId'="" CovidNumInfo=..GetCovidNumInfo(PatId,"")
 				s CovidSingleNum=$p(CovidNumInfo,"^",1)
 				s CovidMixleNum=$p(CovidNumInfo,"^",2)
 				do OutputRow
@@ -423,17 +523,21 @@ ClassMethod FindCovid19InfoListClose(ByRef qHandle As %Binary) As %Status [ Plac
 }
 
 /// d ##class(%ResultSet).RunQuery("web.DHCOPAdmRegLocal","FindCovid19InfoList","4194358","","","","","","","","")
-ClassMethod FindCovid19InfoListExecute(ByRef qHandle As %Binary, Pid As %String, StartDate As %String, EndDate As %String, GroupDept As %String, CompetentDept As %String, ResidueDegree As %String, UpdateDate As %String, ActiveFlag As %String, FocusGroups As %String, EmployStatus As %String, ArcItemId As %String = "") As %Status
+ClassMethod FindCovid19InfoListExecute(ByRef qHandle As %Binary, Pid As %String, StartDate As %String, EndDate As %String, GroupDept As %String, CompetentDept As %String, SingleResidue As %String, MixleResidue As %String, UpdateDate As %String, ActiveFlag As %String, FocusGroups As %String, EmployStatus As %String, ArcItemId As %String = "",ExpStr As %String) As %Status
 {
 	Set repid=$I(^CacheTemp)
 	s ind=1
-	s ^tempRen("FindCovid19InfoListExecute")=$lb(Pid , StartDate , EndDate , GroupDept , CompetentDept , ResidueDegree , UpdateDate , ActiveFlag, FocusGroups,EmployStatus,ArcItemId)
+	s ^tempRen("FindCovid19InfoListExecute")=$lb(Pid , StartDate , EndDate , GroupDept , CompetentDept , SingleResidue , MixleResidue , UpdateDate , ActiveFlag, FocusGroups,EmployStatus,ArcItemId,ExpStr)
 	s:StartDate["-" StartDate=$zdh(StartDate,3)
 	s:StartDate["/" StartDate=$zdh(StartDate,4)
 	s:EndDate["-" EndDate=$zdh(EndDate,3)
 	s:EndDate["/" EndDate=$zdh(EndDate,4)
 	s:UpdateDate["-" UpdateDate=$zdh(UpdateDate,3)
 	s:UpdateDate["/" UpdateDate=$zdh(UpdateDate,4)
+	s DCEPatName=$p(ExpStr,"^",1)
+	s DCEInitials=$p(ExpStr,"^",2)
+	s DCEPatientNo=$p(ExpStr,"^",3)
+	
 	s DCERowId=0
 	for{
 		s DCERowId=$o(^User.DHCDocCovidEmployeeD(DCERowId))
@@ -443,13 +547,16 @@ ClassMethod FindCovid19InfoListExecute(ByRef qHandle As %Binary, Pid As %String,
 			
 			s EmploymentStatus=CovidEmployeeObj.DCEEmploymentStatus
 			s DormitoryGroup=CovidEmployeeObj.DCEDormitoryGroup
-			s GroupDept=CovidEmployeeObj.DCEGroupDept
-			s CompetentDept=CovidEmployeeObj.DCECompetentDept
+			continue:GroupDept'=CovidEmployeeObj.DCEGroupDept
+			continue:CompetentDept'=CovidEmployeeObj.DCECompetentDept
 			s JobNumber=CovidEmployeeObj.DCEInitials
+			continue:(DCEInitials'="")&&(DCEInitials'=JobNumber)
 			s PatName=CovidEmployeeObj.DCEPatName
+			continue:(DCEPatName'="")&&(DCEPatName'=PatName)
 			s IDType=CovidEmployeeObj.DCEIDType
 			s IDNumberm=CovidEmployeeObj.DCEIDNumber
 			s PatId=CovidEmployeeObj.DCEPatientNo
+			continue:(DCEPatientNo'="")&&(DCEPatientNo'=PatId)
 			s LastUpDate=CovidEmployeeObj.DCELastUpDate
 			s LastUpTime=CovidEmployeeObj.DCELastUpTime
 			d CovidEmployeeObj.%Close()
@@ -462,15 +569,15 @@ ClassMethod FindCovid19InfoListExecute(ByRef qHandle As %Binary, Pid As %String,
 			s:PatId'="" ActiveStatus="有效"
 			s CovidNumInfo=""
 			//w:"47023760"=PatId $h
-			s:PatId'="" CovidNumInfo="" //..GetCovidNumInfo(PatId,ArcItemId)
+			s:PatId'="" CovidNumInfo=..GetCovidNumInfo(PatId,ArcItemId)
 			//w:"47023760"=PatId $h
 			s CovidSingleNum=$p(CovidNumInfo,"^",1)
 			s CovidMixleNum=$p(CovidNumInfo,"^",2)
-			continue:(ArcItemId'="")&&((CovidSingleNum="")||(CovidMixleNum=""))
-			s Surplus=..#CheckCovidCountNum-(CovidSingleNum+CovidMixleNum)
-			continue:(ResidueDegree'="")&&((PatId="")||(Surplus'=+ResidueDegree))
+			continue:(ArcItemId'="")&&((CovidSingleNum="")&&(CovidMixleNum=""))
+			continue:(MixleResidue'="")&&((PatId="")||(+CovidMixleNum'=+MixleResidue))
+			continue:(SingleResidue'="")&&((PatId="")||(+CovidSingleNum'=+SingleResidue))
 			s SamplingDateInfo=""
-			s:PatId'="" SamplingDateInfo="" //..GetSamplingDate(PatId,StartDate,EndDate)
+			s:PatId'="" SamplingDateInfo=..GetSamplingDate(PatId,StartDate,EndDate)
 			s SpecDate=$p(SamplingDateInfo,"^",1),SpecTime=$p(SamplingDateInfo,"^",2)
 			//continue:(StartDate'="")&&((SpecDate="")||(StartDate>SpecDate))
 			//continue:(EndDate'="")&&((SpecDate="")||(EndDate<SpecDate))
@@ -516,7 +623,7 @@ ClassMethod FindCovid19InfoListFetch(ByRef qHandle As %Binary, ByRef Row As %Lis
 	Quit $$$OK
 }
 
-Query FindCovid19InfoList(Pid As %String, StartDate As %String, EndDate As %String, GroupDept As %String, CompetentDept As %String, ResidueDegree As %String, UpdateDate As %String, ActiveFlag As %String, FocusGroups As %String, EmployStatus As %String, ArcItemId As %String = "") As %Query(ROWSPEC = "EmploymentStatus:%String,DormitoryGroup:%String,GroupDept:%String,CompetentDept:%String,JobNumber:%String,PatName:%String,IDType:%String,IDNumberm:%String,PatId:%String,ActiveStatus:%String,FocusGroups:%String,CovidSingleNum:%String,CovidMixleNum:%String,SamplingDate:%String,ReportDate:%String,UpdateDate:%String,CheckMsg:%String,ErrLog:%String")
+Query FindCovid19InfoList(Pid As %String, StartDate As %String, EndDate As %String, GroupDept As %String, CompetentDept As %String, SingleResidue As %String, MixleResidue As %String, UpdateDate As %String, ActiveFlag As %String, FocusGroups As %String, EmployStatus As %String, ArcItemId As %String = "",ExpStr As %String) As %Query(ROWSPEC = "EmploymentStatus:%String,DormitoryGroup:%String,GroupDept:%String,CompetentDept:%String,JobNumber:%String,PatName:%String,IDType:%String,IDNumberm:%String,PatId:%String,ActiveStatus:%String,FocusGroups:%String,CovidSingleNum:%String,CovidMixleNum:%String,SamplingDate:%String,ReportDate:%String,UpdateDate:%String,CheckMsg:%String,ErrLog:%String")
 {
 }
 

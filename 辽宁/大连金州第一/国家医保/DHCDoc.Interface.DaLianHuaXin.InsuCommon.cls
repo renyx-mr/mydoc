@@ -8,14 +8,17 @@ Parameter IDCardTypeCode = 01;
 Parameter CardTypeCode = 01;
 
 /// 1.1.2.1 【G0002】医院查询接口
-/// w ##class(DHCDoc.Interface.DaLianHuaXin.InsuCommon).GetHospInfo("{""req"":{""fixmedins_code"":""""}}")
+/// w ##class(DHCDoc.Interface.DaLianHuaXin.InsuCommon).GetHospInfo("{""input"":{""req"":{""fixmedins_code"":""H21021301867""}},""infno"":""G0002"",""sign_no"":""""}")
 ClassMethod GetHospInfo(InputJson As %String)
 {
 	s ^tempRen("GetHospInfo")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
+	s InputObj=InputObj.%Get("input")
+	b ;34
 	s InputObj=InputObj.%Get("req")
 	// fixmedins_code 定点医药机构编号	字符型	32		Y	规则：医保下发的定点医疗机构编号
 	s FixMedinsCode=InputObj.%Get("fixmedins_code")
+	b ;2
 	s OutputObj=##class(%DynamicObject).%New()
 	s HOSPRowId=0
     for {
@@ -26,7 +29,7 @@ ClassMethod GetHospInfo(InputJson As %String)
         continue:(DateFrom'="")&(DateFrom>+$h)
         s DateTo=$p($g(^CT("HOSP",HOSPRowId)),"^",10)
         continue:(DateTo'="")&(DateTo<=+$h)
-        continue:FixMedinsCode'="12"
+        //continue:FixMedinsCode'="12"
         s HospObj=##class(DHCDoc.Interface.DaLianHuaXin.InsuInterface).GetHospInfoObj(HOSPRowId,FixMedinsCode)
         d OutputObj.%Set("res",HospObj)
     }
@@ -255,7 +258,7 @@ ClassMethod GetDoctorInfo(InputJson As %String)
     s ResObj=##class(%DynamicObject).%New()
     d ResObj.%Set("doctor_list",DocList)
     d OutPutObj.%Set("res",ResObj)
-    d OutPutObj.%ToJSON()
+    q OutPutObj.%ToJSON()
 }
 
 /// 2.1.1.4 【G0005】排班信息查询接口

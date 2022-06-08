@@ -70,7 +70,8 @@ ClassMethod InsertCovi19Order(EpisodeID As %String, LocID As %String, UserID As 
 	s OrderDepProcNotes=""
 	s OrderMasterSeqNo=""
 	Set ord=$o(^OEORD(0,"Adm",EpisodeID,""))
-	s OrderSeqNo=$$GetSeqNo^DHCDocOrderCommonNew(ord,+$h)+Number
+	s:ord="" OrderSeqNo=Number
+	s:ord'="" OrderSeqNo=$$GetSeqNo^DHCDocOrderCommonNew(ord,+$h)+Number
 	s OrderSkinTest="N"
 	s OrderPhSpecInstr=""
 	s OrderCoverMainIns=""

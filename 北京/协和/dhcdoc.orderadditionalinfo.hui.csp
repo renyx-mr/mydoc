@@ -1,0 +1,106 @@
+<!--医嘱录入附加信息录入 dhcdoc.orderadditionalinfo.hui.csp-->
+<!DOCTYPE html>
+<csp:method name=OnPreHTTP arguments="" returntype=%Boolean>
+ if ##class(websys.SessionEvents).SessionExpired() quit 1
+ quit 1
+</csp:method>
+<html>
+<head>
+	<TITLE><EXTHEALTH:TRANSLATE id=title>##(%session.Get("TITLE"))##</EXTHEALTH:TRANSLATE></TITLE>
+	<TRAK:HEAD></TRAK:HEAD>
+	<DHCDOC:JSCOMMON></DHCDOC:JSCOMMON>
+	<HISUI/>
+</head>
+<body>
+	<div class="hisui-layout" fit="true">
+		<table cellpadding="0" style="bader:1">
+			<tr>
+                <td colspan="2" style="text-align:center">请补充完善如下信息：<span style="font-weight:bolder">给药途径、 剂量、采血时间</span></td>
+                <!--td style="text-align:center"><a href="#" class="easyui-linkbutton" id="Cancle">取消</a></td-->
+            </tr>
+			<tr>
+                <td class="r-label">给药途径</td>
+                <td>
+                    <input type="text" class="textbox" name="MedicationRoute" id="MedicationRoute" style="width:160px" />
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">剂量</td>
+                <td>
+                    <input type="text" class="textbox" name="Dosage" id="Dosage" style="width:160px" />
+                </td>
+            </tr>
+            <tr>
+                <td class="r-label">采血时间</td>
+                <td>
+                    <input type="text" class="textbox" name="BloodCollection" id="BloodCollection" style="width:160px" />
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align:center"><a href="#" class="easyui-linkbutton" id="Save">确定</a></td>
+                <!--td style="text-align:center"><a href="#" class="easyui-linkbutton" id="Cancle">取消</a></td-->
+            </tr>
+        </table>
+	</div>
+	<SCRIPT language = 'javascript' >
+		var PageLogicObj={
+			MedicationRouteData:[{"id":"1","text":"静脉给药"}
+				,{"id":"2","text":"口服"}
+				,{"id":"3","text":"其他（）"}],
+			DosageData:[{"id":"1","text":"bid（）mg"}
+				,{"id":"2","text":"tid（）mg"}
+				,{"id":"3","text":"qd（）mg"}
+				,{"id":"4","text":"q12h（）mg"}
+				,{"id":"5","text":"q8h（）mg"}
+				,{"id":"6","text":"其他（）"}],
+			BloodCollectionData:[{"id":"1","text":"下次给药前（）h"}
+				,{"id":"2","text":"用药后（）h"}
+				,{"id":"3","text":"其他（）"}]
+		}
+		$(function(){
+			//页面元素初始化
+			PageHandle();
+			//事件初始化
+			InitEvent();
+		});
+		function PageHandle(){
+			$("#MedicationRoute").combobox({
+				valueField:'id',
+				textField:'text',
+				panelHeight:"auto",
+				data:PageLogicObj.MedicationRouteData
+			});
+			$("#Dosage").combobox({
+				valueField:'id',
+				textField:'text',
+				panelHeight:"auto",
+				data:PageLogicObj.DosageData
+			});
+			$("#BloodCollection").combobox({
+				valueField:'id',
+				textField:'text',
+				panelHeight:"auto",
+				data:PageLogicObj.BloodCollectionData
+			});
+		}
+		function InitEvent(){
+			$("#Save").click(function(){
+				var MedicationRoute=$("#MedicationRoute").combobox("getText");
+				if ((typeof MedicationRoute=="undefined")||(MedicationRoute=="")){
+					alert("给药途径不能为空！")
+				}
+				var Dosage=$("#Dosage").combobox("getText");
+				if ((typeof Dosage=="undefined")||(Dosage=="")){
+					alert("剂量不能为空！")
+				}
+				var BloodCollection=$("#BloodCollection").combobox("getText");
+				if ((typeof BloodCollection=="undefined")||(BloodCollection=="")){
+					alert("采血时间不能为空！")
+				}
+				window.returnValue=MedicationRoute+";"+Dosage+";"+BloodCollection;
+				window.close();
+			});
+		}
+	</SCRIPT>
+</body>
+</html>
