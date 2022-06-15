@@ -1,24 +1,24 @@
 Class DHCDoc.Interface.DaLianHuaXin.InsuCommon Extends %RegisteredObject
 {
 
-Parameter ExtUserCode = "APP01";
+Parameter ExtUserCode = "cashier";
 
 Parameter IDCardTypeCode = 01;
 
 Parameter CardTypeCode = 01;
 
 /// 1.1.2.1 【G0002】医院查询接口
-/// w ##class(DHCDoc.Interface.DaLianHuaXin.InsuCommon).GetHospInfo("{""input"":{""req"":{""fixmedins_code"":""H21021301867""}},""infno"":""G0002"",""sign_no"":""""}")
+/// w ##class(DHCDoc.Interface.DaLianHuaXin.InsuCommon).GetHospInfo("{""input"":{""req"":{""fixmedins_code"":""H21021301867""}},""infno"":""G0002"",""msgid"":null,""mdtrtarea_admvs"":null,""insuplc_admdvs"":"""",""recer_sys_code"":null,""dev_no"":"""",""dev_safe_info"":"""",""cainfo"":"""",""signtype"":null,""infver"":null,""opter_type"":null,""opter"":null,""opter_name"":null,""inf_time"":null,""fixmedins_code"":null,""fixmedins_name"":""2022-05-20 15:15:45"",""sign_no"":""""}")
 ClassMethod GetHospInfo(InputJson As %String)
 {
 	s ^tempRen("GetHospInfo")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
 	s InputObj=InputObj.%Get("input")
-	b ;34
+	s ^tempszd("hospid")=InputObj
 	s InputObj=InputObj.%Get("req")
 	// fixmedins_code 定点医药机构编号	字符型	32		Y	规则：医保下发的定点医疗机构编号
 	s FixMedinsCode=InputObj.%Get("fixmedins_code")
-	b ;2
+	//s ^tempszd("hospid")=FixMedinsCode
 	s OutputObj=##class(%DynamicObject).%New()
 	s HOSPRowId=0
     for {
@@ -29,7 +29,7 @@ ClassMethod GetHospInfo(InputJson As %String)
         continue:(DateFrom'="")&(DateFrom>+$h)
         s DateTo=$p($g(^CT("HOSP",HOSPRowId)),"^",10)
         continue:(DateTo'="")&(DateTo<=+$h)
-        //continue:FixMedinsCode'="12"
+        continue:FixMedinsCode'="H21021301867"
         s HospObj=##class(DHCDoc.Interface.DaLianHuaXin.InsuInterface).GetHospInfoObj(HOSPRowId,FixMedinsCode)
         d OutputObj.%Set("res",HospObj)
     }
@@ -41,10 +41,11 @@ ClassMethod GetDeptInfo(InputJson As %String)
 {
 	s ^tempRen("GetDeptInfo")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
+	s InputObj=InputObj.%Get("input")
 	s InputObj=InputObj.%Get("req")
 	// fixmedins_code	定点医药机构编号	字符型	32		Y	
 	s HospId=InputObj.%Get("fixmedins_code")
-    s HospId=$case(HospId,"7002":"2",:"")
+    s HospId=$case(HospId,"H21021301867":"2",:"")
     // dept_id	科室ID	字符型	32		Y	HIS系统中科室唯一 ID，为-1 时查询所有科室信息，为0时查询所有一级科室信息，为其他时查本科室以及所有子科室信息
     s DeptId=InputObj.%Get("dept_id")
     s UserID=##class(DHCExternalService.RegInterface.GetRelate).GetUser(..#ExtUserCode)
@@ -150,11 +151,11 @@ ClassMethod GetDeptInfo(InputJson As %String)
 			if (AddDr'="") set LocAddress=$get(^CTLOC(DepartmentCode,"ADDR",AddDr))
 			d DeptList.%Push(##class(DHCDoc.Interface.DaLianHuaXin.InsuInterface).GetDeptInfoObj(DepartmentCode,DepartmentHospCode))
         }
-        s ResObj=##class(%DynamicObject).%New()
-        d ResObj.%Set("dept_list",DeptList)
-        d OutPutObj.%Set("res",ResObj)
-        q OutPutObj.%ToJSON()
 	}
+	s ResObj=##class(%DynamicObject).%New()
+    d ResObj.%Set("dept_list",DeptList)
+    ///d OutPutObj.%Set("res",ResObj)
+    q ResObj.%ToJSON()
 }
 
 /// 2.1.1.3 【G0004】医生查询接口
@@ -162,10 +163,11 @@ ClassMethod GetDoctorInfo(InputJson As %String)
 {
 	s ^tempRen("GetDoctorInfo")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
+	s InputObj=InputObj.%Get("input")
 	s InputObj=InputObj.%Get("req")
 	; fixmedins_code	定点医药机构编号	字符型	32		Y	
 	s HospId=InputObj.%Get("fixmedins_code")
-    s HospId=$case(HospId,"7002":"2",:"")
+    s HospId=$case(HospId,"H21021301867":"2",:"")
     ; dept_id	科室ID	字符型	32		Y	HIS系统中科室唯一 ID，为-1 时查询所有科室信息，为0时查询所有一级科室信息，为其他时查本科室以及所有子科室信息
     s DeptId=InputObj.%Get("dept_id")
     ; doctor_id	医生ID	字符型	32		Y	HIS系统中医生唯一 ID，为-1 时查询该科室下所有医生，否则查指定某个医生信息
@@ -257,8 +259,8 @@ ClassMethod GetDoctorInfo(InputJson As %String)
     }
     s ResObj=##class(%DynamicObject).%New()
     d ResObj.%Set("doctor_list",DocList)
-    d OutPutObj.%Set("res",ResObj)
-    q OutPutObj.%ToJSON()
+    //d OutPutObj.%Set("res",ResObj)
+    q ResObj.%ToJSON()
 }
 
 /// 2.1.1.4 【G0005】排班信息查询接口
@@ -266,6 +268,7 @@ ClassMethod GetRegInfo(InputJson As %String)
 {
 	s ^tempRen("GetRegInfo")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
+	s InputObj=InputObj.%Get("input")
 	s InputObj=InputObj.%Get("req")
 	; fixmedins_code	定点医药机构编号	字符型	32		Y	
 	s HospId=InputObj.%Get("fixmedins_code")
@@ -277,7 +280,7 @@ ClassMethod GetRegInfo(InputJson As %String)
     s StartDate=InputObj.%Get("start_date")
     ; end_date	排班结束日期	字符型	20		Y	格式：YYYY-MM-DD
 	s EndDate=InputObj.%Get("end_date")
-	s EndDate=InputObj.%Get("END_DATE")
+	;s EndDate=InputObj.%Get("END_DATE")
     s StartDate=##class(websys.Conversions).DateHtmlToLogical(StartDate)
     s EndDate=##class(websys.Conversions).DateHtmlToLogical(EndDate)
     s:StartDate="" StartDate=+$h
@@ -342,7 +345,7 @@ ClassMethod GetRegInfo(InputJson As %String)
 					; reg_weekday	出诊日期对应星期	字符型	16		Y	如：星期五
 					s WeekDay=$zd(Date,10)
                     s WeekDay="星期"_$case(WeekDay,"0":"七","1":"一","2":"二","3":"三","4":"四","5":"五","6":"六")
-					d RegObj.%Set("name",WeekDay)
+					d RegObj.%Set("reg_weekday",WeekDay)
 					s RegTimeList=##Class(DHCDoc.Interface.DaLianHuaXin.InsuInterface).GetRBASRecObjByRBASObj(ScheduleObj,DHCRBASObj,AppRegMethodCode)
 					d RegObj.%Set("reg_time_list",RegTimeList)
 					d RegList.%Push(RegObj)
@@ -356,8 +359,8 @@ ClassMethod GetRegInfo(InputJson As %String)
     }
     s ResObj=##class(%DynamicObject).%New()
     d ResObj.%Set("reg_doctor_list",RegDoctorList)
-    d OutPutObj.%Set("res",ResObj)
-    q OutPutObj.%ToJSON()
+    //d OutPutObj.%Set("res",ResObj)
+    q ResObj.%ToJSON()
 }
 
 /// 2.1.1.5 【G0006】排班分时查询接口
@@ -365,9 +368,10 @@ ClassMethod GetTimeRegInfo(InputJson As %String)
 {
 	s ^tempRen("GetTimeRegInfo")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
-	s InputObj=InputObj.%Get("req")
+	s InputObj=InputObj.%Get("input")
 	; fixmedins_code	定点医药机构编号	字符型	32		Y	
 	s HospId=InputObj.%Get("fixmedins_code")
+	s InputObj=InputObj.%Get("req")
 	; dept_id	科室ID	字符型	32		Y	HIS系统中科室唯一 ID，为-1 时查询所有科室信息，为0时查询所有一级科室信息，为其他时查本科室以及所有子科室信息
     s DeptId=InputObj.%Get("dept_id")
     ; doctor_id	医生ID	字符型	32		Y	HIS系统中医生唯一 ID，为-1 时查询该科室下所有医生，否则查指定某个医生信息
@@ -467,15 +471,17 @@ ClassMethod GetTimeRegInfo(InputJson As %String)
 	}
 	s ResObj=##class(%DynamicObject).%New()
     d ResObj.%Set("time_reg_list",TimeRegList)
-    d OutPutObj.%Set("res",ResObj)
-	q OutPutObj.%ToJSON()
+    //d OutPutObj.%Set("res",ResObj)
+	q ResObj.%ToJSON()
 }
 
 /// 2.1.1.6 【G0007】预挂号接口
+/// q ##class(DHCDoc.Interface.DaLianHuaXin.InsuCommon).OrderReg()
 ClassMethod OrderReg(InputJson As %String)
 {
 	s ^tempRen("GetTimeRegInfo")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
+	s InputObj=InputObj.%Get("input")
 	s InputObj=InputObj.%Get("req")
 	; order_id	平台订单号	字符型	32		Y
 	s OrderId=InputObj.%Get("order_id")	
@@ -491,7 +497,7 @@ ClassMethod OrderReg(InputJson As %String)
 	s RegLevel=InputObj.%Get("reg_level")	
 	; fixmedins_code	定点医药机构编号	字符型	32		Y	
 	s HospId=InputObj.%Get("fixmedins_code")
-	s HospId=$case(HospId,"7002":"2",:"")	
+	s HospId=$case(HospId,"H21021301867":"2",:"")	
 	; dept_id	科室ID	字符型	32		
 	s DeptId=InputObj.%Get("DeptId")		
 	; doctor_id	医生ID	字符型	32		
@@ -510,6 +516,7 @@ ClassMethod OrderReg(InputJson As %String)
         s EndTime=$P(^RBAS(+RegId,$p(RegId,"||",2),"ASTR",$p(RegId,"||",3)),"^",2)
         s EndTime=##class(websys.Conversions).TimeLogicalToHtml(EndTime)
     }
+    s RegId=+RegId_"||"_$p(RegId,"||",2)
 	; reg_type	挂号类型	字符型	1	Y	Y	
 	s RegType=InputObj.%Get("reg_type")	
 	; reg_fee	挂号费用	数值型	10，2		Y	单位：元
@@ -595,17 +602,17 @@ ClassMethod OrderReg(InputJson As %String)
     s OutPutObj=##class(%DynamicObject).%New()
     s ResObj=##class(%DynamicObject).%New()
     ; pay_serial	医院订单号	字符型	32		Y	
-    d ResObj.%Set("detail_amout",LockOutputObj.TransactionId)
+    d ResObj.%Set("pay_serial",LockOutputObj.TransactionId)
     ; hosp_patient_id	医院病人ID	字符型	32		Y	
-    d ResObj.%Set("detail_amout",PatientNo)
+    d ResObj.%Set("hosp_patient_id",PatientNo)
     ; hosp_serial_num	医院候诊号	字符型	32			
-    d ResObj.%Set("detail_amout",LockOutputObj.LockQueueNo)
+    d ResObj.%Set("hosp_serial_num",LockOutputObj.LockQueueNo)
     ; hosp_getreg_date	医院取号时间段或时间点	字符型	32			格式：HH24MI-HH24MI
-    d ResObj.%Set("detail_amout","")
+    d ResObj.%Set("hosp_getreg_date","")
     ; hosp_see_doct_addr	医院就诊地址	字符型	256			
-    d ResObj.%Set("detail_amout","")
+    d ResObj.%Set("hosp_see_doct_addr","")
     ; ipt_otp_no	医院病历号或门诊号	字符型	32		Y	就诊唯一标识
-    d ResObj.%Set("detail_amout","")
+    d ResObj.%Set("ipt_otp_no","")
     d OutPutObj.%Set("res",ResObj)
 	q OutPutObj.%ToJSON()
 GetPatientIDStrByForeignInfo
@@ -687,10 +694,11 @@ ClassMethod CancelReg(InputJson As %String)
 {
 	s ^tempRen("CancelReg")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
+	s InputObj=InputObj.%Get("input")
 	s InputObj=InputObj.%Get("req")
 	; fixmedins_code	定点医药机构编号	字符型	32		Y	
 	s HospId=InputObj.%Get("fixmedins_code")
-    s HospId=$case(HospId,"7002":"2",:"")
+    s HospId=$case(HospId,"H21021301867":"2",:"")
 	; order_id	平台订单号	字符型	32		Y	
 	s OrderId=InputObj.%Get("order_id")
 	; cancel_date	取消时间	字符型	20		Y	格式：YYYY-MM-D DHH24:MI:SS
@@ -748,10 +756,11 @@ ClassMethod Refund(InputJson As %String)
 {
 	s ^tempRen("Refund")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
+	s InputObj=InputObj.%Get("input")
 	s InputObj=InputObj.%Get("req")
 	; fixmedins_code	定点医药机构编号	字符型	32		Y	
 	s HospId=InputObj.%Get("fixmedins_code")
-    s HospId=$case(HospId,"7002":"2",:"")
+    s HospId=$case(HospId,"H21021301867":"2",:"")
 	; order_id	平台订单号	字符型	32		Y	
 	s OrderId=InputObj.%Get("order_id")
 	; hosp_order_id	医院订单号	字符型	32	
@@ -839,10 +848,11 @@ ClassMethod OPRegister(InputJson As %String)
 {
 	s ^tempRen("OPRegister")=InputJson
 	s InputObj=##class(%DynamicObject).%FromJSON(InputJson)
+	s InputObj=InputObj.%Get("input")
 	s InputObj=InputObj.%Get("req")
 	; fixmedins_code	定点医药机构编号	字符型	32		Y
 	s HospId=InputObj.%Get("fixmedins_code")
-    s HospId=$case(HospId,"7002":"2",:"")	
+    s HospId=$case(HospId,"H21021301867":"2",:"")	
 	; psn_cert_type	人员证件类型	字符型	6	Y	Y	02 身份证
 	s PsnCertType=InputObj.%Get("psn_cert_type")
 	; certno	身份证号	字符型	18		Y	
@@ -970,7 +980,7 @@ ClassMethod PushInfo(AdmId As %String, OrderStr As %String)
 	s OutPutObj=##class(%DynamicObject).%New()
     s ResObj=##class(%DynamicObject).%New()
 	; fixmedins_code 定点医药机构编号 字符型 32 
-	d ResObj.%Set("fixmedins_code","7002")
+	d ResObj.%Set("fixmedins_code","H21021301867")
 	s DataInfo=##class(%DynamicArray).%New()
 	s PatDr=$p($g(^PAADM(AdmId)),"^")
     f i=1:1:$l(OrderStr,"^") 
