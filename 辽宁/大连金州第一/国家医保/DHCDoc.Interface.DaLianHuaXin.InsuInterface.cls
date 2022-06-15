@@ -5,13 +5,13 @@ ClassMethod GetHospInfoObj(HospDr As %String, FixMedinsCode As %String)
 {
 	s HsopObj=##class(%DynamicObject).%New()
 	; fixmedins_code	定点医药机构编号	字符型	32		Y	规则：医保下发的定点医疗机构编号
-	d HsopObj.%Set("fixmedins_code","7002")
+	d HsopObj.%Set("fixmedins_code","H21021301867")
 	; name	医院名称	字符型	128		Y	
 	d HsopObj.%Set("name",$p($g(^CT("HOSP",HospDr)),"^",2))
 	; short_name	医院名称简称	字符型	64		Y	
 	d HsopObj.%Set("short_name",$p($g(^CT("HOSP",HospDr)),"^",2))
 	; website	医院网站	字符型	128			
-	d HsopObj.%Set("website","7002")
+	d HsopObj.%Set("website","")
 	; level	医院等级，	字符型	2	Y	Y	
 	d HsopObj.%Set("level","02")
 	; desc	医院介绍	字符型	2000	
@@ -74,7 +74,8 @@ ClassMethod GetCTLocMajorObj(CTLocMajorDr As %String, LocHospDr As %String)
 	d CTLocMajorObj.%Set("dept_ybid","")
 	; dept_type	科别	字符型	50			二级科室必填
 	d CTLocMajorObj.%Set("dept_type","")
-	q CTLocMajorObj.%ToJSON()
+	q CTLocMajorObj
+	;q CTLocMajorObj.%ToJSON()
 }
 
 ClassMethod GetDeptInfoObj(DeptDr As %String, CTLocMajor As %String)
@@ -106,10 +107,11 @@ ClassMethod GetDeptInfoObj(DeptDr As %String, CTLocMajor As %String)
 	; rule	科室预约规则说明	字符型	128			
 	d DeptObj.%Set("rule","")
 	; dept_ybid	科室医保编码	字符型	50			医保中心备案科室编码，二级科室必填
-	d DeptObj.%Set("dept_ybid","")
+	d DeptObj.%Set("dept_ybid",##class(web.INSUDicDataCom).GetDicByCodeAndInd("deptCon00A",$p($g(^CTLOC(DeptDr)),"^",1),6))
 	; dept_type	科别	字符型	50			二级科室必填
 	d DeptObj.%Set("dept_type","")
-	q DeptObj.%ToJSON()
+	q DeptObj
+	;q DeptObj.%ToJSON()
 }
 
 /// 获取排班信息
@@ -122,17 +124,18 @@ ClassMethod GetRBASRecObjByRBASObj(ScheduleObj As User.RBApptSchedule, DHCRBASOb
 	; time_flag	时段	字符型	1	Y	Y	\
 	s ASTimeRangeDR=DHCRBASObj.ASTimeRangeDRGetObjectId()
     // 1	上午 2	下午 3	晚上
-    s ASTimeRangeDR=$case(ASTimeRangeDR,"1":"1","2":"2","3":"3",:"-1")
+    s ASTimeRangeDR=$case(ASTimeRangeDR,"1":"1","2":"2","3":"3",:"1")
 	d RegTimeObj.%Set("time_flag",ASTimeRangeDR)
 	; reg_status	出诊状态	字符型	1		Y	0-停诊 1出诊 2-暂未开放
 	d RegTimeObj.%Set("reg_status","1")
 	; total	该时段可挂号源总数	字符型	20		Y	不限号源数量默认传-1
 	s RegType=##CLass(web.DHCLockSchedule).GetAutoRegType(ScheduleObj.%Id())
     s APPSeqNoCount=..GetAppSeqNo(ScheduleObj.%Id(),AppRegMethodCode)
+    i APPSeqNoCount=0 s APPSeqNoCount="-1"
 	d RegTimeObj.%Set("total",APPSeqNoCount)
 	; over_count	该时段剩余号源数	字符型	20		Y	不限号源数量默认传-1
 	s AppAllNumber=##class(web.DHCRBAppointment).GetAvailableNum(ScheduleObj.%Id(),RegType,AppRegMethodCode)
-	d RegTimeObj.%Set("over_count",)
+	d RegTimeObj.%Set("over_count",AppAllNumber)
 	; reg_level	排班类别	字符型	1		Y	1-普通 2专家 3-急诊
 	d RegTimeObj.%Set("reg_level","1")
 	; sex_limit	班次性别限制	字符型	1			0-全部 1男 2-女
@@ -193,19 +196,21 @@ ClassMethod GetRBASRecObjByRBASObj(ScheduleObj As User.RBApptSchedule, DHCRBASOb
                         s TarItmLinkInsu=##class(web.DHCINSUPort).TarItmLinkInsu(TariffDR,"62","","","")
                         s FeeDetailObj=##class(%DynamicObject).%New()
                         ; detail_name	费用项目医保名称	字符型	30		Y	医保目录项目名称
-                        d RegTimeObj.%Set("detail_name",$p(TarItmLinkInsu,"^",12))
+                        d FeeDetailObj.%Set("detail_name",$p(TarItmLinkInsu,"^",12))
                         ; detail_code	费用医保项目编码	字符型	32		Y	将国家编码和省级编码合并为一个字
-                        d RegTimeObj.%Set("detail_code",$p(TarItmLinkInsu,"^",13))
+                        d FeeDetailObj.%Set("detail_code",$p(TarItmLinkInsu,"^",13))
                         ; detail_amout	项目金额	数值型	10，2		Y	单位：元
-                        d RegTimeObj.%Set("detail_amout",TarPrice)
+                        d FeeDetailObj.%Set("detail_amout",TarPrice)
                         ; detail_hitem_no	院端项目代码	字符型	23		Y	
-                        d RegTimeObj.%Set("detail_hitem_no",$P($G(^DHCTARI(TariffDR)),"^",1))
+                        d FeeDetailObj.%Set("detail_hitem_no",$P($G(^DHCTARI(TariffDR)),"^",1))
+                        
                         d FeeDetail.%Push(FeeDetailObj)
 	            }
             }
         }
     }
-    d RegTimeList.%Push(RegTimeObj)
+    d RegTimeObj.%Set("fee_detail",FeeDetail)
+	d RegTimeList.%Push(RegTimeObj)
 	q RegTimeList
 }
 
